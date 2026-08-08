@@ -15,5 +15,5 @@ export async function GET(request: Request) {
   const matches = rankJobs(candidate, filtered, parsed.data.includeIneligible === "true");
   const page = matches.slice(parsed.data.cursor, parsed.data.cursor + parsed.data.limit);
   const nextCursor = parsed.data.cursor + page.length < matches.length ? parsed.data.cursor + page.length : null;
-  return Response.json({ matches: page, nextCursor, estimateLabel: "RoleRadar match estimate", fictional: true });
+  return Response.json({ matches: page, nextCursor, estimateLabel: "NextJOB match estimate", fictional: true });
 }

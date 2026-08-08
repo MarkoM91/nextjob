@@ -117,7 +117,7 @@ export type MatchResult = {
 };
 
 export type AtsReport = {
-  label: "RoleRadar ATS readiness estimate";
+  label: "NextJOB ATS readiness estimate";
   overallScore: number;
   requiredKeywordCoverage: number;
   preferredKeywordCoverage: number;

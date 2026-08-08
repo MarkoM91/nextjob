@@ -126,14 +126,14 @@ export function atsAnalyze(profile: CandidateProfile, job: Job, generatedText: s
   const formattingScore = 96;
   const overallScore = Math.round(requiredKeywordCoverage * 0.45 + preferredKeywordCoverage * 0.15 + formattingScore * 0.2 + factualIntegrityScore * 0.2);
   return {
-    label: "RoleRadar ATS readiness estimate",
+    label: "NextJOB ATS readiness estimate",
     overallScore,
     requiredKeywordCoverage,
     preferredKeywordCoverage,
     formattingScore,
     factualIntegrityScore,
     warnings: unsupported.length ? unsupported.map((skill) => `${skill} appears in the job description but is not verified in your profile.`) : ["Actual employer systems may weigh keywords and formatting differently."],
-    disclaimer: "This is a RoleRadar estimate, not the proprietary score of an employer or ATS vendor. Actual systems may differ.",
+    disclaimer: "This is a NextJOB estimate, not the proprietary score of an employer or ATS vendor. Actual systems may differ.",
   };
 }
 
@@ -147,7 +147,7 @@ export function createDemoApplication(profile: CandidateProfile, job: Job, tone 
   return {
     jobId: job.id,
     generatedAt: "2026-08-05T12:00:00.000Z",
-    model: "roleradar-demo-deterministic-v1",
+    model: "nextjob-demo-deterministic-v1",
     promptVersion: "application-grounded-1.0",
     validationResult: "passed",
     summary,

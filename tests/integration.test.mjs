@@ -24,7 +24,7 @@ test("landing page replaces the starter and communicates the core promise", asyn
 });
 
 test("main onboarding pages render in a complete walkthrough", async () => {
-  for (const [path, text] of [["/upload", "Upload your current CV"], ["/processing", "Turning your experience into a factual profile"], ["/profile-review", "Does this look like you?"], ["/preferences", "What should RoleRadar look for?"], ["/dashboard", "Your search is in focus"]]) {
+  for (const [path, text] of [["/upload", "Upload your current CV"], ["/processing", "Turning your experience into a factual profile"], ["/profile-review", "Does this look like you?"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "Your search is in focus"]]) {
     const response = await request(path);
     assert.equal(response.status, 200, path);
     assert.match(await response.text(), new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), path);
@@ -37,7 +37,7 @@ test("matches API returns curated, eligible, fictional jobs", async () => {
   const body = await response.json();
   assert.equal(body.matches.length, 5);
   assert.ok(body.matches.every((match) => match.eligible && match.job.fictional));
-  assert.equal(body.estimateLabel, "RoleRadar match estimate");
+  assert.equal(body.estimateLabel, "NextJOB match estimate");
 });
 
 test("provider ingestion degrades gracefully", async () => {
@@ -54,7 +54,7 @@ test("application generation is structured and factually validated", async () =>
   assert.equal(response.status, 200);
   assert.equal(body.factualValidation.valid, true);
   assert.equal(body.application.validationResult, "passed");
-  assert.equal(body.application.ats.label, "RoleRadar ATS readiness estimate");
+  assert.equal(body.application.ats.label, "NextJOB ATS readiness estimate");
 });
 
 test("native applications require authorization and explicit review confirmation", async () => {

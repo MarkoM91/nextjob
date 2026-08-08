@@ -1,6 +1,6 @@
-# RoleRadar
+# NextJOB
 
-RoleRadar is a production-oriented MVP for global job discovery and truthful,
+NextJOB is a production-oriented MVP for global job discovery and truthful,
 job-specific application preparation.
 
 Its promise is simple:
@@ -32,7 +32,7 @@ original employer or job-board website.
 - Focused application studio with Original, Tailored, and Changes views.
 - Grounded CV, cover-letter, email, and interview-preparation generation.
 - Claim-source links and factual validation for every generated CV bullet.
-- “RoleRadar ATS readiness estimate” with keyword, formatting, and factual
+- “NextJOB ATS readiness estimate” with keyword, formatting, and factual
   integrity factors plus an explicit vendor-score disclaimer.
 - Server-side selectable PDF, editable DOCX, and plain-text generation without
   rendering documents as images.
@@ -93,7 +93,7 @@ npm run dev
 ```
 
 Open the local URL printed by the development server. External keys are not
-required: RoleRadar automatically uses deterministic demo services when
+required: NextJOB automatically uses deterministic demo services when
 production credentials are absent.
 
 ### Useful scripts
@@ -174,7 +174,7 @@ scraping is out of scope. Provider retry, rate-limit, dead-letter, raw-payload,
 sync-run, and health fields are present in the schema for a queue-backed worker.
 
 Worldwide coverage always depends on the set of enabled, licensed providers.
-RoleRadar never claims that one source contains every vacancy worldwide.
+NextJOB never claims that one source contains every vacancy worldwide.
 
 ## AI and factual safety
 
@@ -191,7 +191,7 @@ adapter, including:
 Generated experience bullets fail validation if their sources are missing or
 unsupported. The product statement is visible in the UI:
 
-> RoleRadar improves wording and relevance but never invents experience.
+> NextJOB improves wording and relevance but never invents experience.
 
 A production model adapter should request structured JSON, validate it with Zod,
 retry invalid responses within a strict limit, and refuse unsupported claims.
@@ -206,7 +206,7 @@ simple formatting, readability, and factual integrity. Default CV output is
 single-column and avoids images, tables, text boxes, charts, skill bars, and
 essential content in headers or footers.
 
-The label is always **RoleRadar ATS readiness estimate**. It does not reproduce
+The label is always **NextJOB ATS readiness estimate**. It does not reproduce
 or claim access to a proprietary employer or vendor score. Actual employer
 systems may parse, weigh, and rank documents differently.
 
@@ -293,6 +293,6 @@ Before a production launch:
   cross-browser Playwright automation should be added to the deployment CI once
   browser runners are provisioned.
 - ATS readiness is an estimate, not a vendor score.
-- RoleRadar does not guarantee interviews or job offers.
+- NextJOB does not guarantee interviews or job offers.
 - Generated claims must remain factual and user-approved.
 - The MVP never auto-applies.

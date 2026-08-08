@@ -129,7 +129,7 @@ export const jobs: Job[] = seeds.map((seed, index) => {
     employmentType: "Full-time",
     seniority: seed.seniority ?? "Mid",
     salary: seed.salary,
-    description: seed.description ?? `Join a fictional international team to improve customer journeys, resolve meaningful problems, and build clear, repeatable service operations. This demo vacancy is designed to show RoleRadar's matching and application workflow.`,
+    description: seed.description ?? `Join a fictional international team to improve customer journeys, resolve meaningful problems, and build clear, repeatable service operations. This demo vacancy is designed to show NextJOB's matching and application workflow.`,
     responsibilities: ["Own customer questions from first contact to resolution", "Turn service insights into practical process improvements", "Collaborate with product and operations colleagues"],
     requirements: seed.skills.map((value) => ({ value, kind: value === "English" || value === "Spanish" ? "language" : "skill", mandatory: true, confidence: 0.96, evidence: `${value} is listed in the required experience section.` })),
     requiredSkills: seed.skills,

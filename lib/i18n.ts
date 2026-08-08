@@ -1,11 +1,11 @@
 export const dictionaries = {
   en: {
-    brand: "RoleRadar",
+    brand: "NextJOB",
     tagline: "Your global job search, brought into focus.",
     landing: {
       eyebrow: "A calmer way to find your next role",
       headline: "Upload your CV. Find jobs worldwide. Apply with confidence.",
-      supporting: "RoleRadar analyzes your experience, recommends relevant jobs from multiple sources, and creates an ATS-optimized CV and personalized cover letter for every opportunity.",
+      supporting: "NextJOB analyzes your experience, recommends relevant jobs from multiple sources, and creates an ATS-optimized CV and personalized cover letter for every opportunity.",
       primary: "Upload your CV",
       secondary: "See how it works",
     },

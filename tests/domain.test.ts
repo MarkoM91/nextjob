@@ -45,7 +45,7 @@ test("ranking hides ineligible roles by default", () => {
 
 test("ATS analysis is explicitly an estimate and flags unsupported keywords", () => {
   const report = atsAnalyze(candidate, jobs[0], "Salesforce customer support process improvement and fictional AWS mastery");
-  assert.equal(report.label, "RoleRadar ATS readiness estimate");
+  assert.equal(report.label, "NextJOB ATS readiness estimate");
   assert.match(report.disclaimer, /Actual systems may differ/);
   assert.ok(report.overallScore >= 0 && report.overallScore <= 100);
 });

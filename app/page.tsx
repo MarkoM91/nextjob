@@ -1,5 +1,5 @@
-import { RoleRadarApp } from "./components/RoleRadarApp";
+import { NextJobApp } from "./components/RoleRadarApp";
 
 export default function Home() {
-  return <RoleRadarApp screen="landing" demoMode />;
+  return <NextJobApp screen="landing" demoMode />;
 }

@@ -16,5 +16,5 @@ export async function POST(request: Request) {
   const application = createDemoApplication(candidate, job, parsed.data.tone);
   const validation = validateGeneratedClaims(application, candidate);
   if (!validation.valid) return Response.json({ error: "Generated claims failed factual validation", unsupported: validation.unsupported }, { status: 422 });
-  return Response.json({ application, factualValidation: validation, statement: "RoleRadar improves wording and relevance but never invents experience.", demoMode: true });
+  return Response.json({ application, factualValidation: validation, statement: "NextJOB improves wording and relevance but never invents experience.", demoMode: true });
 }
