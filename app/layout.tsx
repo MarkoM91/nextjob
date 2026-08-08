@@ -16,14 +16,15 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: "NextJOB — Relevant jobs and tailored applications", template: "%s · NextJOB" },
     description: "Upload your CV. Find jobs worldwide. Apply with confidence. Discover relevant roles across multiple markets and prepare factual ATS-ready applications.",
     applicationName: "NextJOB",
+    manifest: "/manifest.webmanifest",
     keywords: ["global job search", "ATS CV", "cover letter", "job matching"],
-    openGraph: { type: "website", siteName: "NextJOB", title: "Upload your CV. Get relevant jobs. Tailor every application.", description: "A private, factual job-search workspace from verified profile to application-ready documents.", images: [{ url: "/og-nextjob.png", width: 1536, height: 1024, alt: "NextJOB product journey from CV to relevant jobs and a tailored application." }] },
-    twitter: { card: "summary_large_image", title: "NextJOB", description: "Upload your CV. Get relevant jobs. Tailor every application.", images: ["/og-nextjob.png"] },
+    openGraph: { type: "website", siteName: "NextJOB", title: "Find work that fits. Apply without the busywork.", description: "A private, factual Android-first job-search workspace from verified profile to application-ready documents.", images: [{ url: "/og-nextjob-android.png", width: 1536, height: 1024, alt: "NextJOB Android app showing a verified 92% job match." }] },
+    twitter: { card: "summary_large_image", title: "NextJOB", description: "Find work that fits. Apply without the busywork.", images: ["/og-nextjob-android.png"] },
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
   };
 }
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f7f7f5" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#2563eb", colorScheme: "light" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="en"><body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body></html>;

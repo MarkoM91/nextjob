@@ -17,14 +17,14 @@ test("landing page replaces the starter and communicates the core promise", asyn
   const response = await request("/");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Upload your CV\. Find jobs worldwide\. Apply with confidence\./);
-  assert.match(html, /Nothing is submitted automatically/);
-  assert.match(html, /Your experience is never invented/);
+  assert.match(html, /Find work that fits\. Apply without the busywork\./);
+  assert.match(html, /Private by default/);
+  assert.match(html, /Nothing sent without your review/);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/);
 });
 
 test("main onboarding pages render in a complete walkthrough", async () => {
-  for (const [path, text] of [["/upload", "Upload your current CV"], ["/processing", "Turning your experience into a factual profile"], ["/profile-review", "Does this look like you?"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "Your search is in focus"]]) {
+  for (const [path, text] of [["/upload", "Upload your current CV"], ["/processing", "Turning your experience into a factual profile"], ["/profile-review", "Does this look like you?"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "6 jobs are worth your time today."]]) {
     const response = await request(path);
     assert.equal(response.status, 200, path);
     assert.match(await response.text(), new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), path);

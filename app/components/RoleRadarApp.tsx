@@ -26,10 +26,9 @@ const bestMatch = visibleMatches[0];
 
 const productNav: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/matches", label: "Job matches", icon: Radar },
-  { href: "/saved", label: "Saved", icon: Bookmark },
+  { href: "/matches", label: "Jobs", icon: Radar },
   { href: "/tracker", label: "Applications", icon: BriefcaseBusiness },
-  { href: "/documents", label: "Documents", icon: FileText },
+  { href: "/profile", label: "Profile", icon: FileText },
 ];
 
 const supportNav: NavItem[] = [
@@ -43,57 +42,52 @@ function Logo({ compact = false }: { compact?: boolean }) {
 }
 
 function Landing() {
-  return <main className="landing">
-    <header className="landing-nav">
-      <Logo />
-      <nav aria-label="Main navigation"><a href="#how">How it works</a><Link href="/billing">Pricing</Link><Link href="/privacy">Privacy</Link></nav>
-      <div className="landing-auth"><Link href="/sign-in">Sign in</Link><Link className="button button-small" href="/upload">Upload CV</Link></div>
-      <Link className="mobile-menu button button-small" href="/upload">Upload CV</Link>
-    </header>
-
-    <section className="landing-hero landing-wrap">
-      <p className="landing-kicker">Job search and tailored applications, in one place.</p>
-      <h1>Upload your CV. Get relevant jobs. Tailor every application.</h1>
-      <p>NextJOB finds suitable roles across multiple markets and creates an ATS-ready CV and cover letter for each job.</p>
-      <div className="landing-actions"><Link className="button" href="/upload">Upload CV</Link><Link className="button secondary" href="/dashboard">View demo</Link></div>
-      <small>Private by default. Nothing is submitted automatically.</small>
-    </section>
-
-    <section className="journey-preview landing-wrap" aria-label="How NextJOB works">
-      <div className="journey-head"><span>1 · Your profile</span><span>2 · Relevant jobs</span><span>3 · Tailored application</span></div>
-      <div className="journey-grid">
-        <article><strong>{candidate.fullName}</strong><p>{candidate.currentRole} · {candidate.location}</p><div className="tag-row">{candidate.skills.slice(0, 4).map((skill) => <span key={skill}>{skill}</span>)}</div></article>
-        <article className="mini-matches">{visibleMatches.slice(0, 2).map((match) => <div key={match.job.id}><span><strong>{match.job.title}</strong><em>● {match.band}</em></span><p>{match.job.company} · {match.job.locationText}</p></div>)}</article>
-        <article className="mini-document"><p>CV tailored for {bestMatch.job.company.replace(" (fictional)", "")}</p><i /><i /><i /><i /><strong>ATS readiness {createDemoApplication(candidate, bestMatch.job).ats.overallScore} / 100</strong></article>
+  const match = bestMatch;
+  return <main className="android-welcome">
+    <header className="welcome-appbar"><Logo /><Link href="/sign-in">Sign in</Link></header>
+    <section className="welcome-content">
+      <div className="welcome-copy">
+        <p className="landing-kicker">Your job search, in one calm place.</p>
+        <h1>Find work that fits. Apply without the busywork.</h1>
+        <p>Upload your CV once. NextJOB finds relevant jobs, explains every match, and prepares the application from your real experience.</p>
+        <div className="landing-actions"><Link className="button" href="/upload">Start with my CV <ArrowRight /></Link><Link className="button secondary" href="/dashboard">Explore the demo</Link></div>
+        <small><ShieldCheck /> Private by default · Nothing sent without your review</small>
+      </div>
+      <div className="welcome-phone" aria-label="Example NextJOB match">
+        <div className="phone-status"><span>9:41</span><strong>NextJOB</strong><Bell /></div>
+        <div className="phone-screen">
+          <p className="eyebrow">BEST MATCH TODAY</p>
+          <h2>{match.job.title}</h2>
+          <p>{match.job.company} · {match.job.locationText}</p>
+          <div className="phone-match"><strong>{match.score}% match</strong><span>{match.matchedSkills.length} requirements confirmed</span></div>
+          <div className="phone-proof">{match.matchedSkills.slice(0, 3).map((skill) => <span key={skill}><Check />{skill}</span>)}</div>
+          <Link className="button" href={`/job?job=${match.job.id}`}>View why it fits <ArrowRight /></Link>
+        </div>
       </div>
     </section>
-
-    <section id="how" className="landing-proof">
-      <div className="landing-wrap proof-grid">
-        <article><h2>Matches you can verify</h2><p>Every match is explained with evidence from your CV. Requirements we cannot confirm are marked, not hidden.</p><div className="evidence-list"><span><strong>Confirmed</strong> {candidate.yearsOfExperience} years of relevant experience</span><span><strong>Confirmed</strong> {candidate.skills.slice(0, 2).join(", ")}</span><span className="warning"><strong>Unverified</strong> Enterprise account experience</span></div></article>
-        <article><h2>Alerts where you already are</h2><p>New strong matches arrive by email or WhatsApp. One tap opens the job—the whole flow works on your phone.</p><div className="alert-preview"><small>WhatsApp · 09:12</small>NextJOB: A new strong match is available. <Link href="/matches">View job</Link></div><div className="alert-preview"><small>Email · 08:00</small><strong>4 new jobs match your profile</strong> — opportunities worth reviewing today.</div></article>
-      </div>
+    <section className="welcome-steps" aria-label="How NextJOB works">
+      <article><span>1</span><div><strong>Upload once</strong><p>We create a profile you approve.</p></div></article>
+      <article><span>2</span><div><strong>See jobs worth your time</strong><p>Every recommendation comes with evidence.</p></div></article>
+      <article><span>3</span><div><strong>Review and apply</strong><p>Submit in-app when supported, or continue with autofill.</p></div></article>
     </section>
-
-    <section id="trust" className="principles landing-wrap"><article><strong>Private by default</strong><p>Your CV is never shared. Delete it anytime.</p></article><article><strong>Nothing sent automatically</strong><p>You review and download every document, then apply through the original source.</p></article><article><strong>Facts only</strong><p>Documents use only information confirmed in your profile. Your experience is never invented.</p></article></section>
-    <section className="landing-cta"><div className="landing-wrap"><h2>Start with the CV you already have.</h2><p>Free to try in demo mode. Review every fact before it is used.</p><Link className="button" href="/upload">Upload CV</Link></div></section>
-    <footer className="landing-footer landing-wrap"><Logo /><p>{copy.tagline}</p><div><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/help">Help</Link></div><span>© 2026 NextJOB</span></footer>
+    <footer className="welcome-footer"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><span>© 2026 NextJOB</span></footer>
   </main>;
 }
 
 function AppShell({ screen, user, demoMode, children }: Props & { children: React.ReactNode }) {
   const displayName = user?.displayName ?? candidate.fullName;
+  const isActive = (href: string) => href === "/dashboard" ? screen === "dashboard" : href === "/matches" ? ["matches", "saved", "job"].includes(screen) : href === "/tracker" ? ["tracker", "package", "done", "generating", "ats", "studio", "workspace", "cv-editor", "cover-letter", "application-email", "interview"].includes(screen) : ["profile", "profile-review", "preferences", "settings"].includes(screen);
   return <div className="app-frame">
     <aside className="sidebar">
       <div className="sidebar-head"><Logo /></div>
-      <nav aria-label="Product">{productNav.map((item) => <SidebarLink key={item.href} item={item} active={screen === item.href.slice(1) || (item.href === "/tracker" && ["package", "done"].includes(screen))} />)}<p className="nav-label support-label">Account</p>{supportNav.map((item) => <SidebarLink key={item.href} item={item} active={screen === item.href.slice(1)} />)}</nav>
+      <nav aria-label="Product">{productNav.map((item) => <SidebarLink key={item.href} item={item} active={isActive(item.href)} />)}<p className="nav-label support-label">Account</p>{supportNav.map((item) => <SidebarLink key={item.href} item={item} active={screen === item.href.slice(1)} />)}</nav>
       <div className="profile-card"><span className="avatar">{displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}</span><div><strong>{displayName.split(" ")[0]}</strong><span>{demoMode ? "Fictional demo" : user?.email}</span></div></div>
     </aside>
     <div className="app-main">
-      <header className="mobile-appbar"><Logo /><Link href="/notifications" aria-label="Notifications"><Bell /></Link></header>
+      <header className="mobile-appbar"><Logo /><Link className="mobile-alerts" href="/notifications" aria-label="Notifications"><Bell /><i /></Link></header>
       {children}
     </div>
-    <nav className="bottom-nav" aria-label="Mobile navigation">{productNav.slice(0, 4).map(({ href, label, icon: Icon }) => <Link href={href} key={href} className={screen === href.slice(1) ? "active" : ""}><Icon /><span>{label.replace("Application ", "")}</span></Link>)}</nav>
+    <nav className="bottom-nav" aria-label="Mobile navigation">{productNav.map(({ href, label, icon: Icon }) => <Link href={href} key={href} className={isActive(href) ? "active" : ""}><Icon /><span>{label}</span></Link>)}</nav>
   </div>;
 }
 
@@ -105,10 +99,11 @@ function ScoreRing({ score, small = false }: { score: number; small?: boolean })
 
 function Dashboard() {
   return <AppContent narrow>
-    <section className="dashboard-welcome"><h1>Good morning, {candidate.fullName.split(" ")[0]}</h1><p>Your search is in focus. 6 new jobs match your profile.</p><Link className="button" href="/matches">View today&apos;s matches</Link></section>
-    <div className="dashboard-stats"><span><strong>2</strong> saved</span><span><strong>1</strong> application prepared</span><span><strong>1</strong> deadline this week — {bestMatch.job.company.replace(" (fictional)", "")}, 18 Aug</span></div>
-    <section className="dashboard-matches"><h2>Top matches today</h2><div className="compact-list">{visibleMatches.slice(0, 3).map((match) => <CompactJob key={match.job.id} match={match} />)}</div></section>
-    <p className="dashboard-tip">Tip: add your Salesforce Service Cloud experience to improve customer-success matches. <Link href="/profile">Update profile</Link></p>
+    <section className="dashboard-welcome"><p className="dashboard-greeting">Good morning, {candidate.fullName.split(" ")[0]}</p><h1>6 jobs are worth your time today.</h1><p>Already filtered for your experience, location, and work preferences.</p><Link className="button" href="/matches">See my matches <ArrowRight /></Link></section>
+    <div className="search-focus"><span><strong>{candidate.targetTitles[0]}</strong> and related roles</span><span>Remote or hybrid</span><span>Italy + EU</span><Link href="/preferences">Edit</Link></div>
+    <section className="best-today"><div className="section-row"><div><p className="eyebrow">BEST MATCH TODAY</p><h2>{bestMatch.job.title}</h2><p>{bestMatch.job.company} · {bestMatch.job.locationText} · {formatSalary(bestMatch.job)}</p></div><em className={`match-state ${bandClass(bestMatch.band)}`}>● {bestMatch.band}</em></div><p>{bestMatch.explanation}</p><div className="best-proof">{bestMatch.matchedSkills.slice(0, 3).map((skill) => <span key={skill}><CheckCircle2 />{skill}</span>)}</div><Link className="button full" href={`/job?job=${bestMatch.job.id}`}>View job <ArrowRight /></Link></section>
+    <section className="dashboard-matches"><div className="section-row"><h2>More good matches</h2><Link href="/matches">See all</Link></div><div className="compact-list">{visibleMatches.slice(1, 4).map((match) => <CompactJob key={match.job.id} match={match} />)}</div></section>
+    <p className="dashboard-tip">Improve your results by confirming Salesforce Service Cloud in your profile. <Link href="/profile">Review profile</Link></p>
     <p className="demo-disclaimer">All candidates, companies, vacancies, providers, and delivery events shown in demo mode are fictional.</p>
   </AppContent>;
 }
@@ -166,6 +161,7 @@ function JobDetail({ jobId }: { jobId?: string }) {
       <DetailSection title="Requirements">{match.job.requirements.map((item) => <li key={item.value}><strong>{item.value}</strong> — {item.mandatory ? "required" : "preferred"}<small>Evidence confidence {Math.round(item.confidence * 100)}%</small></li>)}</DetailSection>
       <section className="detail-section"><h2>Original description</h2><p>{match.job.description}</p><p className="source-note"><ShieldCheck /> Description is rendered as sanitized text and preserved separately from normalized fields.</p></section>
     </div><aside className="detail-sidebar"><section className="apply-card"><ApplicationMethodBadge job={match.job} /><h2>{method.title}</h2><p>{method.description}</p><Link className="button" href={`/generating?job=${match.job.id}`}>Create application <ArrowRight /></Link><a className="apply-secondary" href={match.job.originalUrl} target="_blank" rel="noreferrer">View original job <ExternalLink /></a><small>Nothing is submitted before your final confirmation.</small></section><section className="facts-card"><h3>Role at a glance</h3><Fact label="Salary" value={formatSalary(match.job)} /><Fact label="Work style" value={match.job.workplace} /><Fact label="Employment" value={match.job.employmentType} /><Fact label="Visa sponsorship" value={match.job.visaSponsorship === null ? "Not stated" : match.job.visaSponsorship ? "Available" : "Not available"} /><Fact label="Closes" value={match.job.expiresAt ? "30 September" : "Not provided"} /></section></aside></div>
+    <div className="job-mobile-action"><Link className="button" href={`/generating?job=${match.job.id}`}>Create application <ArrowRight /></Link></div>
   </AppContent>;
 }
 
@@ -196,7 +192,7 @@ function UploadScreen({ stage = "upload" }: { stage?: "upload" | "processing" | 
   return <OnboardingFrame step={1}><div className="upload-layout"><div><h1>Upload your current CV</h1><p className="onboarding-lead">We&apos;ll turn it into a profile you can review before any information is used.</p><div className={`dropzone ${file ? "has-file" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); setFile(event.dataTransfer.files?.[0] ?? null); }}><input ref={fileInput} type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />{file ? <><FileCheck2 /><strong>{file.name}</strong><span>{Math.max(1, Math.round(file.size / 1024))} KB · ready to upload</span><button type="button" onClick={() => fileInput.current?.click()}>Choose another file</button></> : <><UploadCloud /><strong>Drop your CV here</strong><span>PDF, DOCX, or TXT · maximum 10 MB</span><button type="button" className="button" onClick={() => fileInput.current?.click()}>Choose file</button></>}</div>{error && <p className="form-error" role="alert">{error}</p>}<label className="consent-check"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span><strong>I agree to secure AI processing</strong><small>Used only to extract your profile and create applications you request. <Link href="/privacy">Learn more</Link></small></span></label><button disabled={!file || !consent || uploading} className="button full" onClick={upload}>{uploading ? "Uploading…" : "Upload and continue"}<ArrowRight /></button><p className="upload-privacy">Private by default. Delete your CV anytime.</p></div></div></OnboardingFrame>;
 }
 
-function OnboardingFrame({ step, children }: { step: number; children: React.ReactNode }) { return <main className="onboarding"><header><Logo /><Link href="/help">Need help?</Link></header><div className="onboarding-progress"><span className={step >= 1 ? "active" : ""}>1 <em>Upload CV</em></span><i /><span className={step >= 2 ? "active" : ""}>2 <em>Review profile</em></span><i /><span className={step >= 3 ? "active" : ""}>3 <em>Set preferences</em></span><i /><span className={step >= 4 ? "active" : ""}>4 <em>Matches</em></span></div>{children}<footer><ShieldCheck /> Private by default. Nothing is submitted automatically.</footer></main>; }
+function OnboardingFrame({ step, children }: { step: number; children: React.ReactNode }) { return <main className="onboarding"><header><Logo /><Link href="/help">Help</Link></header><div className="onboarding-progress"><span className={step >= 1 ? "active" : ""}>1 <em>Add CV</em></span><i /><span className={step >= 2 ? "active" : ""}>2 <em>Check profile</em></span><i /><span className={step >= 3 ? "active" : ""}>3 <em>Choose jobs</em></span></div>{children}<footer><ShieldCheck /> Private by default. You approve every application.</footer></main>; }
 
 function ProfileReview() {
   const [verified, setVerified] = useState(new Set(candidate.facts.filter((fact) => fact.verifiedByUser).map((fact) => fact.id)));
@@ -313,7 +309,7 @@ function StaticScreen({ screen }: { screen: string }) { const content: Record<st
   billing: ["Billing", "Simple plans, clear limits.", ["Free demo workspace", "Production subscription adapter", "No payment details collected in demo mode", "Cancel before a paid integration is activated"]],
   profile: ["Profile", "Your verified source of truth.", ["6 years of confirmed experience", "7 verified skills", "3 languages", "4 grounded experience bullets"]],
   settings: ["Settings", "Control your workspace.", ["Account and security", "Language and regional formats", "Data retention", "Export or delete your account"]],
-}; const [title, subtitle, items] = content[screen] ?? ["Not found", "This workspace view is not available.", []]; return <AppContent narrow><PageIntro eyebrow="ROLERADAR" title={title} subtitle={subtitle} /><section className="panel static-panel">{items.map((item) => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}</section></AppContent>; }
+}; const [title, subtitle, items] = content[screen] ?? ["Not found", "This workspace view is not available.", []]; return <AppContent narrow><PageIntro eyebrow="NEXTJOB" title={title} subtitle={subtitle} /><section className="panel static-panel">{items.map((item) => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}</section></AppContent>; }
 
 function AppContent({ children, narrow = false }: { children: React.ReactNode; narrow?: boolean }) { return <main className={`app-content ${narrow ? "narrow" : ""}`}>{children}</main>; }
 function PageIntro({ eyebrow, title, subtitle, action }: { eyebrow: string; title: string; subtitle: string; action?: React.ReactNode }) { return <header className="page-intro"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{subtitle}</p></div>{action}</header>; }
