@@ -1281,6 +1281,8 @@ body { min-width: 320px; overscroll-behavior-y: none; }
   .detail-actions .button { display: none; }
   .job-mobile-action { position: fixed; z-index: 26; inset: auto 0 calc(72px + env(safe-area-inset-bottom)); display: block; padding: 10px 16px; border-top: 1px solid var(--line); background: rgba(255,255,255,.98); }
   .job-mobile-action .button { width: 100%; }
+  .studio-shell { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .studio-mobile-action { z-index: 29; inset: auto 0 calc(72px + env(safe-area-inset-bottom)); padding: 10px 16px; background: rgba(255,255,255,.98); box-shadow: 0 -6px 24px rgba(23,23,23,.06); }
   .job-detail-hero { gap: 14px; }
   .detail-layout { gap: 24px; }
   .onboarding { padding-bottom: env(safe-area-inset-bottom); }
