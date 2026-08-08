@@ -75,6 +75,7 @@ export type Job = {
   externalId: string;
   providerId: string;
   providerName: string;
+  applicationMethod: "native" | "autofill" | "external";
   canonicalUrl: string;
   originalUrl: string;
   title: string;

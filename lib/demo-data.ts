@@ -114,6 +114,7 @@ export const jobs: Job[] = seeds.map((seed, index) => {
     externalId: `${seed.provider?.toLowerCase().replace(/\W+/g, "-")}-${index + 1000}`,
     providerId: (seed.provider ?? "Demo feed").toLowerCase().replace(/\W+/g, "-"),
     providerName: seed.provider ?? "Demo feed",
+    applicationMethod: seed.provider === "Direct ATS" ? "native" : ["Atlas Jobs API", "Public Jobs JSON"].includes(seed.provider ?? "") ? "autofill" : "external",
     canonicalUrl: `https://example.test/jobs/${id}`,
     originalUrl: `https://example.test/${seed.company.toLowerCase().replace(/\W+/g, "-")}/${id}`,
     title: seed.title,

@@ -57,6 +57,20 @@ test("application generation is structured and factually validated", async () =>
   assert.equal(body.application.ats.label, "RoleRadar ATS readiness estimate");
 });
 
+test("native applications require authorization and explicit review confirmation", async () => {
+  const headers = { "content-type": "application/json", origin: "http://localhost" };
+  const nativeResponse = await request("/api/applications/submit", { method: "POST", headers, body: JSON.stringify({ jobId: "job-01", confirmed: true }) });
+  const nativeBody = await nativeResponse.json();
+  assert.equal(nativeResponse.status, 200);
+  assert.equal(nativeBody.status, "submitted");
+  assert.equal(nativeBody.demoMode, true);
+
+  const unsupportedResponse = await request("/api/applications/submit", { method: "POST", headers, body: JSON.stringify({ jobId: "job-02", confirmed: true }) });
+  const unsupportedBody = await unsupportedResponse.json();
+  assert.equal(unsupportedResponse.status, 409);
+  assert.equal(unsupportedBody.applicationMethod, "autofill");
+});
+
 test("document endpoint downloads real PDF, DOCX, and plain text", async () => {
   for (const [format, signature] of [["pdf", [0x25, 0x50, 0x44, 0x46]], ["docx", [0x50, 0x4b, 0x03, 0x04]]]) {
     const response = await request(`/api/documents/${format}?job=job-01`);
