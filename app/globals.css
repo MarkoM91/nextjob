@@ -1238,6 +1238,8 @@ body { min-width: 320px; overscroll-behavior-y: none; }
 .best-proof span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 999px; background: #edf8f1; color: #246247; font-size: 11px; }
 .best-proof svg { width: 13px; }
 .dashboard-matches > .section-row { align-items: center; margin-bottom: 10px; }
+.editor-layout-simple { display: block; max-width: 760px; }
+.editor-layout-simple .document-paper { width: 100%; max-width: none; }
 .job-mobile-action { display: none; }
 
 @media (max-width: 720px) {
