@@ -1,0 +1,54 @@
+{
+  "name": "roleradar",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "vinext dev",
+    "build": "vinext build",
+    "start": "vinext start",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "node --experimental-strip-types --test tests/domain.test.ts",
+    "test:integration": "node --import ./tests/cloudflare-loader.mjs --test tests/integration.test.mjs",
+    "test": "npm run build && npm run test:unit && npm run test:integration",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "db:generate": "node --require ./scripts/node-userinfo-workaround.cjs ./node_modules/drizzle-kit/bin.cjs generate"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "5.2.2",
+    "drizzle-orm": "0.45.2",
+    "lucide-react": "^0.468.0",
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.54.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.51.0",
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.3.0",
+    "react-server-dom-webpack": "^19.2.8",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "vinext": "0.0.50",
+    "vite": "^8.2.0",
+    "wrangler": "^4.119.0"
+  },
+  "overrides": {
+    "undici": "7.29.0",
+    "@esbuild-kit/core-utils": {
+      "esbuild": "0.25.12"
+    }
+  },
+  "type": "module"
+}
