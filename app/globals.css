@@ -502,6 +502,8 @@ svg { flex: 0 0 auto; }
 .prep-list h2 { margin: 0 0 17px; font: 500 18px Georgia, serif; }
 .prep-list p { padding: 10px 0; margin: 0; border-top: 1px solid var(--line); color: #55635b; font-size: 9px; line-height: 1.6; }
 .studio-mobile-action { display: none; }
+.document-provider-note { position: fixed; right: 24px; bottom: 24px; z-index: 18; max-width: 360px; display: flex; align-items: center; gap: 9px; padding: 11px 14px; border: 1px solid #b9dfcc; border-radius: 8px; background: #f1faf5; color: #176b49; box-shadow: var(--shadow-small); font-size: 12px; }
+.document-provider-note svg { width: 17px; flex: 0 0 auto; }
 
 /* Package, tracker, documents */
 .package-layout { display: grid; grid-template-columns: 1fr 290px; gap: 20px; }
@@ -1177,6 +1179,7 @@ button:disabled { cursor: not-allowed; opacity: .42; }
   .studio-ready .application-method { display: none; }
   .studio-mobile-action { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; }
   .studio-mobile-action .secondary-action, .studio-mobile-action .button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .document-provider-note { right: 16px; bottom: 84px; left: 16px; max-width: none; }
 }
 
 @media (max-width: 480px) {

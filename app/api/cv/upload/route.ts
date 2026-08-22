@@ -1,7 +1,10 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { candidate } from "../../../../lib/demo-data";
+import { getChatGPTUser } from "../../../chatgpt-auth";
+import { resumeProfileKey, safeOwnerId, type StoredResumeProfile } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
+import { candidateFromUseResume, isUseResumeConfigured, parseResumeDocument, UseResumeApiError } from "../../../../lib/useresume";
 
 const MAX_FILE_SIZE = Number(process.env.CV_MAX_BYTES ?? 10 * 1024 * 1024);
 const allowedTypes = new Set(["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"]);
@@ -27,8 +30,20 @@ export async function POST(request: Request) {
   if (file.size <= 0 || file.size > MAX_FILE_SIZE) return Response.json({ error: "The CV must be between 1 byte and 10 MB." }, { status: 413 });
   const bytes = await file.arrayBuffer();
   const scan = await scanForMalware(bytes);
-  const objectKey = `private/demo-user/cv/${crypto.randomUUID()}.${extension}`;
+  const user = await getChatGPTUser();
+  const ownerId = safeOwnerId(user?.id);
+  const objectKey = `private/${ownerId}/cv/${crypto.randomUUID()}.${extension}`;
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
-  if (storage) await storage.put(objectKey, bytes, { httpMetadata: { contentType: file.type }, customMetadata: { ownerId: "demo-user", scanEngine: scan.engine } });
-  return Response.json({ id: crypto.randomUUID(), status: "completed", objectKey: storage ? objectKey : null, scan, profile: candidate, demoMode: !storage }, { status: 201 });
+  if (storage) await storage.put(objectKey, bytes, { httpMetadata: { contentType: file.type }, customMetadata: { ownerId, scanEngine: scan.engine } });
+  if (!isUseResumeConfigured()) return Response.json({ id: crypto.randomUUID(), status: "completed", objectKey: storage ? objectKey : null, scan, profile: candidate, parsingProvider: "nextjob-fallback", providerConfigured: false, demoMode: true }, { status: 201 });
+  try {
+    const content = await parseResumeDocument(bytes);
+    const profile = candidateFromUseResume(content, ownerId);
+    const stored: StoredResumeProfile = { provider: "useresume", parsedAt: new Date().toISOString(), content, profile };
+    if (storage) await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "useresume" } });
+    return Response.json({ id: crypto.randomUUID(), status: "completed", objectKey: storage ? objectKey : null, scan, profile, parsingProvider: "useresume", providerConfigured: true, demoMode: !storage }, { status: 201 });
+  } catch (error) {
+    const message = error instanceof UseResumeApiError ? error.message : "The CV parser is temporarily unavailable";
+    return Response.json({ error: message, code: error instanceof UseResumeApiError ? error.code : "PARSING_FAILED" }, { status: 502 });
+  }
 }

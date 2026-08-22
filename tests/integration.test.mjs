@@ -65,6 +65,16 @@ test("application generation is structured and factually validated", async () =>
   assert.equal(body.factualValidation.valid, true);
   assert.equal(body.application.validationResult, "passed");
   assert.equal(body.application.ats.label, "NextJOB ATS readiness estimate");
+  assert.equal(body.generationProvider, "nextjob-fallback");
+  assert.equal(body.providerConfigured, false);
+});
+
+test("profile endpoint exposes the safe fallback until a CV is parsed", async () => {
+  const response = await request("/api/cv/profile");
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.source, "nextjob-fallback");
+  assert.ok(body.profile.fullName);
 });
 
 test("native applications require authorization and explicit review confirmation", async () => {

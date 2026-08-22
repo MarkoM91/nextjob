@@ -4,6 +4,7 @@ import { candidate, jobs } from "../lib/demo-data.ts";
 import { atsAnalyze, canonicalJobKey, createDemoApplication, deduplicateJobs, normalizeSalary, normalizeText, rankJobs, scoreJob, validateGeneratedClaims } from "../lib/engine.ts";
 import { generateDocx, generatePdf } from "../lib/documents.ts";
 import { GreenhouseJobProvider, LeverJobProvider, liveJobInternals } from "../lib/live-job-providers.ts";
+import { candidateFromUseResume, createTailoredResume, downloadTailoredPdf, parseResumeDocument, useresumeInternals } from "../lib/useresume.ts";
 
 test("normalizes titles and accents deterministically", () => {
   assert.equal(normalizeText("  Customer-Succès  Manager "), "customer succes manager");
@@ -98,5 +99,69 @@ test("Greenhouse and Lever public feeds normalize real jobs without inventing em
     assert.equal(lever[0].applicationMethod, "external");
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("UseResume parsing keeps career facts and discards unnecessary sensitive fields", () => {
+  const content = useresumeInternals.sanitizeParsedResume({
+    name: "Jane Doe", role: "Support Engineer", email: "jane@example.com", passport_or_id: "do-not-store", marital_status: "do-not-store",
+    employment: [{ title: "Support Engineer", company: "Example", start_date: "2020-01", present: true, responsibilities: [{ text: "Resolved customer incidents and documented fixes." }] }],
+    skills: [{ name: "Microsoft 365", proficiency: "Advanced" }], languages: [{ language: "English", proficiency: "Fluent" }],
+  });
+  const profile = candidateFromUseResume(content, "owner-1");
+  assert.equal(profile.fullName, "Jane Doe");
+  assert.equal(profile.currentRole, "Support Engineer");
+  assert.deepEqual(profile.skills, ["Microsoft 365"]);
+  assert.equal(profile.experiences[0].bullets[0].text, "Resolved customer incidents and documented fixes.");
+  assert.equal("passport_or_id" in content, false);
+  assert.equal("marital_status" in content, false);
+});
+
+test("UseResume parser sends the document only to the documented authenticated endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.USERESUME_API_KEY;
+  process.env.USERESUME_API_KEY = "unit-test-key";
+  let requestUrl = ""; let authorization = ""; let requestBody = "";
+  globalThis.fetch = async (input, init) => {
+    requestUrl = String(input); authorization = new Headers(init?.headers).get("authorization") ?? ""; requestBody = String(init?.body ?? "");
+    return Response.json({ success: true, data: { name: "Jane Doe", role: "Support Engineer", passport_or_id: "discard-me" }, meta: { credits_used: 4 } });
+  };
+  try {
+    const parsed = await parseResumeDocument(new TextEncoder().encode("resume").buffer as ArrayBuffer);
+    assert.equal(requestUrl, "https://useresume.ai/api/v3/resume/parse");
+    assert.equal(authorization, "Bearer unit-test-key");
+    assert.match(requestBody, /"parse_to":"json"/);
+    assert.equal(parsed.name, "Jane Doe");
+    assert.equal("passport_or_id" in parsed, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.USERESUME_API_KEY; else process.env.USERESUME_API_KEY = originalKey;
+  }
+});
+
+test("UseResume tailoring sends the verified resume and exact job ad, then downloads the PDF", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.USERESUME_API_KEY;
+  process.env.USERESUME_API_KEY = "unit-test-key";
+  let tailoredBody = "";
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    if (url.endsWith("/api/v3/resume/create-tailored")) {
+      tailoredBody = String(init?.body ?? "");
+      return Response.json({ success: true, data: { file_url: "https://files.useresume-platform.com/generated/cv.pdf", file_url_expires_at: 123 }, meta: { run_id: "run-test", credits_used: 5, credits_remaining: 25 } });
+    }
+    if (url === "https://files.useresume-platform.com/generated/cv.pdf") return new Response(new TextEncoder().encode("%PDF-test"), { headers: { "content-type": "application/pdf" } });
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+  try {
+    const generated = await createTailoredResume({ name: "Jane Doe", role: "Support Engineer", skills: [{ name: "Microsoft 365" }] }, jobs[0]);
+    const pdf = await downloadTailoredPdf(generated.fileUrl);
+    assert.equal(generated.runId, "run-test");
+    assert.match(tailoredBody, new RegExp(jobs[0].title));
+    assert.match(tailoredBody, /Do not invent employers/);
+    assert.equal(new TextDecoder().decode(pdf), "%PDF-test");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.USERESUME_API_KEY; else process.env.USERESUME_API_KEY = originalKey;
   }
 });
