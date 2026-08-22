@@ -9,8 +9,8 @@ export default async function ProductPage({
   searchParams,
 }: {
   params: Promise<{ screen: string }>;
-  searchParams: Promise<{ job?: string }>;
+  searchParams: Promise<{ job?: string; applied?: string }>;
 }) {
   const [{ screen }, query, signedInUser] = await Promise.all([params, searchParams, getChatGPTUser()]);
-  return <NextJobApp screen={screen} jobId={query.job} user={signedInUser} demoMode={DEMO_MODE} />;
+  return <NextJobApp screen={screen} jobId={query.job} appliedJobId={query.applied} user={signedInUser} demoMode={DEMO_MODE} />;
 }

@@ -31,6 +31,14 @@ test("main onboarding pages render in a complete walkthrough", async () => {
   }
 });
 
+test("submitted applications return to the jobs list with confirmation", async () => {
+  const response = await request("/matches?applied=job-01");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Application submitted/);
+  assert.match(html, /application tracker/);
+});
+
 test("matches API returns curated, eligible, fictional jobs", async () => {
   const response = await request("/api/matches?limit=5");
   assert.equal(response.status, 200);

@@ -16,7 +16,7 @@ import { createDemoApplication, rankJobs } from "../../lib/engine";
 import { getDictionary } from "../../lib/i18n";
 import type { Job, MatchResult } from "../../lib/domain";
 
-type Props = { screen: string; jobId?: string; user?: ChatGPTUser | null; demoMode?: boolean };
+type Props = { screen: string; jobId?: string; appliedJobId?: string; user?: ChatGPTUser | null; demoMode?: boolean };
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
 const copy = getDictionary("en");
@@ -122,7 +122,7 @@ function ApplicationMethodBadge({ job }: { job: Job }) {
   return <span className={`application-method ${job.applicationMethod}`}><i />{applicationMethodCopy(job).label}</span>;
 }
 
-function MatchesScreen({ savedOnly = false }: { savedOnly?: boolean }) {
+function MatchesScreen({ savedOnly = false, appliedJobId }: { savedOnly?: boolean; appliedJobId?: string }) {
   const [query, setQuery] = useState("");
   const [workplace, setWorkplace] = useState("All work styles");
   const [tab, setTab] = useState<"Best matches" | "New" | "Saved" | "Not interested">(savedOnly ? "Saved" : "Best matches");
@@ -140,7 +140,9 @@ function MatchesScreen({ savedOnly = false }: { savedOnly?: boolean }) {
     setSaved((current) => { const next = new Set(current); if (nextSaved) next.add(jobId); else next.delete(jobId); return next; });
     void fetch("/api/saved-jobs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jobId, saved: nextSaved }) }).catch(() => undefined);
   };
+  const appliedJob = appliedJobId ? jobs.find((job) => job.id === appliedJobId) : undefined;
   return <AppContent>
+    {appliedJob && <div className="application-success" role="status"><CheckCircle2 /><div><strong>Application submitted</strong><p>{appliedJob.title} at {appliedJob.company} is now in your application tracker.</p></div><Link href="/tracker">View application <ArrowRight /></Link></div>}
     <div className="matches-heading"><div><h1>{savedOnly ? "Saved jobs" : "Job matches"}</h1><p>{savedOnly ? "Roles you marked for a closer look." : "Selected from your verified profile and preferences."}</p></div><button className="filter-button" onClick={() => setShowFilters(!showFilters)}><Filter /> Filters · {workplace === "All work styles" ? 1 : 2}</button></div>
     {!savedOnly && <div className="feed-tabs">{(["Best matches", "New", "Saved", "Not interested"] as const).map((name) => <button key={name} className={tab === name ? "active" : ""} onClick={() => setTab(name)}>{name} <span>{name === "Saved" ? saved.size : name === "Not interested" ? rejected.size : name === "New" ? visibleMatches.filter((match) => match.job.publishedAt.includes("05T")).length : visibleMatches.length}</span></button>)}</div>}
     {showFilters && <div className="filter-bar"><label className="search-input"><Search /><input aria-label="Search roles" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title or company" /></label><label className="select-wrap"><BriefcaseBusiness /><select value={workplace} onChange={(event) => setWorkplace(event.target.value)} aria-label="Work style"><option>All work styles</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select><ChevronDown /></label><button className="filter-reset" onClick={() => { setQuery(""); setWorkplace("All work styles"); }}>Reset</button></div>}
@@ -232,6 +234,7 @@ function Generating({ jobId }: { jobId?: string }) {
 }
 
 function Studio({ jobId }: { jobId?: string }) {
+  const router = useRouter();
   const match = rankedMatches.find((item) => item.job.id === jobId) ?? bestMatch;
   const application = useMemo(() => createDemoApplication(candidate, match.job), [match.job]);
   const method = applicationMethodCopy(match.job);
@@ -248,6 +251,7 @@ function Studio({ jobId }: { jobId?: string }) {
     const response = await fetch("/api/applications/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jobId: match.job.id, confirmed: true }) }).catch(() => null);
     if (!response?.ok) { const body = await response?.json().catch(() => null) as { error?: string } | null; setSubmitError(body?.error ?? "Submission could not be confirmed."); setSubmitting(false); return; }
     setSubmitted(true); setSubmitting(false); setShowSubmit(false);
+    router.replace(`/matches?applied=${match.job.id}`);
   };
   const applyAction = (mobile = false) => match.job.applicationMethod === "native"
     ? <button className={`button ${mobile ? "" : "button-small"}`} disabled={submitted} onClick={() => setShowSubmit(true)}>{submitted ? <><CheckCircle2 /> Submitted</> : <>{method.action} <ArrowRight /></>}</button>
@@ -311,7 +315,7 @@ function relativeDate(value: string): string { const day = new Date(value).getUT
 function bandClass(band: string): string { return band.startsWith("Excellent") ? "green" : band.startsWith("Strong") ? "teal" : band.startsWith("Possible") ? "gold" : "muted"; }
 function toggleSet(current: Set<string>, setter: (next: Set<string>) => void, value: string) { const next = new Set(current); if (next.has(value)) next.delete(value); else next.add(value); setter(next); }
 
-export function NextJobApp({ screen, jobId, user, demoMode = true }: Props) {
+export function NextJobApp({ screen, jobId, appliedJobId, user, demoMode = true }: Props) {
   if (screen === "landing") return <Landing />;
   if (screen === "sign-in" || screen === "sign-up" || screen === "forgot-password") return <AuthScreen mode={screen} />;
   if (screen === "upload") return <UploadScreen />;
@@ -320,7 +324,7 @@ export function NextJobApp({ screen, jobId, user, demoMode = true }: Props) {
   if (screen === "preferences") return <UploadScreen stage="preferences" />;
   let content: React.ReactNode;
   if (screen === "dashboard") content = <Dashboard />;
-  else if (screen === "matches") content = <MatchesScreen />;
+  else if (screen === "matches") content = <MatchesScreen appliedJobId={appliedJobId} />;
   else if (screen === "saved") content = <MatchesScreen savedOnly />;
   else if (screen === "job") content = <JobDetail jobId={jobId} />;
   else if (screen === "setup") content = <Generating jobId={jobId} />;
