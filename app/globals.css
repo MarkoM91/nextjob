@@ -923,7 +923,7 @@ button:disabled { cursor: not-allowed; opacity: .42; }
 .feed-tabs span { color: #8a8a8a; }
 .filter-button { width: auto; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 13px; font-weight: 500; }
 .filter-button svg { width: 15px; }
-.filter-bar { display: grid; grid-template-columns: minmax(230px, 1fr) 220px auto; gap: 8px; margin: 0 0 20px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.filter-bar { display: grid; grid-template-columns: minmax(230px, 1fr) 190px 190px auto; gap: 8px; margin: 0 0 20px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: white; }
 .search-input, .select-wrap { min-height: 38px; border-color: var(--line); border-radius: 6px; }
 .match-list { display: grid; gap: 10px; }
 .match-list-item { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 24px; align-items: stretch; padding: 20px 22px; border: 1px solid var(--line); border-radius: 8px; background: white; transition: border-color .2s, box-shadow .2s; }

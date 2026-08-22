@@ -76,6 +76,8 @@ test("crawler policy honors robots.txt specificity and rejects unsafe URLs", () 
   assert.equal(liveJobInternals.robotsAllows(robots, "/careers/private/public-role"), true);
   assert.throws(() => liveJobInternals.safeConfiguredUrl("http://example.com/job"), /public HTTPS/);
   assert.throws(() => liveJobInternals.safeConfiguredUrl("https://127.0.0.1/job"), /public HTTPS/);
+  assert.throws(() => liveJobInternals.safeConfiguredUrl("https://www.linkedin.com/jobs/view/123"), /authorized partner API/);
+  assert.throws(() => liveJobInternals.safeConfiguredUrl("https://it.indeed.com/viewjob?jk=123"), /authorized partner API/);
 });
 
 test("Greenhouse and Lever public feeds normalize real jobs without inventing employer data", async () => {

@@ -218,6 +218,8 @@ function safeConfiguredUrl(value: string): URL {
   const url = new URL(value);
   const host = url.hostname.toLowerCase();
   if (url.protocol !== "https:" || url.username || url.password || host === "localhost" || host.endsWith(".local") || /^127\.|^10\.|^192\.168\.|^169\.254\.|^172\.(1[6-9]|2\d|3[01])\./.test(host) || host === "::1") throw new Error("Only public HTTPS job URLs are permitted");
+  const partnerOnlyDomains = ["indeed.com", "linkedin.com"];
+  if (partnerOnlyDomains.some((domain) => host === domain || host.endsWith(`.${domain}`))) throw new Error("Indeed and LinkedIn require an authorized partner API and cannot be crawled");
   return url;
 }
 

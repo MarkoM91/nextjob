@@ -126,6 +126,7 @@ function ApplicationMethodBadge({ job }: { job: Job }) {
 function MatchesScreen({ savedOnly = false, appliedJobId }: { savedOnly?: boolean; appliedJobId?: string }) {
   const [query, setQuery] = useState("");
   const [workplace, setWorkplace] = useState("All work styles");
+  const [countryCode, setCountryCode] = useState("ALL");
   const [tab, setTab] = useState<"Best matches" | "New" | "Saved" | "Not interested">(savedOnly ? "Saved" : "Best matches");
   const [showFilters, setShowFilters] = useState(false);
   const [feedMatches, setFeedMatches] = useState<MatchResult[]>(visibleMatches);
@@ -133,34 +134,43 @@ function MatchesScreen({ savedOnly = false, appliedJobId }: { savedOnly?: boolea
   const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
   const [saved, setSaved] = useState(new Set(visibleMatches.filter((_, index) => index === 1 || index === 3).map((match) => match.job.id)));
   const [rejected, setRejected] = useState(new Set<string>());
+  const [newJobCutoff] = useState(() => Date.now() - 7 * 86400000);
   useEffect(() => {
     let active = true;
-    void fetch("/api/matches?limit=30", { headers: { accept: "application/json" } })
+    const country = countryCode === "ALL" ? "" : `&country=${encodeURIComponent(countryCode)}`;
+    void fetch(`/api/matches?limit=30${country}`, { headers: { accept: "application/json" } })
       .then(async (response) => { if (!response.ok) throw new Error("Job feed unavailable"); return response.json() as Promise<MatchesApiResponse>; })
       .then((payload) => { if (!active) return; setFeedMatches(payload.matches); setSourceMode(payload.sourceMode); setSourceCounts(payload.sourceCounts ?? {}); })
       .catch(() => { if (active) setSourceMode("demo-fallback"); });
     return () => { active = false; };
-  }, []);
-  const isNewJob = (match: MatchResult) => Date.now() - new Date(match.job.publishedAt).getTime() <= 7 * 86400000;
+  }, [countryCode]);
+  const countryOptions = useMemo(() => {
+    const countries = new Map<string, string>();
+    for (const match of feedMatches) countries.set(match.job.countryCode, match.job.country);
+    for (const job of jobs) countries.set(job.countryCode, job.country);
+    return [...countries].map(([code, name]) => ({ code, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [feedMatches]);
+  const isNewJob = (match: MatchResult) => new Date(match.job.publishedAt).getTime() >= newJobCutoff;
   const byTab = feedMatches.filter((match) => {
     if (tab === "Saved") return saved.has(match.job.id) && !rejected.has(match.job.id);
     if (tab === "Not interested") return rejected.has(match.job.id);
     if (tab === "New") return isNewJob(match) && !rejected.has(match.job.id);
     return !rejected.has(match.job.id);
   });
-  const filtered = byTab.filter((match) => (!query || `${match.job.title} ${match.job.company}`.toLowerCase().includes(query.toLowerCase())) && (workplace === "All work styles" || match.job.workplace === workplace));
+  const filtered = byTab.filter((match) => (!query || `${match.job.title} ${match.job.company}`.toLowerCase().includes(query.toLowerCase())) && (workplace === "All work styles" || match.job.workplace === workplace) && (countryCode === "ALL" || match.job.countryCode === countryCode));
   const setSavedJob = (jobId: string, nextSaved: boolean) => {
     setSaved((current) => { const next = new Set(current); if (nextSaved) next.add(jobId); else next.delete(jobId); return next; });
     void fetch("/api/saved-jobs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jobId, saved: nextSaved }) }).catch(() => undefined);
   };
   const appliedJob = appliedJobId ? feedMatches.find((match) => match.job.id === appliedJobId)?.job ?? jobs.find((job) => job.id === appliedJobId) : undefined;
   const activeSources = Object.values(sourceCounts).filter((count) => count > 0).length;
+  const activeFilterCount = Number(Boolean(query.trim())) + Number(workplace !== "All work styles") + Number(countryCode !== "ALL");
   return <AppContent>
     {appliedJob && <div className="application-success" role="status"><CheckCircle2 /><div><strong>Application submitted</strong><p>{appliedJob.title} at {appliedJob.company} is now in your application tracker.</p></div><Link href="/tracker">View application <ArrowRight /></Link></div>}
-    <div className="matches-heading"><div><h1>{savedOnly ? "Saved jobs" : "Job matches"}</h1><p>{savedOnly ? "Roles you marked for a closer look." : "Selected from your verified profile and preferences."}</p></div><button className="filter-button" onClick={() => setShowFilters(!showFilters)}><Filter /> Filters · {workplace === "All work styles" ? 1 : 2}</button></div>
+    <div className="matches-heading"><div><h1>{savedOnly ? "Saved jobs" : "Job matches"}</h1><p>{savedOnly ? "Roles you marked for a closer look." : "Selected from your verified profile and preferences."}</p></div><button className="filter-button" aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}><Filter /> Filters{activeFilterCount ? ` · ${activeFilterCount}` : ""}</button></div>
     {!savedOnly && <div className={`source-status ${sourceMode}`} role="status"><span><i />{sourceMode === "loading" ? "Refreshing live jobs…" : sourceMode === "live" ? `Live employer jobs · ${activeSources} active source${activeSources === 1 ? "" : "s"}` : "Demo jobs · live sources are temporarily unavailable"}</span>{sourceMode === "live" && <small>Greenhouse, Lever and approved employer feeds</small>}{sourceMode === "demo-fallback" && <small>Your matching flow still works while NextJOB retries safely.</small>}</div>}
     {!savedOnly && <div className="feed-tabs">{(["Best matches", "New", "Saved", "Not interested"] as const).map((name) => <button key={name} className={tab === name ? "active" : ""} onClick={() => setTab(name)}>{name} <span>{name === "Saved" ? saved.size : name === "Not interested" ? rejected.size : name === "New" ? feedMatches.filter(isNewJob).length : feedMatches.length}</span></button>)}</div>}
-    {showFilters && <div className="filter-bar"><label className="search-input"><Search /><input aria-label="Search roles" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title or company" /></label><label className="select-wrap"><BriefcaseBusiness /><select value={workplace} onChange={(event) => setWorkplace(event.target.value)} aria-label="Work style"><option>All work styles</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select><ChevronDown /></label><button className="filter-reset" onClick={() => { setQuery(""); setWorkplace("All work styles"); }}>Reset</button></div>}
+    {showFilters && <div className="filter-bar"><label className="search-input"><Search /><input aria-label="Search roles" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title or company" /></label><label className="select-wrap"><Globe2 /><select value={countryCode} onChange={(event) => { if (event.target.value !== countryCode) setSourceMode("loading"); setCountryCode(event.target.value); }} aria-label="Country"><option value="ALL">All countries</option>{countryOptions.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}</select><ChevronDown /></label><label className="select-wrap"><BriefcaseBusiness /><select value={workplace} onChange={(event) => setWorkplace(event.target.value)} aria-label="Work style"><option>All work styles</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select><ChevronDown /></label><button className="filter-reset" onClick={() => { setQuery(""); if (countryCode !== "ALL") setSourceMode("loading"); setCountryCode("ALL"); setWorkplace("All work styles"); }}>Reset</button></div>}
     {!filtered.length ? <EmptyState icon={Bookmark} title="Nothing here yet" text={tab === "Saved" ? "Save a match and it will appear here." : "Try a broader filter to see more roles."} action="View best matches" href="/matches" /> : <section className="match-list" aria-label="Matching jobs">{filtered.map((match) => <article key={match.job.id} className="match-list-item"><div className="match-list-copy"><h2>{match.job.title}</h2><small>{match.job.company} · {match.job.locationText} · {match.job.workplace} · {relativeDate(match.job.publishedAt)}</small><p>{match.explanation}</p><span className="match-proof"><CheckCircle2 /> {match.matchedSkills.length ? match.matchedSkills.slice(0, 3).join(", ") : "Profile and preference filters passed"}</span></div><div className="match-list-next"><div className="match-list-labels"><em className={`match-state ${bandClass(match.band)}`}>● {match.band}</em><ApplicationMethodBadge job={match.job} /></div>{match.job.fictional ? <Link className="button button-small" href={`/job?job=${match.job.id}`}>View job <ArrowRight /></Link> : <a className="button button-small" href={match.job.originalUrl} target="_blank" rel="noreferrer">View live job <ExternalLink /></a>}<div><button className={saved.has(match.job.id) ? "saved" : ""} onClick={() => setSavedJob(match.job.id, !saved.has(match.job.id))}>{saved.has(match.job.id) ? "Saved" : "Save"}</button><button onClick={() => setRejected((current) => new Set(current).add(match.job.id))}>Not interested</button></div></div></article>)}</section>}
   </AppContent>;
 }
