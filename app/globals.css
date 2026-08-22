@@ -906,7 +906,18 @@ button:disabled { cursor: not-allowed; opacity: .42; }
 .application-success a svg { width: 14px; }
 .matches-heading h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: -.01em; }
 .matches-heading p { margin: 0; color: var(--ink-soft); font-size: 14px; }
-.feed-tabs { display: flex; gap: 2px; margin: 0 0 20px; border-bottom: 1px solid var(--line); }
+.source-status { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink-soft); font-size: 12px; }
+.source-status > span { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; }
+.source-status i { width: 8px; height: 8px; border-radius: 50%; background: #a4aaa6; }
+.source-status small { color: #818982; font-size: 11px; }
+.source-status.live { border-color: #b9dfcc; background: #f1faf5; color: #176b49; }
+.source-status.live i { background: #26a269; box-shadow: 0 0 0 3px rgba(38, 162, 105, .12); }
+.source-status.loading i { background: var(--blue); animation: source-pulse 1.2s ease-in-out infinite; }
+.source-status.demo-fallback { border-color: #ead9b0; background: #fffaf0; color: #73551d; }
+.source-status.demo-fallback i { background: #c88a1d; }
+@keyframes source-pulse { 50% { opacity: .35; transform: scale(.72); } }
+.feed-tabs { display: flex; gap: 2px; margin: 0 0 20px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.feed-tabs::-webkit-scrollbar { display: none; }
 .feed-tabs button, .feed-tabs a { min-height: 38px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--ink-soft); font-size: 13px; font-weight: 500; }
 .feed-tabs .active { color: var(--ink); border-bottom-color: var(--teal); background: transparent; }
 .feed-tabs span { color: #8a8a8a; }
@@ -1176,6 +1187,7 @@ button:disabled { cursor: not-allowed; opacity: .42; }
   .landing-actions .button { width: 100%; }
   .proof-grid { padding-block: 48px; }
   .matches-heading { flex-direction: column; }
+  .source-status { align-items: flex-start; flex-direction: column; gap: 4px; }
   .filter-button { width: 100%; }
   .match-list-item { grid-template-columns: 1fr; gap: 16px; padding: 18px; }
   .match-list-next { align-items: stretch; padding: 14px 0 0; border-top: 1px solid var(--line); border-left: 0; }

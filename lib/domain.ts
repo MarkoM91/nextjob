@@ -102,7 +102,7 @@ export type Job = {
   expiresAt?: string;
   sourceLanguage: string;
   active: boolean;
-  fictional: true;
+  fictional: boolean;
 };
 
 export type MatchResult = {

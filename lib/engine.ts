@@ -6,6 +6,12 @@ const skillAliases: Record<string, string[]> = {
   "process improvement": ["continuous improvement", "service improvement", "operational excellence"],
   "team training": ["coaching", "enablement", "learning design"],
   "data analysis": ["reporting", "analytics", "customer insights"],
+  "it support": ["help desk", "service desk", "desktop support", "technical support", "workplace support"],
+  "microsoft 365": ["office 365", "m365"],
+  "active directory": ["azure active directory", "microsoft entra", "entra id"],
+  networking: ["network support", "tcp ip", "dns", "dhcp", "vpn"],
+  "hardware troubleshooting": ["device troubleshooting", "desktop troubleshooting", "computer repair"],
+  "software troubleshooting": ["application support", "desktop support", "windows support"],
 };
 
 export const MATCH_WEIGHTS = {
@@ -76,7 +82,7 @@ export function scoreJob(profile: CandidateProfile, job: Job, now = new Date("20
   const locationFit = job.workplace === "Remote" || profile.preferences.countries.includes(job.country) || profile.preferences.relocation;
   const eligible = job.active && !authorizationMismatch && !languageMismatch && locationFit;
 
-  const skillScore = job.requiredSkills.length ? matchedSkills.length / job.requiredSkills.length : 1;
+  const skillScore = job.requiredSkills.length ? matchedSkills.length / job.requiredSkills.length : 0.45;
   const titleWords = new Set(normalizeText(job.title).split(" "));
   const targetWords = new Set(normalizeText([profile.currentRole, ...profile.targetTitles].join(" ")).split(" "));
   const overlap = [...titleWords].filter((word) => targetWords.has(word)).length / Math.max(1, titleWords.size);
@@ -139,11 +145,12 @@ export function atsAnalyze(profile: CandidateProfile, job: Job, generatedText: s
 
 export function createDemoApplication(profile: CandidateProfile, job: Job, tone = "Professional"): GeneratedApplication {
   const relevant = profile.skills.filter((skill) => job.requiredSkills.some((required) => equivalentSkill(skill, required)));
-  const summary = `${profile.currentRole} with ${profile.yearsOfExperience} years of verified experience improving customer workflows and outcomes. Experienced with ${relevant.slice(0, 3).join(", ")}, cross-functional problem-solving, and turning recurring feedback into practical service improvements.`;
+  const strongest = (relevant.length ? relevant : profile.skills).slice(0, 4);
+  const summary = `${profile.currentRole} with ${profile.yearsOfExperience} years of verified experience supporting users and resolving workplace technology issues. Experienced with ${strongest.join(", ")}, structured troubleshooting, and documenting practical solutions.`;
   const cvBullets = profile.experiences.flatMap((experience) => experience.bullets).slice(0, 4).map((fact) => ({ text: fact.text, sourceFactIds: [fact.id], supported: true }));
   const cvText = [summary, ...cvBullets.map((bullet) => bullet.text), profile.skills.join(", ")].join("\n");
-  const opening = tone === "Direct" ? `I am applying for the ${job.title} role because my verified customer-operations experience aligns with its core needs.` : tone === "Warm" ? `I was glad to find the ${job.title} role because it brings together thoughtful customer support and practical improvement.` : `I am applying for the ${job.title} role because it brings together customer problem-solving, clear operations, and continuous improvement.`;
-  const coverLetter = `Dear ${job.company.replace(" (fictional)", "")} hiring team,\n\n${opening}\n\nAcross ${profile.yearsOfExperience} years in customer operations, I have improved support workflows, maintained reliable records in Salesforce and Zendesk, and helped colleagues deliver consistent service. My verified experience with ${relevant.slice(0, 3).join(", ")} aligns well with the role’s core needs.\n\nI would welcome the opportunity to bring a structured, empathetic approach to your team. I would be glad to discuss how my experience could support your customers and service operations.\n\nKind regards,\n${profile.fullName}`;
+  const opening = tone === "Direct" ? `I am applying for the ${job.title} role because my verified IT-support experience aligns with its core needs.` : tone === "Warm" ? `I was glad to find the ${job.title} role because it combines hands-on troubleshooting with helpful user support.` : `I am applying for the ${job.title} role because it combines user support, structured troubleshooting, and reliable workplace technology.`;
+  const coverLetter = `Dear ${job.company.replace(" (fictional)", "")} hiring team,\n\n${opening}\n\nAcross ${profile.yearsOfExperience} years in IT support, I have helped users resolve device, software, account, and connectivity issues. My verified experience with ${strongest.slice(0, 3).join(", ")} aligns with the role's core needs.\n\nI would welcome the opportunity to bring a calm, practical, and well-documented approach to your team. I would be glad to discuss how my experience could support your users and IT operations.\n\nKind regards,\n${profile.fullName}`;
   return {
     jobId: job.id,
     generatedAt: "2026-08-05T12:00:00.000Z",
@@ -153,13 +160,13 @@ export function createDemoApplication(profile: CandidateProfile, job: Job, tone 
     summary,
     cvBullets,
     coverLetter,
-    email: { subject: `Application — ${job.title} — ${profile.fullName}`, body: `Dear hiring team,\n\nPlease find attached my application for the ${job.title} position. My background in ${relevant.slice(0, 2).join(" and ")} is closely relevant to the role.\n\nThank you for your consideration.\n\nKind regards,\n${profile.fullName}\n\nAttachment reminder: tailored CV and cover letter.` },
+    email: { subject: `Application — ${job.title} — ${profile.fullName}`, body: `Dear hiring team,\n\nPlease find attached my application for the ${job.title} position. My background in ${strongest.slice(0, 2).join(" and ")} is closely relevant to the role.\n\nThank you for your consideration.\n\nKind regards,\n${profile.fullName}\n\nAttachment reminder: tailored CV and cover letter.` },
     interview: {
-      likelyQuestions: ["How have you improved a customer-support process?", "How do you turn recurring customer feedback into action?", "How do you keep CRM records reliable?"],
+      likelyQuestions: ["How do you diagnose an unfamiliar user issue?", "Tell us about a difficult device or network problem you resolved.", "How do you document fixes and keep users informed?"],
       gapQuestions: job.preferredSkills.slice(0, 2).map((gap) => `This role mentions ${gap}. What adjacent verified experience could you discuss honestly?`),
       starPrompts: profile.experiences[0].bullets.slice(0, 2).map((bullet) => `Build a STAR example from: “${bullet.text}”`),
-      questionsToAsk: ["What would success look like in the first 90 days?", "Which customer journey needs the most attention today?", "How does customer feedback reach the product team?"],
-      researchChecklist: ["Review the employer’s official careers page", "Confirm the product and customer segments", "Check recent, verifiable company announcements"],
+      questionsToAsk: ["What would success look like in the first 90 days?", "Which systems and ticketing tools does the team use?", "How are escalations and knowledge sharing handled?"],
+      researchChecklist: ["Review the employer's official careers page", "Confirm the workplace technology stack", "Check recent, verifiable company announcements"],
     },
     ats: atsAnalyze(profile, job, cvText),
   };

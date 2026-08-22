@@ -1,4 +1,4 @@
-import { jobs } from "./demo-data";
+import { createLiveProviderRegistry } from "./live-job-providers";
 import type { CandidateProfile, GeneratedApplication, Job, JobProvider } from "./domain";
 import { createDemoApplication } from "./engine";
 
@@ -27,53 +27,19 @@ export interface FileParser {
 
 export const DEMO_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-class DemoJobProvider implements JobProvider {
-  constructor(
-    public id: string,
-    public name: string,
-    public countriesSupported: string[],
-    public languagesSupported: string[],
-    private health: "healthy" | "degraded" | "offline" = "healthy",
-  ) {}
-
-  async searchJobs(query: { keywords?: string[]; countries?: string[] }): Promise<Job[]> {
-    if (this.health === "offline") throw new Error("Provider unavailable");
-    return jobs.filter((job) => {
-      if (job.providerId !== this.id) return false;
-      if (query.countries?.length && !query.countries.includes(job.countryCode)) return false;
-      if (query.keywords?.length && !query.keywords.some((keyword) => `${job.title} ${job.description}`.toLowerCase().includes(keyword.toLowerCase()))) return false;
-      return true;
-    });
-  }
-
-  async fetchJobDetails(externalId: string): Promise<Job | null> {
-    if (this.health === "offline") throw new Error("Provider unavailable");
-    return jobs.find((job) => job.providerId === this.id && job.externalId === externalId) ?? null;
-  }
-
-  async healthCheck() {
-    return { status: this.health, latencyMs: this.health === "degraded" ? 842 : this.health === "offline" ? 0 : 118, checkedAt: "2026-08-05T12:00:00.000Z" } as const;
-  }
-}
-
-export const providerRegistry: JobProvider[] = [
-  new DemoJobProvider("direct-ats", "Direct ATS", ["IT", "IE", "DE", "NL", "US"], ["en", "it", "de"]),
-  new DemoJobProvider("atlas-jobs-api", "Atlas Jobs API", ["IT", "ES", "PT", "GB"], ["en", "it", "es", "pt"]),
-  new DemoJobProvider("eures-demo-feed", "EURES demo feed", ["EU"], ["en", "it", "es", "de", "fr"]),
-  new DemoJobProvider("open-roles-xml", "Open Roles XML", ["CA", "DE", "PL", "FR"], ["en", "de", "pl", "fr"]),
-  new DemoJobProvider("public-jobs-json", "Public Jobs JSON", ["GB", "SE", "SG", "ES"], ["en", "sv", "es"], "degraded"),
-  new DemoJobProvider("civic-careers-feed", "Civic Careers Feed", ["IT"], ["it", "en"], "offline"),
-];
+export const providerRegistry: JobProvider[] = createLiveProviderRegistry();
 
 export async function searchAllProviders(query: { keywords?: string[]; countries?: string[] }) {
+  if (process.env.NEXTJOB_DISABLE_LIVE_JOBS === "true") return { jobs: [] as Job[], failures: [{ providerId: "live-jobs", message: "Live providers are disabled for this environment" }], sourceCounts: {} as Record<string, number> };
   const settled = await Promise.allSettled(providerRegistry.map((provider) => provider.searchJobs(query)));
   const availableJobs: Job[] = [];
   const failures: Array<{ providerId: string; message: string }> = [];
+  const sourceCounts: Record<string, number> = {};
   settled.forEach((result, index) => {
-    if (result.status === "fulfilled") availableJobs.push(...result.value);
-    else failures.push({ providerId: providerRegistry[index].id, message: "Provider temporarily unavailable" });
+    if (result.status === "fulfilled") { availableJobs.push(...result.value); sourceCounts[providerRegistry[index].id] = result.value.length; }
+    else failures.push({ providerId: providerRegistry[index].id, message: result.reason instanceof Error ? result.reason.message.slice(0, 160) : "Provider temporarily unavailable" });
   });
-  return { jobs: availableJobs, failures };
+  return { jobs: availableJobs, failures, sourceCounts };
 }
 
 export const demoAIProvider: AIProvider = {

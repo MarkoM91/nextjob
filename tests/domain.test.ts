@@ -3,6 +3,7 @@ import test from "node:test";
 import { candidate, jobs } from "../lib/demo-data.ts";
 import { atsAnalyze, canonicalJobKey, createDemoApplication, deduplicateJobs, normalizeSalary, normalizeText, rankJobs, scoreJob, validateGeneratedClaims } from "../lib/engine.ts";
 import { generateDocx, generatePdf } from "../lib/documents.ts";
+import { GreenhouseJobProvider, LeverJobProvider, liveJobInternals } from "../lib/live-job-providers.ts";
 
 test("normalizes titles and accents deterministically", () => {
   assert.equal(normalizeText("  Customer-Succès  Manager "), "customer succes manager");
@@ -66,4 +67,34 @@ test("document generators produce selectable PDF and editable DOCX packages", ()
   assert.deepEqual([...docx.slice(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
   assert.ok(pdf.byteLength > 1000);
   assert.ok(docx.byteLength > 1000);
+});
+
+test("crawler policy honors robots.txt specificity and rejects unsafe URLs", () => {
+  const robots = `User-agent: *\nDisallow: /careers/private\nAllow: /careers/private/public-role`;
+  assert.equal(liveJobInternals.robotsAllows(robots, "/careers/open-role"), true);
+  assert.equal(liveJobInternals.robotsAllows(robots, "/careers/private/internal"), false);
+  assert.equal(liveJobInternals.robotsAllows(robots, "/careers/private/public-role"), true);
+  assert.throws(() => liveJobInternals.safeConfiguredUrl("http://example.com/job"), /public HTTPS/);
+  assert.throws(() => liveJobInternals.safeConfiguredUrl("https://127.0.0.1/job"), /public HTTPS/);
+});
+
+test("Greenhouse and Lever public feeds normalize real jobs without inventing employer data", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes("boards-api.greenhouse.io")) return Response.json({ jobs: [{ id: 42, title: "IT Support Specialist", updated_at: "2026-08-20T10:00:00Z", absolute_url: "https://example.org/jobs/42", location: { name: "Milan, Italy" }, content: "Support Windows 11, Microsoft 365, DNS and VPN users." }] });
+    if (url.includes("api.eu.lever.co")) return Response.json([{ id: "lever-42", text: "Workplace Support Technician", createdAt: 1787216400000, hostedUrl: "https://jobs.eu.lever.co/example/lever-42", descriptionPlain: "Troubleshoot hardware and Microsoft 365.", categories: { location: "Milan, Italy", commitment: "Full-time" } }]);
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+  try {
+    const greenhouse = await new GreenhouseJobProvider("unit-test-board", "Unit Test Employer").searchJobs({ keywords: ["IT Support"] });
+    const lever = await new LeverJobProvider("unit-test-site", "Unit Test Employer", "eu").searchJobs({ keywords: ["Workplace Support"] });
+    assert.equal(greenhouse[0].fictional, false);
+    assert.equal(greenhouse[0].countryCode, "IT");
+    assert.ok(greenhouse[0].requiredSkills.includes("Microsoft 365"));
+    assert.equal(lever[0].providerName, "Lever · Unit Test Employer");
+    assert.equal(lever[0].applicationMethod, "external");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
