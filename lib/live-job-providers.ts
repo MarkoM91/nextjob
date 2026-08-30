@@ -18,9 +18,11 @@ const skillVocabulary = [
 ] as const;
 
 const countryNames: Record<string, string> = {
-  AT: "Austria", BE: "Belgium", CH: "Switzerland", DE: "Germany", DK: "Denmark", ES: "Spain", EU: "European Union",
-  FR: "France", GB: "United Kingdom", IE: "Ireland", IT: "Italy", NL: "Netherlands", NO: "Norway", PL: "Poland",
-  PT: "Portugal", SE: "Sweden", US: "United States",
+  AT: "Austria", AU: "Australia", BE: "Belgium", BR: "Brazil", CA: "Canada", CH: "Switzerland", CO: "Colombia",
+  CR: "Costa Rica", CZ: "Czechia", DE: "Germany", DK: "Denmark", ES: "Spain", EU: "European Union", FI: "Finland",
+  FR: "France", GB: "United Kingdom", GR: "Greece", HU: "Hungary", IE: "Ireland", IN: "India", IT: "Italy",
+  JP: "Japan", LT: "Lithuania", MX: "Mexico", NL: "Netherlands", NO: "Norway", PL: "Poland", PT: "Portugal",
+  RO: "Romania", SE: "Sweden", SG: "Singapore", US: "United States",
 };
 
 const countryPatterns: Array<[RegExp, string]> = [
@@ -28,9 +30,15 @@ const countryPatterns: Array<[RegExp, string]> = [
   [/\b(spain|madrid|barcelona)\b/i, "ES"], [/\b(germany|berlin|munich|münchen)\b/i, "DE"],
   [/\b(netherlands|amsterdam|utrecht)\b/i, "NL"], [/\b(ireland|dublin|cork)\b/i, "IE"],
   [/\b(france|paris|lyon)\b/i, "FR"], [/\b(portugal|lisbon|porto)\b/i, "PT"],
-  [/\b(united kingdom|london|manchester|\buk\b)\b/i, "GB"], [/\b(switzerland|zurich|mendrisio)\b/i, "CH"],
+  [/\b(united kingdom|london|manchester|gloucester|milton keynes|hemel hempstead|\buk\b)\b/i, "GB"], [/\b(switzerland|zurich|mendrisio)\b/i, "CH"],
   [/\b(denmark|copenhagen)\b/i, "DK"], [/\b(norway|oslo)\b/i, "NO"], [/\b(sweden|stockholm)\b/i, "SE"],
   [/\b(poland|warsaw)\b/i, "PL"], [/\b(united states|\busa\b|new york|san francisco)\b/i, "US"],
+  [/\b(canada|toronto|vancouver|montreal)\b/i, "CA"], [/\b(brazil|brasil|são paulo|sao paulo|rio de janeiro)\b/i, "BR"],
+  [/\b(romania|bucharest|bucurești|iasi|iași)\b/i, "RO"], [/\b(india|bengaluru|bangalore|mumbai|delhi|hyderabad)\b/i, "IN"],
+  [/\b(costa rica|san jos[eé])\b/i, "CR"], [/\b(colombia|bogot[aá]|medell[ií]n)\b/i, "CO"],
+  [/\b(czechia|czech republic|prague|praha)\b/i, "CZ"], [/\b(hungary|budapest)\b/i, "HU"],
+  [/\b(finland|helsinki)\b/i, "FI"], [/\b(greece|athens)\b/i, "GR"], [/\b(lithuania|vilnius)\b/i, "LT"],
+  [/\b(singapore)\b/i, "SG"], [/\b(japan|tokyo)\b/i, "JP"], [/\b(mexico|mexico city)\b/i, "MX"], [/\b(australia|sydney|melbourne)\b/i, "AU"],
   [/\b(europe|emea|remote eu|european union)\b/i, "EU"],
 ];
 
@@ -183,10 +191,12 @@ export class GreenhouseJobProvider extends LiveProvider {
   readonly languagesSupported = ["en", "it"];
   private readonly board: string;
   private readonly company: string;
-  constructor(board: string, company: string) { super(); this.board = board; this.company = company; this.id = `greenhouse-${board}`; this.name = `Greenhouse · ${company}`; }
+  private readonly region: "global" | "eu";
+  constructor(board: string, company: string, region: "global" | "eu" = "global") { super(); this.board = board; this.company = company; this.region = region; this.id = region === "eu" ? `greenhouse-eu-${board}` : `greenhouse-${board}`; this.name = `Greenhouse · ${company}`; }
   private async allJobs(): Promise<Job[]> {
     return cachedJobs(this.id, () => this.observe(async () => {
-      const data = await fetchJson<{ jobs?: Array<{ id: number; title: string; updated_at?: string; absolute_url: string; location?: { name?: string }; content?: string }> }>(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(this.board)}/jobs?content=true`);
+      const host = this.region === "eu" ? "boards-api.eu.greenhouse.io" : "boards-api.greenhouse.io";
+      const data = await fetchJson<{ jobs?: Array<{ id: number; title: string; updated_at?: string; absolute_url: string; location?: { name?: string }; content?: string }> }>(`https://${host}/v1/boards/${encodeURIComponent(this.board)}/jobs?content=true`);
       return (data.jobs ?? []).map((job) => jobFromSource({ providerId: this.id, providerName: this.name, externalId: String(job.id), url: job.absolute_url, title: job.title, company: this.company, location: job.location?.name ?? "Location not stated", description: job.content ?? "", publishedAt: job.updated_at }));
     }));
   }
@@ -325,7 +335,7 @@ function configured(name: string, defaults: string[]): string[] {
 }
 
 export function createLiveProviderRegistry(): JobProvider[] {
-  const greenhouse = configured("GREENHOUSE_BOARD_TOKENS", ["awin", "nozominetworks", "armissecurity", "planradar", "autoscout24"]).map((board) => new GreenhouseJobProvider(board, displayName(board)));
+  const greenhouse = configured("GREENHOUSE_BOARD_TOKENS", ["awin", "nozominetworks", "armissecurity", "planradar", "autoscout24", "saasgroup", "goodnotes", "fasthosts"]).map((entry) => { const [prefix, board] = entry.includes(":") ? entry.split(":", 2) : ["global", entry]; return new GreenhouseJobProvider(board, displayName(board), prefix === "eu" ? "eu" : "global"); });
   const lever = configured("LEVER_SITES", ["eu:prima", "eu:optotune", "global:researchgate"]).map((entry) => { const [prefix, siteValue] = entry.includes(":") ? entry.split(":", 2) : ["global", entry]; return new LeverJobProvider(siteValue, displayName(siteValue), prefix === "eu" ? "eu" : "global"); });
   const crawlerUrls = configured("CRAWLER_JOB_URLS", []);
   return [...greenhouse, ...lever, new EuresPartnerProvider(process.env.EURES_PARTNER_API_URL, process.env.EURES_PARTNER_API_TOKEN), new JsonLdCrawlerProvider(crawlerUrls)];

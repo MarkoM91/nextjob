@@ -73,13 +73,13 @@ function bandFor(score: number, eligible: boolean): MatchBand {
   return "Low confidence";
 }
 
-export function scoreJob(profile: CandidateProfile, job: Job, now = new Date("2026-08-05T12:00:00.000Z")): MatchResult {
+export function scoreJob(profile: CandidateProfile, job: Job, now = new Date()): MatchResult {
   const matchedSkills = job.requiredSkills.filter((required) => profile.skills.some((skill) => equivalentSkill(skill, required)) || profile.languages.some((language) => equivalentSkill(language, required)));
   const missingRequired = job.requiredSkills.filter((skill) => !matchedSkills.includes(skill));
   const preferredMatched = job.preferredSkills.filter((required) => profile.skills.some((skill) => equivalentSkill(skill, required)));
   const authorizationMismatch = Boolean(job.workAuthorization && !profile.workAuthorizations.includes(job.workAuthorization));
   const languageMismatch = job.languages.some((language) => language !== "English" && !profile.languages.some((known) => equivalentSkill(known, language)));
-  const locationFit = job.workplace === "Remote" || profile.preferences.countries.includes(job.country) || profile.preferences.relocation;
+  const locationFit = profile.preferences.countries.length === 0 || job.workplace === "Remote" || profile.preferences.countries.includes(job.country) || profile.preferences.relocation;
   const eligible = job.active && !authorizationMismatch && !languageMismatch && locationFit;
 
   const skillScore = job.requiredSkills.length ? matchedSkills.length / job.requiredSkills.length : 0.45;
@@ -153,7 +153,7 @@ export function createDemoApplication(profile: CandidateProfile, job: Job, tone 
   const coverLetter = `Dear ${job.company.replace(" (fictional)", "")} hiring team,\n\n${opening}\n\nAcross ${profile.yearsOfExperience} years in IT support, I have helped users resolve device, software, account, and connectivity issues. My verified experience with ${strongest.slice(0, 3).join(", ")} aligns with the role's core needs.\n\nI would welcome the opportunity to bring a calm, practical, and well-documented approach to your team. I would be glad to discuss how my experience could support your users and IT operations.\n\nKind regards,\n${profile.fullName}`;
   return {
     jobId: job.id,
-    generatedAt: "2026-08-05T12:00:00.000Z",
+    generatedAt: new Date().toISOString(),
     model: "nextjob-demo-deterministic-v1",
     promptVersion: "application-grounded-1.0",
     validationResult: "passed",

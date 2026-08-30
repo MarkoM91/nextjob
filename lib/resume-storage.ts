@@ -1,7 +1,14 @@
 import type { CandidateProfile } from "./domain";
-import type { UseResumeContent } from "./useresume";
+import type { ReactiveResumeData } from "./reactive-resume";
 
-export type StoredResumeProfile = { provider: "useresume"; parsedAt: string; verifiedAt?: string; content: UseResumeContent; profile: CandidateProfile };
+export type StoredResumeProfile = {
+  provider: "reactive-resume";
+  externalResumeId: string;
+  parsedAt: string;
+  verifiedAt?: string;
+  content: ReactiveResumeData;
+  profile: CandidateProfile;
+};
 
 export function safeOwnerId(value?: string | null): string {
   return (value || "demo-user").replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 120);

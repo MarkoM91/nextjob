@@ -26,27 +26,35 @@ test("landing page replaces the starter and communicates the core promise", asyn
 });
 
 test("main onboarding pages render in a complete walkthrough", async () => {
-  for (const [path, text] of [["/upload", "Upload your current CV"], ["/processing", "Turning your experience into a factual profile"], ["/profile-review", "Does this look like you?"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "6 jobs are worth your time today."]]) {
+  for (const [path, text] of [["/upload", "Upload your current CV"], ["/profile-review", "Does this look like you?"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "Checking today’s employer listings"]]) {
     const response = await request(path);
     assert.equal(response.status, 200, path);
     assert.match(await response.text(), new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), path);
   }
 });
 
-test("submitted applications return to the jobs list with confirmation", async () => {
+test("the obsolete simulated processing screen returns to the real upload flow", async () => {
+  const response = await request("/processing");
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get("location"), "http://localhost/upload");
+});
+
+test("legacy application links never claim verified submission", async () => {
   const response = await request("/matches?applied=job-01");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Application submitted/);
-  assert.match(html, /application tracker/);
+  assert.match(html, /Application recorded/);
+  assert.match(html, /has not received an employer confirmation/);
+  assert.doesNotMatch(html, /Application verified and submitted/);
 });
 
-test("matches API returns curated, eligible, fictional jobs", async () => {
+test("matches API never invents fallback jobs when live providers are unavailable", async () => {
   const response = await request("/api/matches?limit=5");
   assert.equal(response.status, 200);
   const body = await response.json();
-  assert.equal(body.matches.length, 5);
-  assert.ok(body.matches.every((match) => match.eligible && match.job.fictional));
+  assert.equal(body.matches.length, 0);
+  assert.equal(body.sourceMode, "unavailable");
+  assert.equal(body.fictional, false);
   assert.equal(body.estimateLabel, "NextJOB match estimate");
 });
 
@@ -58,15 +66,11 @@ test("provider ingestion degrades gracefully", async () => {
   assert.ok(body.providers.some((provider) => provider.status === "healthy"));
 });
 
-test("application generation is structured and factually validated", async () => {
+test("application generation refuses nonexistent or fictional jobs", async () => {
   const response = await request("/api/applications/generate", { method: "POST", headers: { "content-type": "application/json", origin: "http://localhost" }, body: JSON.stringify({ jobId: "job-01", tone: "Professional" }) });
   const body = await response.json();
-  assert.equal(response.status, 200);
-  assert.equal(body.factualValidation.valid, true);
-  assert.equal(body.application.validationResult, "passed");
-  assert.equal(body.application.ats.label, "NextJOB ATS readiness estimate");
-  assert.equal(body.generationProvider, "nextjob-fallback");
-  assert.equal(body.providerConfigured, false);
+  assert.equal(response.status, 404);
+  assert.match(body.error, /live job/i);
 });
 
 test("profile endpoint exposes the safe fallback until a CV is parsed", async () => {
@@ -77,29 +81,30 @@ test("profile endpoint exposes the safe fallback until a CV is parsed", async ()
   assert.ok(body.profile.fullName);
 });
 
-test("native applications require authorization and explicit review confirmation", async () => {
-  const headers = { "content-type": "application/json", origin: "http://localhost" };
-  const nativeResponse = await request("/api/applications/submit", { method: "POST", headers, body: JSON.stringify({ jobId: "job-01", confirmed: true }) });
-  const nativeBody = await nativeResponse.json();
-  assert.equal(nativeResponse.status, 200);
-  assert.equal(nativeBody.status, "submitted");
-  assert.equal(nativeBody.demoMode, true);
-
-  const unsupportedResponse = await request("/api/applications/submit", { method: "POST", headers, body: JSON.stringify({ jobId: "job-02", confirmed: true }) });
-  const unsupportedBody = await unsupportedResponse.json();
-  assert.equal(unsupportedResponse.status, 409);
-  assert.equal(unsupportedBody.applicationMethod, "autofill");
+test("a real CV upload never silently becomes the fictional fallback profile", async () => {
+  const form = new FormData();
+  form.set("cv", new File([new TextEncoder().encode("%PDF-1.4\n")], "candidate.pdf", { type: "application/pdf" }));
+  form.set("aiProcessingConsent", "true");
+  const response = await request("/api/cv/upload", { method: "POST", headers: { origin: "http://localhost" }, body: form });
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.code, "PROVIDER_NOT_CONFIGURED");
+  assert.equal("profile" in body, false);
 });
 
-test("document endpoint downloads real PDF, DOCX, and plain text", async () => {
-  for (const [format, signature] of [["pdf", [0x25, 0x50, 0x44, 0x46]], ["docx", [0x50, 0x4b, 0x03, 0x04]]]) {
-    const response = await request(`/api/documents/${format}?job=job-01`);
-    assert.equal(response.status, 200);
-    assert.deepEqual([...new Uint8Array(await response.arrayBuffer()).slice(0, 4)], signature);
-    assert.match(response.headers.get("content-disposition") ?? "", /attachment/);
-  }
-  const textResponse = await request("/api/documents/txt?job=job-01");
-  assert.match(await textResponse.text(), /PROFESSIONAL SUMMARY/);
+test("application activity requires a real job and an explicit action", async () => {
+  const headers = { "content-type": "application/json", origin: "http://localhost" };
+  const invalidResponse = await request("/api/applications/submit", { method: "POST", headers, body: JSON.stringify({ jobId: "job-01", confirmed: true }) });
+  assert.equal(invalidResponse.status, 400);
+  const missingJobResponse = await request("/api/applications/submit", { method: "POST", headers, body: JSON.stringify({ jobId: "job-01", action: "native", confirmed: true }) });
+  assert.equal(missingJobResponse.status, 404);
+});
+
+test("document endpoint requires a current live job", async () => {
+  const missingJob = await request("/api/documents/pdf");
+  assert.equal(missingJob.status, 400);
+  const fictionalJob = await request("/api/documents/pdf?job=job-01");
+  assert.equal(fictionalJob.status, 404);
 });
 
 test("write endpoints reject cross-site origins", async () => {

@@ -8,22 +8,24 @@ Its promise is simple:
 > Upload your CV once. Discover relevant jobs worldwide and create an ATS-ready
 > application in minutes.
 
-The MVP does **not** submit applications. A user reviews every match and every
-generated sentence, downloads the documents, and applies manually on the
-original employer or job-board website.
+The current product uses an honest hybrid application flow. It submits inside
+NextJOB only when an employer-authorized connector is present; otherwise it
+opens the official employer form and records a user-reported status separately
+from an employer-verified receipt.
 
 ## What is implemented
 
 - Public landing page with a focused CV → matches → application journey.
 - Sign-up, sign-in, and password-recovery product surfaces, with hosted Sign in
   with ChatGPT support and replaceable production identity adapters.
-- PDF, DOCX, and TXT CV upload validation with a 10 MB limit, explicit
-  AI-processing consent, a malware-scan hook, and private R2 object keys.
+- PDF and DOCX CV upload validation with a 10 MB limit, explicit AI-processing
+  consent, file-signature checks, and private R2 object keys.
+- Reactive Resume + AI integration for structured CV parsing, private resume
+  import, job-specific tailoring, and authenticated PDF export.
 - Structured factual profile review. Extracted fields keep source text,
   confidence, and verification status.
-- 30 clearly fictional international vacancies spanning more than 10 countries,
-  several languages and currencies, remote/hybrid/on-site work, missing
-  salaries, sponsorship signals, expiration, and duplicate sources.
+- Live Greenhouse and Lever employer listings with country detection, source
+  health, partial-failure handling, and no invented feed fallback.
 - Replaceable job-provider registry with health checks, partial-failure handling,
   permitted-source boundaries, and provider-specific configuration.
 - Deterministic job normalization, salary conversion, duplicate grouping, hard
@@ -36,7 +38,8 @@ original employer or job-board website.
   integrity factors plus an explicit vendor-score disclaimer.
 - Server-side selectable PDF, editable DOCX, and plain-text generation without
   rendering documents as images.
-- Application package review, document history surface, and simple tracker.
+- Application package review and an owner-scoped tracker that distinguishes an
+  opened employer form, a user-reported application, and employer verification.
 - Consent-first email/WhatsApp preferences, quiet hours, match thresholds, and
   notification caps.
 - Protected administration surface for provider, delivery, queue, duplicate,
@@ -69,6 +72,7 @@ Domain logic is kept outside UI components:
 - `lib/engine.ts` — normalization, deduplication, matching, ATS analysis, and
   grounded generation.
 - `lib/providers.ts` — provider registry and replaceable adapters.
+- `lib/job-store.ts` — durable live-job resolution and normalized D1 writes.
 - `lib/documents.ts` — dependency-free PDF, DOCX, and TXT generation.
 - `lib/security.ts` — same-origin enforcement, rate limits, text hygiene, and
   webhook verification.
@@ -140,33 +144,22 @@ row-level-security policy set. D1 does not implement PostgreSQL RLS, so the
 active Sites adapter enforces the same ownership rule in server-side prepared
 queries.
 
-## Demo mode
+## Development fallback
 
-Demo mode is active when `NEXT_PUBLIC_SUPABASE_URL` is missing. It provides a
-complete walkthrough with:
-
-- fictional candidate Anna Bianchi;
-- simulated, source-attributed CV extraction;
-- deterministic AI generation and factual validation;
-- 30 fictional jobs from six fictional provider adapters;
-- simulated email and WhatsApp delivery;
-- real local PDF, DOCX, and TXT document bytes;
-- provider degradation and failure states;
-- clearly labelled fictional data.
-
-Demo mode never calls an external AI, email, WhatsApp, job-data, or payment
-service.
+The repository retains deterministic sample fixtures for unit tests and
+isolated UI development. They are not inserted into the live Jobs feed. If all
+configured job providers are unavailable, the product shows that state instead
+of replacing real vacancies with fictional ones. Demo mode is enabled only by
+the explicit `FEATURE_DEMO_MODE=true` flag.
 
 ## Provider integrations
 
 The `JobProvider` contract includes identifiers, coverage metadata, search,
-detail retrieval, and health checks. The registry demonstrates:
-
-- employer/direct ATS adapters;
-- JSON APIs;
-- XML/public feeds;
-- EURES-style public feeds;
-- degraded and offline provider behavior.
+detail retrieval, and health checks. The live registry implements public
+Greenhouse and Lever job-board APIs, recognized-partner EURES configuration,
+and a robots-aware JSON-LD crawler for administrator-approved employer URLs.
+LinkedIn and Indeed domains are rejected by the crawler because those sources
+require partner authorization.
 
 Production integrations must be official, licensed, public and permitted, or
 initiated by the user (for example a pasted job URL or description). Unauthorized
@@ -197,6 +190,18 @@ A production model adapter should request structured JSON, validate it with Zod,
 retry invalid responses within a strict limit, and refuse unsupported claims.
 Raw CV text should not leave the system unless required by an explicitly chosen
 parser or model and covered by consent and data-processing terms.
+
+The production résumé flow uses server-only credentials:
+
+- `REACTIVE_RESUME_API_KEY` authenticates résumé import, application tailoring,
+  and PDF export at `https://rxresu.me/api/openapi`;
+- `AI_PROVIDER`, `AI_PROVIDER_API_KEY`, and `AI_MODEL` configure the provider
+  used by Reactive Resume to parse PDF/DOCX uploads and tailor applications;
+- `AI_BASE_URL` is optional for an explicitly configured compatible provider.
+
+The upload request does not continue to profile review until parsing and private
+storage have succeeded. Missing credentials or provider failures return an
+error; real uploads never silently become the fictional demo profile.
 
 ## ATS methodology
 
@@ -248,10 +253,10 @@ Unit tests cover:
 Integration tests cover:
 
 - server-rendered landing and onboarding flow;
-- curated matches and provider health APIs;
+- the no-fictional-fallback guarantee and provider health APIs;
 - provider partial failure;
-- structured application generation;
-- PDF, DOCX, and TXT downloads;
+- refusal to generate documents for nonexistent or fictional jobs;
+- honest application-state handling;
 - cross-site write rejection;
 - response security headers.
 
@@ -270,29 +275,33 @@ Before a production launch:
 2. apply the generated migration;
 3. configure protected secrets and enabled providers;
 4. connect a production identity provider if the hosted SIWC path is not used;
-5. replace demo AI, email, WhatsApp, queue, currency, and job-provider adapters;
+5. configure any additional licensed job sources and employer-authorized native
+   submission connectors;
 6. configure retention, monitoring, backups, abuse thresholds, and a malware
    scanning service;
 7. perform an external penetration test and provider-license review.
 
 ## Known limitations
 
-- The seeded job feed and candidate are fictional; live worldwide coverage is
-  not bundled.
-- Email, WhatsApp, billing, production AI, live job feeds, currency conversion,
-  OCR, and queue delivery remain adapter-backed demo services until credentials
-  and provider agreements are configured.
+- Worldwide coverage depends on the enabled public, licensed, or
+  employer-authorized sources; no provider covers every vacancy.
+- Native submission is unavailable for an employer until that employer grants
+  ATS credentials and the connector can return an application receipt.
+- Indeed and LinkedIn ingestion/submission require approved partner access and
+  are not scraped.
+- Email, WhatsApp, billing, currency conversion, OCR, and queue delivery remain
+  adapter-backed services until their production providers are configured.
 - Hosted Sign in with ChatGPT is wired; email/password, magic-link, Google, and
   Supabase auth controls are represented as production adapter surfaces and are
   not a home-grown auth implementation.
 - D1 uses server-side ownership enforcement rather than PostgreSQL-native RLS.
-- The current PDF renderer prioritizes ATS-readable selectable text over visual
-  templates. It supports a single-page demo CV; a production renderer should add
-  pagination, font embedding, and localized typography.
+- Reactive Resume owns the complete structured CV and production PDF export.
+  The built-in renderer remains a simpler ATS-readable fallback.
 - E2E coverage validates rendered flows and endpoints at the Worker boundary;
   cross-browser Playwright automation should be added to the deployment CI once
   browser runners are provisioned.
 - ATS readiness is an estimate, not a vendor score.
 - NextJOB does not guarantee interviews or job offers.
 - Generated claims must remain factual and user-approved.
-- The MVP never auto-applies.
+- NextJOB never claims submission from opening an employer form or from a local
+  button click.

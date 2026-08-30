@@ -25,7 +25,7 @@ export interface FileParser {
   parse(file: ArrayBuffer, mimeType: string): Promise<string>;
 }
 
-export const DEMO_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+export const DEMO_MODE = process.env.FEATURE_DEMO_MODE === "true";
 
 export const providerRegistry: JobProvider[] = createLiveProviderRegistry();
 

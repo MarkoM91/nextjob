@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const user = await getChatGPTUser();
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const stored = await readStoredResume(storage, safeOwnerId(user?.id)).catch(() => null);
-  return Response.json(stored ? { profile: stored.profile, source: stored.provider, parsedAt: stored.parsedAt } : { profile: candidate, source: "nextjob-fallback" }, { headers: { "cache-control": "private, no-store" } });
+  return Response.json(stored ? { profile: stored.profile, resume: stored.content, source: stored.provider, parsedAt: stored.parsedAt } : { profile: candidate, resume: null, source: "nextjob-fallback" }, { headers: { "cache-control": "private, no-store" } });
 }
 
 export async function POST(request: Request) {
@@ -26,6 +26,6 @@ export async function POST(request: Request) {
   if (!storage || !stored) return Response.json({ error: "Upload and parse your CV first" }, { status: 409 });
   stored.verifiedAt = new Date().toISOString();
   stored.profile.facts = stored.profile.facts.map((fact) => ({ ...fact, verifiedByUser: true }));
-  await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "useresume", verified: "true" } });
+  await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "reactive-resume", verified: "true", externalResumeId: stored.externalResumeId } });
   return Response.json({ profile: stored.profile, source: stored.provider, verifiedAt: stored.verifiedAt });
 }
