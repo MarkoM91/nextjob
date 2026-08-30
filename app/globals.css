@@ -921,6 +921,8 @@ button:disabled { cursor: not-allowed; opacity: .42; }
 .source-status.loading i { background: var(--blue); animation: source-pulse 1.2s ease-in-out infinite; }
 .source-status.unavailable { border-color: #ead9b0; background: #fffaf0; color: #73551d; }
 .source-status.unavailable i { background: #c88a1d; }
+.source-status.profile-required { border-color: #c8d8ef; background: #f2f7ff; color: #315f93; }
+.source-status.profile-required i { background: #4d83bd; }
 @keyframes source-pulse { 50% { opacity: .35; transform: scale(.72); } }
 .feed-tabs { display: flex; gap: 2px; margin: 0 0 20px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
 .feed-tabs::-webkit-scrollbar { display: none; }

@@ -48,12 +48,13 @@ test("legacy application links never claim verified submission", async () => {
   assert.doesNotMatch(html, /Application verified and submitted/);
 });
 
-test("matches API never invents fallback jobs when live providers are unavailable", async () => {
+test("matches API never invents fallback jobs when a verified profile is unavailable", async () => {
   const response = await request("/api/matches?limit=5");
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.matches.length, 0);
-  assert.equal(body.sourceMode, "unavailable");
+  assert.equal(body.sourceMode, "profile-required");
+  assert.equal(body.profileRequired, true);
   assert.equal(body.fictional, false);
   assert.equal(body.estimateLabel, "NextJOB match estimate");
 });

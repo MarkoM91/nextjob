@@ -40,7 +40,10 @@ export async function GET(request: Request) {
   const user = await getChatGPTUser();
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const storedResume = await readStoredResume(storage, safeOwnerId(user?.id)).catch(() => null);
-  const profile = storedResume?.verifiedAt ? storedResume.profile : candidate;
+  if (!storedResume?.verifiedAt) {
+    return Response.json({ matches: [], nextCursor: null, estimateLabel: "NextJOB match estimate", sourceMode: "profile-required", fictional: false, profileRequired: true, profileSource: "missing", refreshedAt: new Date().toISOString(), providerFailures: [], sourceCounts: {} }, { headers: { "cache-control": "private, no-store" } });
+  }
+  const profile = storedResume.profile;
   const live = await searchAllProviders({ keywords: searchKeywords(profile), countries: parsed.data.country ? [parsed.data.country] : undefined });
   const liveJobs = live.jobs.filter((job) => job.active);
   await persistLiveJobs(databaseFromEnvironment(env), liveJobs).catch(() => undefined);
@@ -48,5 +51,5 @@ export async function GET(request: Request) {
   const sourceMode = liveJobs.length ? "live" : "unavailable";
   const page = matches.slice(parsed.data.cursor, parsed.data.cursor + parsed.data.limit);
   const nextCursor = parsed.data.cursor + page.length < matches.length ? parsed.data.cursor + page.length : null;
-  return Response.json({ matches: page, nextCursor, estimateLabel: "NextJOB match estimate", sourceMode, fictional: false, refreshedAt: new Date().toISOString(), providerFailures: live.failures, sourceCounts: live.sourceCounts, profileSource: storedResume?.verifiedAt ? "verified-cv" : "fallback-profile" }, { headers: { "cache-control": "private, max-age=60" } });
+  return Response.json({ matches: page, nextCursor, estimateLabel: "NextJOB match estimate", sourceMode, fictional: false, profileRequired: false, refreshedAt: new Date().toISOString(), providerFailures: live.failures, sourceCounts: live.sourceCounts, profileSource: "verified-cv" }, { headers: { "cache-control": "private, max-age=60" } });
 }
