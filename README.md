@@ -24,15 +24,40 @@ from an employer-verified receipt.
   import, job-specific tailoring, and authenticated PDF export.
 - Structured factual profile review. Extracted fields keep source text,
   confidence, and verification status.
-- Live Greenhouse and Lever employer listings with country detection, source
-  health, partial-failure handling, and no invented feed fallback.
+- Live employer listings with country detection, source health, partial-failure
+  handling, and no invented feed fallback. Sources: Greenhouse, Lever, Ashby,
+  Workable, Recruitee, SmartRecruiters (`SMARTRECRUITERS_COMPANIES`, read per
+  `SMARTRECRUITERS_MARKETS`) and Personio (`PERSONIO_COMPANIES`, the public
+  `{company}.jobs.personio.de/xml` feed) employer boards, seeded with Italian
+  employers whose feeds were verified live; the Arbeitnow open European feed (no
+  key required); and three licensed aggregators — Adzuna (`ADZUNA_APP_ID` /
+  `ADZUNA_APP_KEY`, `ADZUNA_MARKETS` defaults to `it`), Jooble
+  (`JOOBLE_API_KEY`, `JOOBLE_MARKETS`) and Careerjet
+  (`CAREERJET_AFFILIATE_ID`, `CAREERJET_MARKETS`). Aggregator location filters
+  are loose, so every posting is re-checked and one that resolves to a different
+  country is dropped rather than mislabeled. Careerjet's public API is plain
+  HTTP, requires a declared `Referer`, and ANDs its keyword string, so a single
+  role term is sent and NextJOB filters relevance itself.
+  No source is blocked by domain; each site's published robots.txt is enforced
+  per URL before a page is read. Indeed and LinkedIn currently disallow generic
+  crawlers there (`Disallow: /viewjob?` and `Disallow: /`), so reaching their
+  listings requires their partner APIs rather than the crawler.
 - Replaceable job-provider registry with health checks, partial-failure handling,
   permitted-source boundaries, and provider-specific configuration.
 - Deterministic job normalization, salary conversion, duplicate grouping, hard
   eligibility checks, weighted matching, visible gaps, and match explanations.
 - Curated matches, saved-jobs view, job detail, and original-source handoff.
-- Focused application studio with Original, Tailored, and Changes views.
-- Grounded CV, cover-letter, email, and interview-preparation generation.
+- Indeed-style job feed filters: what/where search, date posted, work style,
+  job type, experience level, pay floor, stated-pay-only, country, and sort,
+  with per-chip counts; the same rules run on the server and in the browser.
+- Focused application studio that shows the job-tailored CV Reactive Resume
+  produced, with tone-based regeneration of the written documents, an inline
+  PDF preview, and a CV design picker (`POST /api/applications/template`)
+  that switches the Reactive Resume template, re-exports the PDF, and keeps
+  the choice for every later application.
+- Grounded CV, cover-letter, email, and interview-preparation generation written
+  from the actual job posting by the configured AI provider, with a
+  deterministic, occupation-neutral template as the fallback.
 - Claim-source links and factual validation for every generated CV bullet.
 - “NextJOB ATS readiness estimate” with keyword, formatting, and factual
   integrity factors plus an explicit vendor-score disclaimer.
@@ -196,8 +221,26 @@ The production résumé flow uses server-only credentials:
 - `REACTIVE_RESUME_API_KEY` authenticates résumé import, application tailoring,
   and PDF export at `https://rxresu.me/api/openapi`;
 - `AI_PROVIDER`, `AI_PROVIDER_API_KEY`, and `AI_MODEL` configure the provider
-  used by Reactive Resume to parse PDF/DOCX uploads and tailor applications;
+  used by Reactive Resume to parse PDF/DOCX uploads and tailor applications, and
+  by NextJOB's own document writer (`lib/ai-writer.ts`) for the cover letter,
+  email and interview prep;
 - `AI_BASE_URL` is optional for an explicitly configured compatible provider.
+
+Generating an application (`POST /api/applications/generate`) runs in order:
+
+1. Reactive Resume creates a job application from the exact posting and tailors
+   the imported résumé to it; the PDF and the tailored structured content are
+   stored privately in R2.
+2. The document writer receives the verified CV (no contact details) and the
+   posting, writes in the posting's language, and may only *select* CV bullets
+   by id, so every experience claim stays a verbatim verified fact. It targets
+   OpenAI-compatible chat-completion APIs (OpenAI, OpenRouter, Groq, Mistral,
+   DeepSeek, xAI, Ollama, …); other providers fall back to the template with a
+   visible warning.
+3. Claims are re-validated and the ATS estimate is recomputed on the final text.
+4. The package is stored per job and reused on later visits (`regenerate: true`
+   or a different tone forces a rewrite), and `GET /api/applications/generate?job=`
+   returns it to the studio and the document downloads (`?doc=cv|cover-letter|email|interview`).
 
 The upload request does not continue to profile review until parsing and private
 storage have succeeded. Missing credentials or provider failures return an

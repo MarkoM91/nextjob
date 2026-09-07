@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   }
 
   const db = databaseFromEnvironment(env);
-  const job = await resolveRealJob(parsed.data.jobId, db);
+  const job = await resolveRealJob(parsed.data.jobId, db, (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS);
   if (!job) return Response.json({ error: "This live job is no longer available" }, { status: 404 });
   const user = await getChatGPTUser();
   if (parsed.data.action === "native") {

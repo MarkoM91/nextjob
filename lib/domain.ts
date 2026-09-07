@@ -114,6 +114,8 @@ export type MatchResult = {
   matchedSkills: string[];
   gaps: string[];
   breakdown: Record<string, number>;
+  /** Straight-line distance from the candidate's place, when both sides could be located. */
+  distanceKm?: number;
 };
 
 export type AtsReport = {

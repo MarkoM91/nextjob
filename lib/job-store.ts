@@ -1,6 +1,6 @@
 import type { Job, SalaryPeriod } from "./domain";
 import { liveJobInternals } from "./live-job-providers";
-import { searchAllProviders } from "./providers";
+import { findRecentJob, searchAllProviders } from "./providers";
 
 type JobRow = {
   id: string;
@@ -129,12 +129,45 @@ export async function readStoredJob(db: D1Database | undefined, jobId: string): 
   return row ? rowToJob(row) : null;
 }
 
-export async function resolveRealJob(jobId: string, db?: D1Database): Promise<Job | null> {
+/**
+ * A job the candidate opened is kept as an object for a month, so the studio, tracker
+ * and document links keep working across worker restarts even where the relational
+ * store is unavailable or not yet migrated.
+ */
+const JOB_CACHE_TTL_MS = 30 * 86400000;
+
+function jobCacheKey(jobId: string): string { return `jobs/${jobId.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 160)}.json`; }
+
+export async function cacheResolvedJob(storage: R2Bucket | undefined, job: Job): Promise<void> {
+  if (!storage || job.fictional) return;
+  await storage.put(jobCacheKey(job.id), new TextEncoder().encode(JSON.stringify({ job, cachedAt: Date.now() })), { httpMetadata: { contentType: "application/json" }, customMetadata: { providerId: job.providerId } }).catch(() => undefined);
+}
+
+async function readCachedJob(storage: R2Bucket | undefined, jobId: string): Promise<Job | null> {
+  if (!storage) return null;
+  const object = await storage.get(jobCacheKey(jobId)).catch(() => null) as { text(): Promise<string> } | null;
+  if (!object) return null;
+  try {
+    const { job, cachedAt } = JSON.parse(await object.text()) as { job: Job; cachedAt: number };
+    return job && cachedAt + JOB_CACHE_TTL_MS > Date.now() ? job : null;
+  } catch { return null; }
+}
+
+export async function resolveRealJob(jobId: string, db?: D1Database, storage?: R2Bucket): Promise<Job | null> {
   const stored = await readStoredJob(db, jobId).catch(() => null);
   if (stored) return stored;
+  // The feed the user clicked from was keyword-driven, so resolve from what that
+  // search actually returned before falling back to a broad re-search.
+  const remembered = findRecentJob(jobId);
+  if (remembered) {
+    await Promise.all([persistLiveJobs(db, [remembered]).catch(() => undefined), cacheResolvedJob(storage, remembered)]);
+    return remembered;
+  }
+  const cached = await readCachedJob(storage, jobId);
+  if (cached) return cached;
   const live = await searchAllProviders({});
   const job = live.jobs.find((item) => item.id === jobId && !item.fictional) ?? null;
-  if (job) await persistLiveJobs(db, [job]).catch(() => undefined);
+  if (job) await Promise.all([persistLiveJobs(db, [job]).catch(() => undefined), cacheResolvedJob(storage, job)]);
   return job;
 }
 

@@ -9,9 +9,17 @@ const supportedAiProviders = new Set([
   "deepseek", "togetherai", "fireworks", "cerebras", "perplexity", "ollama", "openai-compatible",
 ]);
 
+/** Résumé designs Reactive Resume can render; the PDF is re-exported when one is chosen. */
+export const REACTIVE_RESUME_TEMPLATES = ["azurill", "bronzor", "chikorita", "ditgar", "ditto", "gengar", "glalie", "kakuna", "lapras", "leafish", "meowth", "onyx", "pikachu", "rhyhorn", "scizor"] as const;
+export type ReactiveResumeTemplate = typeof REACTIVE_RESUME_TEMPLATES[number];
+export function isReactiveResumeTemplate(value: unknown): value is ReactiveResumeTemplate {
+  return typeof value === "string" && (REACTIVE_RESUME_TEMPLATES as readonly string[]).includes(value);
+}
+
 export type ReactiveResumeData = {
   basics?: { name?: string; headline?: string; email?: string; phone?: string; location?: string };
   summary?: { content?: string };
+  metadata?: { template?: string };
   sections?: {
     profiles?: { items?: Array<{ id?: string; network?: string; username?: string; website?: string }> };
     experience?: { items?: Array<{ id?: string; company?: string; position?: string; location?: string; period?: string; description?: string; roles?: Array<{ id?: string; position?: string; period?: string; description?: string }> }> };
@@ -32,7 +40,7 @@ type ReactiveResumeConfig = {
 };
 
 export type ImportedReactiveResume = { resumeId: string; content: ReactiveResumeData };
-export type TailoredReactiveResume = { applicationId: string; resumeId: string; name?: string; pdf: ArrayBuffer };
+export type TailoredReactiveResume = { applicationId: string; resumeId: string; name?: string; pdf: ArrayBuffer; content: ReactiveResumeData | null };
 type ReactiveApplicationRecord = { id?: unknown; company?: unknown; role?: unknown; resumeId?: unknown; sourceUrl?: unknown; tags?: unknown };
 
 export class ReactiveResumeApiError extends Error {
@@ -107,6 +115,7 @@ export function sanitizeReactiveResumeData(value: unknown): ReactiveResumeData {
   const basicsInput = input.basics && typeof input.basics === "object" ? input.basics as Record<string, unknown> : {};
   const summaryInput = input.summary && typeof input.summary === "object" ? input.summary as Record<string, unknown> : {};
   const sectionsInput = input.sections && typeof input.sections === "object" ? input.sections as Record<string, unknown> : {};
+  const metadataInput = input.metadata && typeof input.metadata === "object" ? input.metadata as Record<string, unknown> : {};
   const sectionItems = (name: string, max: number) => {
     const section = sectionsInput[name];
     return section && typeof section === "object" ? cleanItems((section as Record<string, unknown>).items, max) : [];
@@ -117,6 +126,7 @@ export function sanitizeReactiveResumeData(value: unknown): ReactiveResumeData {
       phone: cleanText(basicsInput.phone, 80), location: cleanText(basicsInput.location, 240),
     },
     summary: { content: cleanRichText(summaryInput.content, 4_000) },
+    metadata: { template: cleanText(metadataInput.template, 40) },
     sections: {
       profiles: { items: sectionItems("profiles", 20).map((item, index) => ({ id: cleanText(item.id, 100) ?? `profile-${index + 1}`, network: cleanText(item.network, 100), username: cleanText(item.username, 180), website: cleanWebsite(item.website) })).filter((item) => item.network || item.username || item.website) },
       experience: { items: sectionItems("experience", 30).map((item, index) => ({
@@ -156,14 +166,20 @@ export function candidateFromReactiveResume(content: ReactiveResumeData, ownerId
   const languages = (content.sections?.languages?.items ?? []).map((item) => item.language).filter((value): value is string => Boolean(value));
   const education = (content.sections?.education?.items ?? []).map((item) => [item.degree, item.area, item.school].filter(Boolean).join(" — ")).filter(Boolean);
   const yearsOfExperience = Math.max(0, ...experienceItems.map((item) => durationFromPeriod(item.period)));
-  const currentRole = basics.headline ?? experiences[0]?.role ?? "Professional";
+  // A headline is only a usable job title when it is short and not a summary sentence;
+  // otherwise the most recent experience position is the honest role.
+  const headline = basics.headline?.trim();
+  const headlineIsTitle = Boolean(headline) && headline!.length <= 60 && headline!.split(/\s+/).length <= 6 && !/[.!?]$/.test(headline!) && !headline!.includes(",");
+  const latestRole = experiences.map((experience) => experience.role).find((role) => role && role !== "Role");
+  const currentRole = (headlineIsTitle ? headline : latestRole) ?? headline ?? "Professional";
+  const targetTitles = [...new Set([currentRole, ...experiences.map((experience) => experience.role)])].filter((title) => title && title !== "Role").slice(0, 3);
   const facts = [
     ["name", "Name", basics.name], ["role", "Current role", currentRole], ["location", "Location", basics.location],
     ["experience", "Experience", yearsOfExperience ? `${yearsOfExperience} years` : undefined], ["skills", "Skills", skills.slice(0, 12).join(", ")],
   ].flatMap(([id, label, factValue]) => factValue ? [{ id: `parsed-${id}`, label: String(label), value: String(factValue), sourceText: String(factValue), confidence: 0.9, verifiedByUser: false }] : []);
   return {
     id: ownerId, fullName: basics.name ?? "CV owner", email: basics.email ?? "", phone: basics.phone ?? "", location: basics.location ?? "",
-    currentRole, yearsOfExperience, targetTitles: [currentRole], skills, languages, education, workAuthorizations: [],
+    currentRole, yearsOfExperience, targetTitles, skills, languages, education, workAuthorizations: [],
     preferences: { countries: [], workplace: ["Remote", "Hybrid", "On-site"], relocation: false, visaSponsorshipRequired: false, minimumAnnualSalaryEur: 0 },
     experiences, facts,
   };
@@ -291,32 +307,69 @@ async function existingTailoredApplication(baseResumeId: string, job: Job): Prom
     : payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).items)
       ? (payload as { items: unknown[] }).items
       : [];
+  // Aggregator links rotate between searches, so the URL is a preference, not a requirement:
+  // the same employer, title and NextJOB tag is the same vacancy, and creating a second
+  // tailored résumé for it fails on Reactive Resume's slug uniqueness anyway.
+  let sameVacancy: { applicationId: string; resumeId: string } | null = null;
   for (const item of records) {
     if (!item || typeof item !== "object") continue;
     const record = item as ReactiveApplicationRecord;
     const applicationId = cleanText(record.id, 160);
     const resumeId = cleanText(record.resumeId, 160);
     const tags = Array.isArray(record.tags) ? record.tags : [];
-    const sameJob = cleanText(record.sourceUrl, 2_000) === job.originalUrl
-      && cleanText(record.company, 240) === job.company.replace(/\s+\(fictional\)$/i, "")
+    const sameJob = cleanText(record.company, 240) === job.company.replace(/\s+\(fictional\)$/i, "")
       && cleanText(record.role, 240) === job.title
       && tags.includes("NextJOB");
-    if (sameJob && applicationId && resumeId && resumeId !== baseResumeId) return { applicationId, resumeId };
+    if (!sameJob || !applicationId || !resumeId || resumeId === baseResumeId) continue;
+    if (cleanText(record.sourceUrl, 2_000) === job.originalUrl) return { applicationId, resumeId };
+    sameVacancy ??= { applicationId, resumeId };
   }
-  return null;
+  return sameVacancy;
 }
 
-export async function createTailoredReactiveResume(baseResumeId: string, job: Job): Promise<TailoredReactiveResume> {
+/** The structured content of a résumé Reactive Resume holds, sanitized like an upload. */
+export async function fetchReactiveResume(resumeId: string): Promise<ReactiveResumeData> {
+  const payload = await jsonRequest<unknown>(`/resumes/${encodeURIComponent(resumeId)}`, { method: "GET" }, 30_000);
+  return sanitizeReactiveResumeData(parsePayload(payload));
+}
+
+/**
+ * The PDF is the deliverable, so a failure to read the tailored content back must
+ * not discard it; the studio falls back to the base résumé when content is null.
+ */
+async function tailoredContent(resumeId: string): Promise<ReactiveResumeData | null> {
+  return fetchReactiveResume(resumeId).catch(() => null);
+}
+
+/** Switches the design of a résumé Reactive Resume holds and re-exports its PDF. */
+export async function setReactiveResumeTemplate(resumeId: string, template: ReactiveResumeTemplate): Promise<{ pdf: ArrayBuffer }> {
+  if (!isReactiveResumeTemplate(template)) throw new ReactiveResumeApiError("Unknown résumé design", 400, "UNKNOWN_TEMPLATE");
+  await jsonRequest<unknown>(`/resumes/${encodeURIComponent(resumeId)}`, { method: "PATCH", body: JSON.stringify({ operations: [{ op: "replace", path: "/metadata/template", value: template }] }) }, 30_000);
+  return { pdf: await downloadPdf(resumeId) };
+}
+
+/** The candidate's chosen design is applied before export, so every tailored CV looks the same. */
+async function exportTailored(applicationId: string, resumeId: string, name: string | undefined, template?: ReactiveResumeTemplate): Promise<TailoredReactiveResume> {
+  let content = await tailoredContent(resumeId);
+  if (template && content?.metadata?.template !== template) {
+    const { pdf } = await setReactiveResumeTemplate(resumeId, template);
+    if (content) content = { ...content, metadata: { ...content.metadata, template } };
+    return { applicationId, resumeId, name, pdf, content };
+  }
+  return { applicationId, resumeId, name, pdf: await downloadPdf(resumeId), content };
+}
+
+export async function createTailoredReactiveResume(baseResumeId: string, job: Job, template?: ReactiveResumeTemplate): Promise<TailoredReactiveResume> {
   if (!isReactiveResumeConfigured()) throw new ReactiveResumeApiError("Reactive Resume + AI is not configured", 503, "PROVIDER_NOT_CONFIGURED");
   await ensureSavedAiProvider();
   const existing = await existingTailoredApplication(baseResumeId, job);
-  if (existing) return { ...existing, pdf: await downloadPdf(existing.resumeId) };
-  const applicationPayload = await jsonRequest<unknown>("/applications", { method: "POST", body: JSON.stringify({ company: job.company.replace(/\s+\(fictional\)$/i, ""), role: job.title, location: job.locationText, source: job.providerName, sourceUrl: job.originalUrl, jobDescription: job.description.slice(0, 20_000), resumeId: baseResumeId, tags: ["NextJOB"] }) }, 30_000);
+  if (existing) return exportTailored(existing.applicationId, existing.resumeId, undefined, template);
+  const applicationPayload = await jsonRequest<unknown>("/applications", { method: "POST", body: JSON.stringify({ company: job.company.replace(/\s+\(fictional\)$/i, ""), role: job.title, location: job.locationText, source: job.providerName, sourceUrl: job.originalUrl || undefined, jobDescription: job.description.slice(0, 20_000), resumeId: baseResumeId, tags: ["NextJOB"] }) }, 30_000);
   const applicationId = responseId(applicationPayload, "application");
   const tailoredPayload = await jsonRequest<{ resumeId?: string; name?: string }>(`/applications/${encodeURIComponent(applicationId)}/ai/tailor-resume`, { method: "POST" }, 90_000);
   const resumeId = cleanText(tailoredPayload?.resumeId, 160);
   if (!resumeId) throw new ReactiveResumeApiError("Reactive Resume did not return a tailored résumé", 502, "MISSING_TAILORED_RESUME");
-  return { applicationId, resumeId, name: cleanText(tailoredPayload.name, 240), pdf: await downloadPdf(resumeId) };
+  return exportTailored(applicationId, resumeId, cleanText(tailoredPayload.name, 240), template);
 }
 
 export const reactiveResumeInternals = { bytesToBase64, cleanRichText, supportedAiProviders };

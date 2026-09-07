@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const user = await getChatGPTUser();
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const stored = await readStoredResume(storage, safeOwnerId(user?.id)).catch(() => null);
-  return Response.json(stored ? { profile: stored.profile, resume: stored.content, source: stored.provider, parsedAt: stored.parsedAt } : { profile: candidate, resume: null, source: "nextjob-fallback" }, { headers: { "cache-control": "private, no-store" } });
+  return Response.json(stored ? { profile: stored.profile, resume: stored.content, source: stored.provider, parsedAt: stored.parsedAt, preferredTemplate: stored.preferredTemplate ?? null } : { profile: candidate, resume: null, source: "nextjob-fallback", preferredTemplate: null }, { headers: { "cache-control": "private, no-store" } });
 }
 
 export async function POST(request: Request) {

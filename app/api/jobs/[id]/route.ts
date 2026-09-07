@@ -11,10 +11,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!limit.allowed) return Response.json({ error: "Too many requests" }, { status: 429 });
   const { id } = await params;
   if (!id || id.length > 80) return Response.json({ error: "Invalid job" }, { status: 400 });
-  const job = await resolveRealJob(id, databaseFromEnvironment(env));
+  const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
+  const job = await resolveRealJob(id, databaseFromEnvironment(env), storage);
   if (!job) return Response.json({ error: "This live job is no longer available" }, { status: 404 });
   const user = await getChatGPTUser();
-  const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const storedResume = await readStoredResume(storage, safeOwnerId(user?.id)).catch(() => null);
   const profile = storedResume?.verifiedAt ? storedResume.profile : candidate;
   const match = rankJobs(profile, [job], true)[0];

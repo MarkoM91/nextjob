@@ -19,9 +19,9 @@ test("landing page replaces the starter and communicates the core promise", asyn
   const response = await request("/");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Find work that fits\. Apply without the busywork\./);
+  assert.match(html, /Your job search,(?:<br\/?>)?\s*brought into/);
   assert.match(html, /Private by default/);
-  assert.match(html, /Nothing sent without your review/);
+  assert.match(html, /Nothing is ever submitted automatically/);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/);
 });
 
@@ -108,6 +108,17 @@ test("document endpoint requires a current live job", async () => {
   assert.equal(fictionalJob.status, 404);
 });
 
+test("CV design changes validate the template and require a real job", async () => {
+  const headers = { "content-type": "application/json", origin: "http://localhost" };
+  const list = await request("/api/applications/template");
+  assert.equal(list.status, 200);
+  assert.ok((await list.json()).templates.includes("onyx"));
+  const unknownDesign = await request("/api/applications/template", { method: "POST", headers, body: JSON.stringify({ jobId: "job-01", template: "bulbasaur" }) });
+  assert.equal(unknownDesign.status, 400);
+  const fictionalJob = await request("/api/applications/template", { method: "POST", headers, body: JSON.stringify({ jobId: "job-01", template: "kakuna" }) });
+  assert.equal(fictionalJob.status, 404);
+});
+
 test("write endpoints reject cross-site origins", async () => {
   const response = await request("/api/applications/generate", { method: "POST", headers: { "content-type": "application/json", origin: "https://evil.example" }, body: JSON.stringify({ jobId: "job-01", tone: "Professional" }) });
   assert.equal(response.status, 403);
@@ -117,5 +128,8 @@ test("security headers protect rendered routes", async () => {
   const response = await request("/dashboard");
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.match(response.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/);
+  // The in-browser CV designer runs the PDF engine's WebAssembly, which loads from a data: URL.
+  assert.match(response.headers.get("content-security-policy") ?? "", /script-src[^;]*'wasm-unsafe-eval'/);
+  assert.match(response.headers.get("content-security-policy") ?? "", /connect-src[^;]*data:/);
   assert.match(response.headers.get("permissions-policy") ?? "", /camera=\(\)/);
 });
