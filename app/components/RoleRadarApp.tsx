@@ -9,11 +9,12 @@ import { JobDetail } from "./job-detail";
 import { UploadScreen } from "./onboarding";
 import { Generating, PackageScreen, Studio } from "./studio";
 import { DocumentsScreen, Tracker } from "./tracker";
-import { Admin, AuthScreen, Notifications, StaticScreen } from "./misc";
+import { Admin, Notifications, StaticScreen } from "./misc";
+import { CheckoutScreen } from "./checkout";
 
-export function NextJobApp({ screen, jobId, appliedJobId, applicationState, generationProvider, user, demoMode = true }: Props) {
+export function NextJobApp({ screen, jobId, appliedJobId, applicationState, generationProvider, format, payment, user, demoMode = true }: Props) {
   if (screen === "landing") return <Landing />;
-  if (screen === "sign-in" || screen === "sign-up" || screen === "forgot-password") return <AuthScreen mode={screen} />;
+  if (screen === "checkout") return <AppShell screen={screen} user={user} demoMode={demoMode}><CheckoutScreen jobId={jobId} format={format} payment={payment} /></AppShell>;
   if (screen === "upload") return <UploadScreen />;
   if (screen === "profile-review") return <UploadScreen stage="profile" />;
   if (screen === "preferences") return <UploadScreen stage="preferences" />;

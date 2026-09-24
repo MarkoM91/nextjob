@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check, FileCheck2, Lock, MapPin, PlayCircle, Radar, ShieldCheck, Sparkles, UploadCloud, Wallet } from "lucide-react";
+import { ArrowRight, BadgeCheck, Check, FileCheck2, Lock, MapPin, Radar, ShieldCheck, UploadCloud, Wallet } from "lucide-react";
 import { bandClass, bestMatch, formatSalary, Logo, relativeDate } from "./shared";
 
 export function Landing() {
@@ -11,36 +11,32 @@ export function Landing() {
       <div className="landing-wrap nav-row">
         <Logo />
         <nav aria-label="Landing sections">
-          <a href="#how">How it works</a>
-          <a href="#different">Why it&rsquo;s different</a>
+          <a href="#how">Process</a>
+          <a href="#different">Standards</a>
           <Link href="/privacy">Privacy</Link>
         </nav>
-        <div className="landing-auth">
-          <Link href="/sign-in">Log in</Link>
-          <Link className="button" href="/upload"><UploadCloud /> Start with your CV</Link>
-        </div>
+        <div className="landing-auth"><Link className="button" href="/upload"><UploadCloud /> Upload CV</Link></div>
       </div>
     </header>
 
     <section className="landing-wrap hero">
       <div className="hero-copy">
-        <h1>Your job search,<br />brought into <em>focus</em>.</h1>
-        <p className="hero-supporting">Upload your CV once. Discover relevant roles from real employer listings and create an ATS-ready application in minutes.</p>
+        <p className="eyebrow light">Career workspace · Private by design</p>
+        <h1>One place to find, assess and apply for the right roles.</h1>
+        <p className="hero-supporting">NextJOB turns your verified CV into a focused search: current employer vacancies, explainable fit and application documents you control.</p>
         <div className="hero-actions">
-          <Link className="button button-large" href="/upload"><UploadCloud /> Start with your CV</Link>
-          <a className="text-button" href="#how"><PlayCircle /> See how it works</a>
+          <Link className="button button-large" href="/upload"><UploadCloud /> Upload your CV</Link>
+          <a className="text-button" href="#how">Review the process <ArrowRight /></a>
         </div>
-        <p className="microcopy"><ShieldCheck /> Private by default · Nothing is ever submitted automatically</p>
+        <p className="microcopy"><ShieldCheck /> No account required · Preview at no cost · €1.50 per CV export</p>
       </div>
 
       <div className="hero-product">
-        <div className="orbit" aria-hidden />
-        <div className="orbit orbit-2" aria-hidden />
         <article className="hero-card" aria-label="Example NextJOB match">
-          <p className="hero-card-eyebrow">Your best match today</p>
+          <div className="hero-card-status"><p className="hero-card-eyebrow">Live role brief</p><span><i /> Source checked</span></div>
           <div className="hero-card-title">
             <h2>{match.job.title}</h2>
-            <span className={`match-label ${bandClass(match.band)}`}><Sparkles /> {match.band}</span>
+            <span className={`match-label ${bandClass(match.band)}`}><BadgeCheck /> {match.band}</span>
           </div>
           <div className="hero-card-company">
             <span className="hero-company-mark" aria-hidden><Radar /></span>
@@ -50,50 +46,43 @@ export function Landing() {
           <div className="hero-card-meta">
             <span><Wallet /><div><strong>{formatSalary(match.job)}</strong><small>From the listing</small></div></span>
             <span><FileCheck2 /><div><strong>{match.matchedSkills.length} requirement{match.matchedSkills.length === 1 ? "" : "s"} met</strong><small>Verified in your profile</small></div></span>
-            <span><Sparkles /><div><strong>{relativeDate(match.job.publishedAt)}</strong><small>Live employer listing</small></div></span>
+            <span><BadgeCheck /><div><strong>{relativeDate(match.job.publishedAt)}</strong><small>Source checked</small></div></span>
           </div>
           <div className="hero-card-why">
             <p>Why this match?</p>
             <div>{(match.matchedSkills.length ? match.matchedSkills : ["Title fit", "Location fit"]).slice(0, 4).map((skill) => <span key={skill}><Check /> {skill}</span>)}</div>
           </div>
-          <Link className="text-button" href="/dashboard">View full role details <ArrowRight /></Link>
+          <Link className="text-button" href="/dashboard">Open sample assessment <ArrowRight /></Link>
         </article>
-        <aside className="hero-float" aria-hidden>
-          <span className="hero-float-icon"><FileCheck2 /></span>
-          <div>
-            <strong>Application ready</strong>
-            <span><Check /> Grounded in your real CV</span>
-            <span><Check /> Nothing submitted automatically</span>
-          </div>
-        </aside>
       </div>
     </section>
 
     <section className="trust-bar" aria-label="NextJOB principles">
       <div className="landing-wrap trust-row">
-        <p>Built for honest applications</p>
+        <p>Operating standards</p>
         <span><Lock /> Private by default</span>
-        <span><Radar /> Real employer listings only</span>
-        <span><ShieldCheck /> Nothing submitted automatically</span>
-        <span><FileCheck2 /> Every claim traceable to your CV</span>
+        <span><Radar /> Employer listings only</span>
+        <span><ShieldCheck /> You control submission</span>
+        <span><FileCheck2 /> Claims linked to your CV</span>
       </div>
     </section>
 
     <section className="landing-wrap steps" id="how">
-      <h2>A smarter process in three simple steps</h2>
+      <p className="eyebrow">A controlled workflow</p>
+      <h2>From CV to application, with checks at every step.</h2>
       <div className="steps-grid">
-        <article><span>1</span><div><strong>Upload your CV</strong><p>We extract a factual profile — every fact keeps its source text, and you confirm it before anything is used.</p></div></article>
-        <article><span>2</span><div><strong>Discover the right roles</strong><p>Live employer listings, matched against your verified profile and explained requirement by requirement.</p></div></article>
-        <article><span>3</span><div><strong>Apply with confidence</strong><p>An ATS-ready CV and cover letter tailored to each role — grounded in your real experience, never invented.</p></div></article>
+        <article><span>01</span><div><strong>Establish your record</strong><p>Upload your CV and approve the facts that can be used in applications.</p></div></article>
+        <article><span>02</span><div><strong>Assess current roles</strong><p>Compare live vacancies against your verified experience, requirement by requirement.</p></div></article>
+        <article><span>03</span><div><strong>Prepare the application</strong><p>Review a tailored CV and cover letter before you decide where and when to apply.</p></div></article>
       </div>
     </section>
 
     <section className="different" id="different">
       <div className="landing-wrap different-grid">
         <article>
-          <p className="eyebrow">Grounded generation</p>
-          <h2>Nothing is <em>invented</em>. Ever.</h2>
-          <p>Every bullet in a tailored CV traces back to a fact you verified from your own history. If a requirement isn&rsquo;t in your experience, NextJOB says so — it never papers over the gap.</p>
+          <p className="eyebrow">Evidence standard</p>
+          <h2>Every claim has a source.</h2>
+          <p>Each tailored statement is linked to experience you approved. Missing evidence stays visible instead of being filled with assumptions.</p>
           <div className="evidence-list">
             <span><strong>Verified</strong> Resolved device, software and connectivity issues for 200+ users</span>
             <span><strong>Verified</strong> Microsoft 365 and Active Directory administration</span>
@@ -101,9 +90,9 @@ export function Landing() {
           </div>
         </article>
         <article>
-          <p className="eyebrow">Honest tracking</p>
-          <h2>Status you can <em>trust</em>.</h2>
-          <p>NextJOB separates &ldquo;you opened the form&rdquo;, &ldquo;you reported applying&rdquo; and &ldquo;the employer confirmed it&rdquo;. Your pipeline reflects reality, not wishful thinking.</p>
+          <p className="eyebrow">Status standard</p>
+          <h2>A record you can trust.</h2>
+          <p>NextJOB separates an opened form, a submission you report and a receipt confirmed by the employer. Your application record always shows which is which.</p>
           <div className="evidence-list">
             <span><strong>Opened</strong> Employer form opened in a new tab</span>
             <span><strong>Reported</strong> You confirmed the submission yourself</span>
@@ -115,9 +104,9 @@ export function Landing() {
 
     <section className="landing-cta">
       <div className="landing-wrap cta-row">
-        <h2>Ready to bring your search into focus?</h2>
-        <p>One verified profile. Real listings. Applications you can stand behind.</p>
-        <Link className="button button-large" href="/upload">Start with your CV <ArrowRight /></Link>
+        <h2>Start with the CV you already have.</h2>
+        <p>Review the workspace before paying. Export a tailored CV for €1.50 when it is ready.</p>
+        <Link className="button button-large" href="/upload">Upload CV <ArrowRight /></Link>
       </div>
     </section>
 

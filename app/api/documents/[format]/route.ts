@@ -1,10 +1,11 @@
 import { env } from "cloudflare:workers";
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { getCurrentUser } from "../../../auth";
 import { candidate } from "../../../../lib/demo-data";
 import { createDemoApplication } from "../../../../lib/engine";
 import { applicationPlainText, coverLetterText, emailText, interviewPrepText, textToDocx, textToPdf } from "../../../../lib/documents";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
 import { readStoredResume, readStoredTailoredApplication, safeOwnerId, tailoredResumeKey } from "../../../../lib/resume-storage";
+import { hasCvPurchase } from "../../../../lib/payment-records";
 import { clientKey, rateLimit } from "../../../../lib/security";
 
 const contentTypes = { pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", txt: "text/plain; charset=utf-8" } as const;
@@ -22,20 +23,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ form
   if (!jobId || jobId.length > 80) return Response.json({ error: "A valid live job is required" }, { status: 400 });
   const doc = url.searchParams.get("doc") ?? "cv";
   if (!(doc in documentKinds)) return Response.json({ error: "Use doc=cv, cover-letter, email, or interview" }, { status: 400 });
+  const kind = doc as keyof typeof documentKinds;
+  // The studio previews the PDF in a frame; downloads keep the attachment disposition.
+  const inline = url.searchParams.get("inline") === "true" && format === "pdf";
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const job = await resolveRealJob(jobId, databaseFromEnvironment(env), storage);
   if (!job) return Response.json({ error: "This live job is no longer available" }, { status: 404 });
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const ownerId = safeOwnerId(user?.id);
   const [storedResume, storedPackage] = await Promise.all([
     readStoredResume(storage, ownerId).catch(() => null),
     readStoredTailoredApplication(storage, ownerId, job.id).catch(() => null),
   ]);
+  if (kind === "cv" && (!user || !storedResume?.verifiedAt)) return Response.json({ error: "Upload and verify your CV before downloading it.", code: "CV_REQUIRED" }, { status: 409, headers: { "cache-control": "private, no-store" } });
+  if (kind === "cv" && !(await hasCvPurchase(storage, ownerId, job.id))) {
+    const checkout = new URL("/checkout", request.url);
+    checkout.searchParams.set("job", job.id);
+    checkout.searchParams.set("format", format);
+    checkout.searchParams.set("doc", "cv");
+    if (request.headers.get("accept")?.includes("application/json")) return Response.json({ error: "Pay €1.50 to download your CV.", code: "PAYMENT_REQUIRED", checkoutUrl: checkout.toString(), price: "1.50" }, { status: 402, headers: { "cache-control": "private, no-store" } });
+    return Response.redirect(checkout.toString(), 303);
+  }
   const profile = storedResume?.verifiedAt ? storedResume.profile : candidate;
-  const kind = doc as keyof typeof documentKinds;
   const fileBase = kind === "cv" ? `${slug(profile.fullName)}-${slug(job.title)}` : `${slug(profile.fullName)}-${kind}-${slug(job.title)}`;
-  // The studio previews the PDF in a frame; downloads keep the attachment disposition.
-  const inline = url.searchParams.get("inline") === "true" && format === "pdf";
   const headers = (contentType: string, provider: string) => ({
     "content-type": contentType,
     "content-disposition": `${inline ? "inline" : "attachment"}; filename="${fileBase}.${format}"`,

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
-import { getChatGPTUser } from "../../chatgpt-auth";
+import { getCurrentUser } from "../../auth";
 import { databaseFromEnvironment, ensureApplicationUser } from "../../../lib/job-store";
 import { assertSameOrigin } from "../../../lib/security";
 
@@ -8,7 +8,7 @@ const bodySchema = z.object({ jobId: z.string().min(1).max(80), saved: z.boolean
 
 export async function POST(request: Request) {
   if (!assertSameOrigin(request)) return Response.json({ error: "Invalid request origin" }, { status: 403 });
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid saved-job request" }, { status: 400 });
   const db = databaseFromEnvironment(env);

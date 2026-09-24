@@ -46,7 +46,8 @@ type ReactiveApplicationRecord = { id?: unknown; company?: unknown; role?: unkno
 export class ReactiveResumeApiError extends Error {
   readonly status: number;
   readonly code?: string;
-  constructor(message: string, status: number, code?: string) { super(message); this.status = status; this.code = code; }
+  readonly stage?: string;
+  constructor(message: string, status: number, code?: string, stage?: string) { super(message); this.status = status; this.code = code; this.stage = stage; }
 }
 
 function configuration(): ReactiveResumeConfig {
@@ -191,26 +192,49 @@ function providerError(payload: unknown, fallback: string): { message: string; c
   return { message: cleanText(input.message, 500) ?? cleanText(input.error, 500) ?? fallback, code: cleanText(input.code, 100) };
 }
 
-async function jsonRequest<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T> {
+type JsonRequestOptions = { retries?: number; stage?: string };
+
+function canRetryProviderError(error: ReactiveResumeApiError): boolean {
+  return error.status === 429 || error.status === 502 || error.status === 503 || error.status === 504;
+}
+
+async function jsonRequestOnce<T>(path: string, init: RequestInit, timeoutMs: number, stage?: string): Promise<T> {
   const config = configuration();
-  if (!config.apiKey) throw new ReactiveResumeApiError("Reactive Resume is not configured", 503, "PROVIDER_NOT_CONFIGURED");
+  if (!config.apiKey) throw new ReactiveResumeApiError("Reactive Resume is not configured", 503, "PROVIDER_NOT_CONFIGURED", stage);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${API_ROOT}${path}`, { ...init, headers: { "x-api-key": config.apiKey, accept: "application/json", ...(init.body ? { "content-type": "application/json" } : {}), ...init.headers }, signal: controller.signal });
     const declaredSize = Number(response.headers.get("content-length") ?? 0);
-    if (declaredSize > MAX_JSON_RESPONSE_BYTES) throw new ReactiveResumeApiError("Reactive Resume returned an oversized response", 502, "RESPONSE_TOO_LARGE");
+    if (declaredSize > MAX_JSON_RESPONSE_BYTES) throw new ReactiveResumeApiError("Reactive Resume returned an oversized response", 502, "RESPONSE_TOO_LARGE", stage);
     const text = await response.text();
-    if (text.length > MAX_JSON_RESPONSE_BYTES) throw new ReactiveResumeApiError("Reactive Resume returned an oversized response", 502, "RESPONSE_TOO_LARGE");
+    if (text.length > MAX_JSON_RESPONSE_BYTES) throw new ReactiveResumeApiError("Reactive Resume returned an oversized response", 502, "RESPONSE_TOO_LARGE", stage);
     let payload: unknown = null;
     try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
-    if (!response.ok) { const detail = providerError(payload, "Reactive Resume request failed"); throw new ReactiveResumeApiError(detail.message, response.status, detail.code); }
+    if (!response.ok) {
+      const detail = providerError(payload, "Reactive Resume request failed");
+      throw new ReactiveResumeApiError(detail.message, response.status, detail.code ?? `UPSTREAM_HTTP_${response.status}`, stage);
+    }
     return payload as T;
   } catch (error) {
     if (error instanceof ReactiveResumeApiError) throw error;
-    if (error instanceof DOMException && error.name === "AbortError") throw new ReactiveResumeApiError("Reactive Resume timed out", 504, "PROVIDER_TIMEOUT");
-    throw new ReactiveResumeApiError("Reactive Resume is temporarily unavailable", 502, "INVALID_PROVIDER_RESPONSE");
+    if (error instanceof DOMException && error.name === "AbortError") throw new ReactiveResumeApiError("Reactive Resume timed out", 504, "PROVIDER_TIMEOUT", stage);
+    throw new ReactiveResumeApiError("Reactive Resume is temporarily unavailable", 502, "INVALID_PROVIDER_RESPONSE", stage);
   } finally { clearTimeout(timeout); }
+}
+
+async function jsonRequest<T>(path: string, init: RequestInit, timeoutMs: number, options: JsonRequestOptions = {}): Promise<T> {
+  const attempts = Math.max(1, Math.min(3, (options.retries ?? 0) + 1));
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await jsonRequestOnce<T>(path, init, timeoutMs, options.stage);
+    } catch (error) {
+      if (!(error instanceof ReactiveResumeApiError) || !canRetryProviderError(error) || attempt === attempts) throw error;
+      console.warn("[reactive-resume] retrying upstream request", { stage: options.stage, path, status: error.status, code: error.code, attempt });
+      await new Promise((resolve) => setTimeout(resolve, 1_000 * attempt));
+    }
+  }
+  throw new ReactiveResumeApiError("Reactive Resume is temporarily unavailable", 502, "INVALID_PROVIDER_RESPONSE", options.stage);
 }
 
 function parsePayload(value: unknown): Record<string, unknown> {
@@ -239,7 +263,7 @@ export async function parseAndImportReactiveResume(bytes: ArrayBuffer, fileName:
   const aiProviderId = await ensureSavedAiProvider();
   const body: Record<string, unknown> = { aiProviderId, file: { name: fileName, data: bytesToBase64(bytes) } };
   if (isDocx) body.mediaType = mediaType;
-  const parsedPayload = await jsonRequest<unknown>(isPdf ? "/ai/parse-pdf" : "/ai/parse-docx", { method: "POST", body: JSON.stringify(body) }, 90_000);
+  const parsedPayload = await jsonRequest<unknown>(isPdf ? "/ai/parse-pdf" : "/ai/parse-docx", { method: "POST", body: JSON.stringify(body) }, 90_000, { retries: 1, stage: "document_parse" });
   const rawResume = parsePayload(parsedPayload);
   const importedPayload = await jsonRequest<unknown>("/resumes/import", { method: "POST", body: JSON.stringify({ data: rawResume }) }, 45_000);
   return { resumeId: responseId(importedPayload, "résumé"), content: sanitizeReactiveResumeData(rawResume) };

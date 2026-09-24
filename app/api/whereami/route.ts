@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { getChatGPTUser } from "../../chatgpt-auth";
+import { getCurrentUser } from "../../auth";
 import { resolvePlace, type LocatedPlace } from "../../../lib/geo";
 import { readStoredResume, safeOwnerId } from "../../../lib/resume-storage";
 import { clientKey, rateLimit } from "../../../lib/security";
@@ -14,7 +14,7 @@ type CloudflareGeo = { city?: string; region?: string; country?: string; latitud
 export async function GET(request: Request) {
   const limit = rateLimit(`whereami:${clientKey(request)}`, 60);
   if (!limit.allowed) return Response.json({ error: "Too many requests" }, { status: 429 });
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const storedResume = await readStoredResume(storage, safeOwnerId(user?.id)).catch(() => null);
   const profileLocation = storedResume?.verifiedAt ? storedResume.profile.location : "";

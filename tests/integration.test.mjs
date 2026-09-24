@@ -19,14 +19,14 @@ test("landing page replaces the starter and communicates the core promise", asyn
   const response = await request("/");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Your job search,(?:<br\/?>)?\s*brought into/);
+  assert.match(html, /One place to find, assess and apply for the right roles/);
   assert.match(html, /Private by default/);
-  assert.match(html, /Nothing is ever submitted automatically/);
+  assert.match(html, /No account required/);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/);
 });
 
 test("main onboarding pages render in a complete walkthrough", async () => {
-  for (const [path, text] of [["/upload", "Upload your current CV"], ["/profile-review", "Does this look like you?"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "Checking today’s employer listings"]]) {
+  for (const [path, text] of [["/upload", "Upload your current CV"], ["/profile-review", "Confirm your experience"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "Checking current employer listings"]]) {
     const response = await request(path);
     assert.equal(response.status, 200, path);
     assert.match(await response.text(), new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), path);
@@ -82,15 +82,17 @@ test("profile endpoint exposes the safe fallback until a CV is parsed", async ()
   assert.ok(body.profile.fullName);
 });
 
-test("a real CV upload never silently becomes the fictional fallback profile", async () => {
+test("an anonymous CV upload stays private and explains missing workspace configuration", async () => {
   const form = new FormData();
   form.set("cv", new File([new TextEncoder().encode("%PDF-1.4\n")], "candidate.pdf", { type: "application/pdf" }));
   form.set("aiProcessingConsent", "true");
   const response = await request("/api/cv/upload", { method: "POST", headers: { origin: "http://localhost" }, body: form });
   const body = await response.json();
   assert.equal(response.status, 503);
-  assert.equal(body.code, "PROVIDER_NOT_CONFIGURED");
+  assert.equal(body.code, "ANONYMOUS_WORKSPACE_NOT_CONFIGURED");
   assert.equal("profile" in body, false);
+  // The refusal comes before any server configuration is described.
+  assert.equal("missingConfiguration" in body, false);
 });
 
 test("application activity requires a real job and an explicit action", async () => {
@@ -132,4 +134,64 @@ test("security headers protect rendered routes", async () => {
   assert.match(response.headers.get("content-security-policy") ?? "", /script-src[^;]*'wasm-unsafe-eval'/);
   assert.match(response.headers.get("content-security-policy") ?? "", /connect-src[^;]*data:/);
   assert.match(response.headers.get("permissions-policy") ?? "", /camera=\(\)/);
+});
+
+test("the sign-in page offers only the providers this server has configured", async () => {
+  const response = await request("/api/auth/session");
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.signedIn, false);
+  assert.deepEqual(body.providers, []);
+  assert.equal(body.passwordEnabled, false, "AUTH_SECRET is unset in tests, so no sign-in method is advertised");
+});
+
+test("an unconfigured provider never redirects to a half-built consent screen", async () => {
+  const response = await request("/api/auth/google/start");
+  assert.equal(response.status, 302);
+  const location = new URL(response.headers.get("location"));
+  assert.equal(location.pathname, "/sign-in");
+  assert.match(location.searchParams.get("error"), /not configured/i);
+});
+
+test("an unknown provider is refused rather than guessed at", async () => {
+  const response = await request("/api/auth/myspace/start");
+  assert.equal(response.status, 302);
+  assert.match(new URL(response.headers.get("location")).searchParams.get("error"), /not available/i);
+});
+
+test("a forged callback without matching state cannot create a session", async () => {
+  const response = await request("/api/auth/google/callback?code=stolen-code&state=forged");
+  assert.equal(response.status, 302);
+  const setCookie = response.headers.get("set-cookie") ?? "";
+  assert.doesNotMatch(setCookie, /nextjob_session=[^;]+/, "no session cookie is ever issued for an unverified callback");
+  assert.equal(new URL(response.headers.get("location")).pathname, "/sign-in");
+});
+
+test("password sign-in refuses cross-origin posts and unconfigured servers", async () => {
+  const crossOrigin = await request("/api/auth/password", { method: "POST", headers: { "content-type": "application/json", origin: "https://evil.example" }, body: JSON.stringify({ intent: "sign-in", email: "a@b.com", password: "a-long-enough-password" }) });
+  assert.equal(crossOrigin.status, 403);
+  const sameOrigin = await request("/api/auth/password", { method: "POST", headers: { "content-type": "application/json", origin: "http://localhost" }, body: JSON.stringify({ intent: "sign-in", email: "a@b.com", password: "a-long-enough-password" }) });
+  assert.equal(sameOrigin.status, 503);
+  assert.equal((await sameOrigin.json()).code, "AUTH_NOT_CONFIGURED");
+});
+
+test("signing out clears the session cookie", async () => {
+  const response = await request("/api/auth/signout?return_to=%2F");
+  assert.equal(response.status, 302);
+  assert.match(response.headers.get("set-cookie") ?? "", /nextjob_session=;[^]*Max-Age=0/);
+});
+
+test("legacy sign-in URLs return people to the account-free upload flow", async () => {
+  const response = await request("/sign-in");
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get("location"), "http://localhost/upload");
+});
+
+
+test("the upload screen is reachable without an account so the CV comes first", async () => {
+  const response = await request("/upload");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Upload your current CV/);
+  assert.doesNotMatch(html, /Save your CV to your account/, "the sign-in step appears only once an upload is attempted");
 });

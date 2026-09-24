@@ -1,4 +1,4 @@
-import { getChatGPTUser } from "../chatgpt-auth";
+import { getCurrentUser } from "../auth";
 import { NextJobApp } from "../components/RoleRadarApp";
 import { DEMO_MODE } from "../../lib/providers";
 import { redirect } from "next/navigation";
@@ -10,9 +10,10 @@ export default async function ProductPage({
   searchParams,
 }: {
   params: Promise<{ screen: string }>;
-  searchParams: Promise<{ job?: string; applied?: string; application?: string; provider?: string }>;
+  searchParams: Promise<{ job?: string; applied?: string; application?: string; provider?: string; format?: string; payment?: string }>;
 }) {
-  const [{ screen }, query, signedInUser] = await Promise.all([params, searchParams, getChatGPTUser()]);
+  const [{ screen }, query, signedInUser] = await Promise.all([params, searchParams, getCurrentUser()]);
   if (screen === "processing") redirect("/upload");
-  return <NextJobApp screen={screen} jobId={query.job} appliedJobId={query.applied} applicationState={query.application} generationProvider={query.provider} user={signedInUser} demoMode={DEMO_MODE} />;
+  if (["sign-in", "sign-up", "forgot-password"].includes(screen)) redirect("/upload");
+  return <NextJobApp screen={screen} jobId={query.job} appliedJobId={query.applied} applicationState={query.application} generationProvider={query.provider} format={query.format} payment={query.payment} user={signedInUser} demoMode={DEMO_MODE} />;
 }

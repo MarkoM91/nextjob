@@ -265,6 +265,7 @@ test("Reactive Resume parser authenticates the account, uses the configured AI p
   process.env.AI_PROVIDER_API_KEY = "ai-unit-key";
   process.env.AI_MODEL = "test-model";
   const requests: Array<{ url: string; apiKey: string; body: string }> = [];
+  let parseAttempts = 0;
   globalThis.fetch = async (input, init) => {
     const url = String(input); const body = String(init?.body ?? "");
     requests.push({ url, apiKey: new Headers(init?.headers).get("x-api-key") ?? "", body });
@@ -272,7 +273,11 @@ test("Reactive Resume parser authenticates the account, uses the configured AI p
     if (url.endsWith("/ai-providers") && init?.method === "POST") return Response.json({ id: "provider-1" });
     if (url.endsWith("/ai-providers/provider-1/test")) return Response.json({ tested: true });
     if (url.endsWith("/ai-providers/provider-1") && init?.method === "PATCH") return Response.json({ id: "provider-1", enabled: true });
-    if (url.endsWith("/ai/parse-pdf")) return Response.json({ basics: { name: "Jane Doe", headline: "Support Engineer" }, sections: { skills: { items: [{ name: "Microsoft 365" }] } } });
+    if (url.endsWith("/ai/parse-pdf")) {
+      parseAttempts += 1;
+      if (parseAttempts === 1) return new Response(null, { status: 502 });
+      return Response.json({ basics: { name: "Jane Doe", headline: "Support Engineer" }, sections: { skills: { items: [{ name: "Microsoft 365" }] } } });
+    }
     if (url.endsWith("/resumes/import")) return Response.json("resume-1");
     throw new Error(`Unexpected URL: ${url}`);
   };
@@ -287,7 +292,9 @@ test("Reactive Resume parser authenticates the account, uses the configured AI p
     assert.equal(requests[4].url, "https://rxresu.me/api/openapi/ai/parse-pdf");
     assert.match(requests[4].body, /"aiProviderId":"provider-1"/);
     assert.doesNotMatch(requests[4].body, /"apiKey"/);
-    assert.equal(requests[5].url, "https://rxresu.me/api/openapi/resumes/import");
+    assert.equal(requests[5].url, "https://rxresu.me/api/openapi/ai/parse-pdf");
+    assert.equal(requests[6].url, "https://rxresu.me/api/openapi/resumes/import");
+    assert.equal(parseAttempts, 2);
     assert.equal(parsed.resumeId, "resume-1");
     assert.equal(parsed.content.basics?.name, "Jane Doe");
   } finally {

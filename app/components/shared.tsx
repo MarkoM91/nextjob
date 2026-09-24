@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { ArrowRight, Bell, BriefcaseBusiness, CircleHelp, ExternalLink, FileText, Info, LayoutDashboard, Radar, RefreshCw, Search, Settings, ArrowLeft } from "lucide-react";
+import { ArrowRight, Bell, BriefcaseBusiness, CircleHelp, ExternalLink, FileText, Info, LayoutDashboard, LogOut, Radar, RefreshCw, Search, Settings, ArrowLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { ChatGPTUser } from "../chatgpt-auth";
+import type { SessionUser } from "../../lib/auth-session";
 import { candidate, jobs } from "../../lib/demo-data";
 import { rankJobs } from "../../lib/engine";
 import type { Job, MatchResult } from "../../lib/domain";
 import { aggregatorName, employerSearchUrl, jobSourceKind, linkMayAskHumanCheck } from "../../lib/job-source";
 
-export type Props = { screen: string; jobId?: string; appliedJobId?: string; applicationState?: string; generationProvider?: string; user?: ChatGPTUser | null; demoMode?: boolean };
+export type Props = { screen: string; jobId?: string; appliedJobId?: string; applicationState?: string; generationProvider?: string; format?: string; payment?: string; user?: SessionUser | null; demoMode?: boolean };
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 export type MatchesApiResponse = { matches: MatchResult[]; sourceMode: "live" | "unavailable" | "profile-required"; profileRequired?: boolean; providerFailures?: Array<{ providerId: string; message: string }>; sourceCounts?: Record<string, number> };
 export type ApplicationRecord = { id: string; jobId: string; status: string; verification: string; applicationDate?: string | null; updatedAt: string; title: string; company: string; location: string; sourceUrl?: string | null; providerName: string };
@@ -33,25 +33,17 @@ export const supportNav: NavItem[] = [
   { href: "/help", label: "Help", icon: CircleHelp },
 ];
 
-/** Radar mark: the rings are the noisy market, the coral signal is the role worth your time. */
+/** A restrained radar mark: verified opportunities resolved from a wider search. */
 export function LogoMark({ size = 34 }: { size?: number }) {
   return (
     <span className="brand-mark" aria-hidden>
       <svg viewBox="0 0 40 40" width={size} height={size} focusable="false">
-        <defs>
-          <linearGradient id="nj-mark" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#2a8b68" />
-            <stop offset="1" stopColor="#14352a" />
-          </linearGradient>
-        </defs>
-        <rect className="mark-field" width="40" height="40" rx="11" fill="url(#nj-mark)" />
-        <g className="mark-rings" fill="none" strokeWidth="2.6" strokeLinecap="round">
-          <circle cx="19" cy="21" r="13" opacity=".5" />
-          <circle cx="19" cy="21" r="8" opacity=".9" />
-          <path d="M19 21 27 13" />
+        <rect className="mark-field" width="40" height="40" rx="7" />
+        <g className="mark-rings" fill="none" strokeWidth="2" strokeLinecap="square">
+          <path d="M8 29V11h24" opacity=".45" />
+          <path d="m10 26 7-7 5 4 9-11" />
         </g>
-        <circle className="mark-signal" cx="27.5" cy="12.5" r="6.5" opacity=".3" />
-        <circle className="mark-signal" cx="27.5" cy="12.5" r="4.4" />
+        <circle className="mark-signal" cx="31" cy="12" r="3.5" />
       </svg>
     </span>
   );
@@ -68,12 +60,17 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
 
 export function AppShell({ screen, user, demoMode, children }: Props & { children: React.ReactNode }) {
   const displayName = user?.displayName ?? candidate.fullName;
+  const isGuest = user?.provider === "guest";
   const isActive = (href: string) => href === "/dashboard" ? screen === "dashboard" : href === "/matches" ? ["matches", "saved", "job", "add-job"].includes(screen) : href === "/tracker" ? ["tracker", "package", "done", "generating", "ats", "studio", "workspace", "cv-editor", "cover-letter", "application-email", "interview"].includes(screen) : ["profile", "profile-review", "preferences", "settings"].includes(screen);
   return <div className="app-frame">
     <aside className="sidebar">
       <div className="sidebar-head"><Logo /></div>
       <nav aria-label="Product">{productNav.map((item) => <SidebarLink key={item.href} item={item} active={isActive(item.href)} />)}<p className="nav-label support-label">Account</p>{supportNav.map((item) => <SidebarLink key={item.href} item={item} active={screen === item.href.slice(1)} />)}</nav>
-      <div className="profile-card"><span className="avatar">{displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}</span><div><strong>{displayName.split(" ")[0]}</strong><span>{demoMode ? "Private QA profile" : user?.email ?? "Sign in to save progress"}</span></div></div>
+      <div className="profile-card">
+        <span className="avatar">{displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}</span>
+        <div><strong>{displayName.split(" ")[0]}</strong><span>{demoMode ? "Private QA profile" : isGuest ? "Guest workspace" : user?.email ?? "Guest workspace"}</span></div>
+        {user && !isGuest ? <form action="/api/auth/signout?return_to=%2F" method="post"><button type="submit" className="profile-action" title="Sign out" aria-label="Sign out"><LogOut /></button></form> : null}
+      </div>
     </aside>
     <div className="app-main">
       <header className="mobile-appbar"><Logo /><Link className="mobile-alerts" href="/notifications" aria-label="Notifications"><Bell /><i /></Link></header>

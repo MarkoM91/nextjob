@@ -50,9 +50,11 @@ async function readJson<T>(storage: R2Bucket | undefined, key: string): Promise<
 }
 
 export function readStoredResume(storage: R2Bucket | undefined, ownerId: string): Promise<StoredResumeProfile | null> {
+  if (!ownerId || ownerId === "demo-user") return Promise.resolve(null);
   return readJson<StoredResumeProfile>(storage, resumeProfileKey(ownerId));
 }
 
 export function readStoredTailoredApplication(storage: R2Bucket | undefined, ownerId: string, jobId: string): Promise<StoredTailoredApplication | null> {
+  if (!ownerId || ownerId === "demo-user") return Promise.resolve(null);
   return readJson<StoredTailoredApplication>(storage, tailoredApplicationKey(ownerId, jobId));
 }

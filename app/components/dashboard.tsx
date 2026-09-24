@@ -53,8 +53,8 @@ export function Dashboard() {
   const topGaps = topMatch?.gaps.slice(0, 2) ?? [];
   return <AppContent narrow>
     <section className="dashboard-welcome">
-      <p className="dashboard-greeting">Good morning, {greetingName(profile.fullName)}</p>
-      <h1>{loadingJobs ? "Checking today’s employer listings…" : profileRequired ? "Verify your CV to unlock real matches." : liveMatches.length ? `${liveMatches.length} live job${liveMatches.length === 1 ? "" : "s"}${nearby && origin ? ` near ${origin.name}` : ""} ${liveMatches.length === 1 ? "is" : "are"} worth a look.` : "No live matches right now."}</h1>
+      <p className="dashboard-greeting">Search overview · {greetingName(profile.fullName)}</p>
+      <h1>{loadingJobs ? "Checking current employer listings…" : profileRequired ? "Verify your CV to unlock real matches." : liveMatches.length ? `${liveMatches.length} live role${liveMatches.length === 1 ? "" : "s"}${nearby && origin ? ` near ${origin.name}` : ""} match your criteria.` : "No current matches."}</h1>
       <p>{profileRequired ? "NextJOB will not match jobs against a sample profile. Upload and confirm your own experience first." : liveMatches.length ? (nearby && origin ? `Within 50 km of ${origin.name}, filtered from current employer listings using your verified profile.` : origin ? `Nothing within 50 km of ${origin.name} right now, so this is the wider feed for your target countries.` : "Filtered from current employer listings using your verified profile and preferences.") : "NextJOB will show only real, currently available listings—never invented replacements."}</p>
       <Link className="button" href={profileRequired ? "/upload" : "/matches"}>{profileRequired ? "Add my CV" : "See live jobs"} <ArrowRight /></Link>
     </section>

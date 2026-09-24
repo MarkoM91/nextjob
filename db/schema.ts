@@ -10,6 +10,16 @@ export const users = sqliteTable("users", {
   id: id(), email: text("email").notNull(), displayName: text("display_name"), locale: text("locale").notNull().default("en"), role: text("role").notNull().default("user"), createdAt: createdAt(), updatedAt: updatedAt(), deletedAt: deletedAt(),
 }, (table) => [uniqueIndex("uq_users_email").on(table.email)]);
 
+/** One row per linked social account. A user may link several providers to the same workspace. */
+export const userIdentities = sqliteTable("user_identities", {
+  id: id(), userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), provider: text("provider").notNull(), providerUserId: text("provider_user_id").notNull(), email: text("email"), displayName: text("display_name"), avatarUrl: text("avatar_url"), lastSignInAt: text("last_sign_in_at"), createdAt: createdAt(), updatedAt: updatedAt(),
+}, (table) => [uniqueIndex("uq_user_identities_provider_subject").on(table.provider, table.providerUserId), index("idx_user_identities_user").on(table.userId)]);
+
+/** Optional email/password credential. PBKDF2-SHA256; the plain password is never stored. */
+export const userCredentials = sqliteTable("user_credentials", {
+  id: id(), userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), passwordHash: text("password_hash").notNull(), salt: text("salt").notNull(), iterations: integer("iterations").notNull(), createdAt: createdAt(), updatedAt: updatedAt(),
+}, (table) => [uniqueIndex("uq_user_credentials_user").on(table.userId)]);
+
 export const userProfiles = sqliteTable("user_profiles", {
   id: id(), userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), fullName: text("full_name"), phoneEncrypted: text("phone_encrypted"), location: text("location"), currentRole: text("current_role"), yearsExperience: real("years_experience"), verifiedAt: text("verified_at"), createdAt: createdAt(), updatedAt: updatedAt(), deletedAt: deletedAt(),
 }, (table) => [uniqueIndex("uq_user_profiles_user").on(table.userId)]);

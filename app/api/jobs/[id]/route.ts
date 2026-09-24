@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { getCurrentUser } from "../../../auth";
 import { candidate } from "../../../../lib/demo-data";
 import { rankJobs } from "../../../../lib/engine";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const job = await resolveRealJob(id, databaseFromEnvironment(env), storage);
   if (!job) return Response.json({ error: "This live job is no longer available" }, { status: 404 });
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const storedResume = await readStoredResume(storage, safeOwnerId(user?.id)).catch(() => null);
   const profile = storedResume?.verifiedAt ? storedResume.profile : candidate;
   const match = rankJobs(profile, [job], true)[0];

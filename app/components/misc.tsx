@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Mail, MessageCircle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { Check, CheckCircle2, Mail, MessageCircle, RefreshCw, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { AppContent, candidate, Logo, Metric, PageIntro } from "./shared";
+import { AppContent, candidate, Metric, PageIntro } from "./shared";
 
 export function Notifications() {
   const [email, setEmail] = useState(true);
@@ -33,16 +32,11 @@ export function Admin() {
   return <AppContent><PageIntro eyebrow="Protected admin" title="Provider health" subtitle="Operational visibility without access to private user documents." /><div className="admin-metrics"><Metric value={String(providers.length)} label="providers configured" note={`${healthy} healthy · ${degraded} degraded`} /><Metric value={payload?.queue?.status ?? "—"} label="ingestion queue" note={`${payload?.queue?.waiting ?? 0} waiting`} /><Metric value={String(payload?.queue?.deadLettered ?? 0)} label="dead-lettered" note="records awaiting review" /><Metric value={payload ? new Date(payload.checkedAt).toLocaleTimeString() : "—"} label="last check" note="live health probe" /></div>{loading ? <section className="panel tracker-loading"><RefreshCw className="spin" /> Checking providers…</section> : <section className="panel provider-table"><div className="table-head"><span>Provider</span><span>Health</span><span>Coverage</span><span>Latency</span></div>{providers.map((provider) => <div key={provider.id}><strong>{provider.name}</strong><span className={`health ${provider.status}`}><i />{provider.status}</span><span>{provider.countriesSupported.slice(0, 4).join(", ") || "—"}</span><span>{provider.latencyMs ? `${provider.latencyMs} ms` : "—"}</span></div>)}</section>}</AppContent>;
 }
 
-export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" | "forgot-password" }) {
-  const title = mode === "sign-in" ? "Welcome back" : mode === "sign-up" ? "Create your NextJOB account" : "Reset your password";
-  return <main className="auth-page"><div className="auth-brand"><Logo /><div><p className="eyebrow light">Your search, in focus</p><h1>One verified profile.<br />A world of <em>relevant</em> roles.</h1><p>Private by default. Factual by design. You stay in control of every application.</p></div><span><ShieldCheck /> Nothing is ever submitted automatically.</span></div><div className="auth-form"><Link href="/" className="back-link"><ArrowLeft /> Back home</Link><div><h1>{title}</h1><p>{mode === "forgot-password" ? "Enter your email and we’ll send a secure reset link." : mode === "sign-in" ? "Continue to your private job-search workspace." : "Start with your email. Your first CV stays private."}</p></div>{mode !== "forgot-password" && <Link href="/signin-with-chatgpt?return_to=%2Fdashboard" className="chatgpt-button"><Sparkles /> Continue securely with ChatGPT</Link>}<div className="auth-divider"><span>or use email</span></div><label>Email address<input type="email" placeholder="you@example.com" /></label>{mode !== "forgot-password" && <label>Password<span>{mode === "sign-in" && <Link href="/forgot-password">Forgot password?</Link>}</span><input type="password" placeholder="At least 12 characters" /></label>}<Link className="button full" href={mode === "forgot-password" ? "/sign-in" : mode === "sign-up" ? "/upload" : "/dashboard"}>{mode === "forgot-password" ? "Send reset link" : mode === "sign-up" ? "Create account" : "Sign in"}<ArrowRight /></Link><p className="auth-switch">{mode === "sign-in" ? <>New to NextJOB? <Link href="/sign-up">Create an account</Link></> : mode === "sign-up" ? <>Already have an account? <Link href="/sign-in">Sign in</Link></> : <Link href="/sign-in">Return to sign in</Link>}</p><small className="auth-note">Hosted identity uses secure, dispatch-owned sign-in. Email/password and Google adapters remain in demo mode until a production identity provider is configured.</small></div></main>;
-}
-
 export function StaticScreen({ screen }: { screen: string }) {
   const experienceBullets = candidate.experiences.reduce((count, experience) => count + experience.bullets.length, 0);
   const content: Record<string, [string, string, string[]]> = {
-    privacy: ["Privacy", "Your career history deserves careful handling.", ["Private CV and document storage", "Explicit consent before Reactive Resume and AI processing", "Data export and deletion controls", "No raw CV text in analytics"]],
-    terms: ["Terms", "A focused assistant, not an application guarantee.", ["NextJOB never auto-applies in the MVP", "ATS readiness is an estimate", "Generated content must stay factual", "Worldwide coverage depends on enabled, licensed providers"]],
+    privacy: ["Privacy", "Your career history deserves careful handling.", ["Private CV and document storage", "Explicit consent before document and language-model processing", "Data export and deletion controls", "No raw CV text in analytics"]],
+    terms: ["Terms", "A career workspace, not an application guarantee.", ["NextJOB never auto-applies in the MVP", "ATS readiness is an estimate", "Prepared content must stay factual", "Worldwide coverage depends on enabled, licensed providers"]],
     help: ["Help centre", "A clear answer at every step.", ["Uploading and verifying your CV", "Understanding match explanations", "Editing and downloading documents", "Managing privacy and alerts"]],
     billing: ["Billing", "Simple plans, clear limits.", ["Free demo workspace", "Production subscription adapter", "No payment details collected in demo mode", "Cancel before a paid integration is activated"]],
     profile: ["Profile", "Your verified source of truth.", [`${candidate.yearsOfExperience} years of confirmed experience`, `${candidate.skills.length} verified skills`, `${candidate.languages.length} language${candidate.languages.length === 1 ? "" : "s"}`, `${experienceBullets} grounded experience bullets`]],

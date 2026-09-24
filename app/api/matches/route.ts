@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
-import { getChatGPTUser } from "../../chatgpt-auth";
+import { getCurrentUser } from "../../auth";
 import { isRelevantRoleTitle, searchKeywords } from "../../../lib/relevance";
 import { DEFAULT_MAX_JOB_AGE_DAYS, isRecentPosting, rankJobs } from "../../../lib/engine";
 import { jobDistanceKm, parseGeoPoint } from "../../../lib/geo";
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   if (!parsed.success) return Response.json({ error: "Invalid filters", details: parsed.error.flatten() }, { status: 400 });
   const filters = filtersFromParams(url.searchParams);
   const near = parseGeoPoint(parsed.data.near);
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const ownerId = safeOwnerId(user?.id);
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const storedResume = await readStoredResume(storage, ownerId).catch(() => null);

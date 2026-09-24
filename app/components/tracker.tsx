@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, BriefcaseBusiness, CheckCircle2, CircleHelp, Download, ExternalLink, FileText, PencilLine, RefreshCw, WandSparkles } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, CheckCircle2, CircleHelp, Download, ExternalLink, FileText, PencilLine, RefreshCw, FilePlus2 } from "lucide-react";
 import { AppContent, CompanyMark, EmptyState, PageIntro, visibleMatches, bestMatch, type ApplicationRecord } from "./shared";
 
 export function Tracker() {
@@ -23,5 +23,6 @@ export function Tracker() {
 }
 
 export function DocumentsScreen() {
-  return <AppContent><PageIntro eyebrow="Tailored per job" title="Your documents" subtitle="Documents are generated for a specific job and grounded in your verified profile." action={bestMatch ? <Link className="button" href={`/generating?job=${bestMatch.job.id}`}><WandSparkles /> Create application</Link> : undefined} /><div className="documents-grid">{visibleMatches.slice(0, 3).map((match) => <article className="document-tile" key={match.job.id}><div className="doc-preview"><FileText /><span>CV</span></div><div><h2>{match.job.title}</h2><p>{match.job.company}</p><small>Tailored CV, cover letter and email for this role</small><div><a href={`/api/documents/pdf?job=${match.job.id}`}><Download /> Download</a><Link href={`/workspace?job=${match.job.id}`}><PencilLine /> Edit</Link></div></div></article>)}</div><p className="demo-disclaimer">Every document stays editable and traceable to your verified profile. <Link href="/matches">Pick another job <ArrowRight /></Link></p></AppContent>;
+  return <AppContent><PageIntro eyebrow="Tailored per job" title="Your documents" subtitle="Each set is prepared for one job and grounded in your verified profile." action={bestMatch ? <Link className="button" href={`/generating?job=${bestMatch.job.id}`}><FilePlus2 /> Create application</Link> : undefined} /><div className="documents-grid">{visibleMatches.slice(0, 3).map((match) => <article className="document-tile" key={match.job.id}><div className="doc-preview"><FileText /><span>CV</span></div><div><h2>{match.job.title}</h2><p>{match.job.company}</p><small>Tailored CV, cover letter and email for this role</small><div><a href={`/api/documents/pdf?job=${match.job.id}`}><Download /> Download</a><Link href={`/workspace?job=${match.job.id}`}><PencilLine /> Edit</Link></div></div></article>)}</div><p className="demo-disclaimer">Every document stays editable and traceable to your verified profile. <Link href="/matches">Pick another job <ArrowRight /></Link></p></AppContent>;
 }
+

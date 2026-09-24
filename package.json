@@ -10,11 +10,12 @@
     "build": "vinext build",
     "start": "vinext start",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --experimental-strip-types --test tests/domain.test.ts tests/generation.test.ts",
-    "test:integration": "node --import ./tests/cloudflare-loader.mjs --test tests/integration.test.mjs",
+    "test:unit": "node --experimental-strip-types --test tests/domain.test.ts tests/generation.test.ts tests/auth.test.ts",
+    "test:integration": "node --experimental-strip-types --import ./tests/cloudflare-loader.mjs --test tests/integration.test.mjs tests/payment.integration.test.mjs",
     "test": "npm run build && npm run test:unit && npm run test:integration",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "node --require ./scripts/node-userinfo-workaround.cjs ./node_modules/drizzle-kit/bin.cjs generate"
+    "db:generate": "node --require ./scripts/node-userinfo-workaround.cjs ./node_modules/drizzle-kit/bin.cjs generate",
+    "db:local": "node scripts/apply-local-migrations.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "5.2.2",

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { getCurrentUser } from "../../../auth";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
 import { readStoredResume, readStoredTailoredApplication, resumeProfileKey, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   if (!job) return Response.json({ error: "This live job is no longer available" }, { status: 404 });
   if (!isReactiveResumeConfigured()) return Response.json({ error: "Résumé designs need Reactive Resume + AI to be configured.", code: "PROVIDER_NOT_CONFIGURED" }, { status: 503 });
   if (!storage) return Response.json({ error: "Private document storage is not available.", code: "DOCUMENT_STORAGE_NOT_CONFIGURED" }, { status: 503 });
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const ownerId = safeOwnerId(user?.id);
   const [pkg, storedResume] = await Promise.all([
     readStoredTailoredApplication(storage, ownerId, job.id).catch(() => null),

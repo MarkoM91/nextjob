@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { ensureGuestUser } from "../../../auth";
 import { resumeProfileKey, safeOwnerId, type StoredResumeProfile } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { candidateFromReactiveResume, parseAndImportReactiveResume, reactiveResumeConfiguration, ReactiveResumeApiError } from "../../../../lib/reactive-resume";
@@ -21,6 +21,8 @@ export async function POST(request: Request) {
   if (!assertSameOrigin(request)) return Response.json({ error: "Invalid request origin" }, { status: 403 });
   const limit = rateLimit(`cv:${clientKey(request)}`, 5, 60 * 60 * 1000);
   if (!limit.allowed) return Response.json({ error: "Upload limit reached", retryAfterSeconds: limit.retryAfterSeconds }, { status: 429 });
+  const { user, setCookie } = await ensureGuestUser(request);
+  if (!user) return Response.json({ error: "A private workspace is not available yet. Please try again later.", code: "ANONYMOUS_WORKSPACE_NOT_CONFIGURED" }, { status: 503 });
   const form = await request.formData();
   const file = form.get("cv");
   const consent = form.get("aiProcessingConsent") === "true";
@@ -35,8 +37,7 @@ export async function POST(request: Request) {
   const provider = reactiveResumeConfiguration();
   if (!provider.configured) return Response.json({ error: "Résumé analysis is not configured yet.", code: "PROVIDER_NOT_CONFIGURED", missingConfiguration: provider.missing, providerSupported: provider.providerSupported }, { status: 503 });
 
-  const user = await getChatGPTUser();
-  const ownerId = safeOwnerId(user?.id);
+  const ownerId = safeOwnerId(user.id);
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   if (!storage) return Response.json({ error: "Private document storage is not available.", code: "DOCUMENT_STORAGE_NOT_CONFIGURED" }, { status: 503 });
   const objectKey = `private/${ownerId}/cv/${crypto.randomUUID()}.${extension}`;
@@ -47,12 +48,20 @@ export async function POST(request: Request) {
     if (!profile.facts.length) throw new ReactiveResumeApiError("The CV did not contain enough structured information to review", 422, "EMPTY_PROFILE");
     const stored: StoredResumeProfile = { provider: "reactive-resume", externalResumeId: imported.resumeId, parsedAt: new Date().toISOString(), content: imported.content, profile };
     await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "reactive-resume", externalResumeId: imported.resumeId } });
-    return Response.json({ id: crypto.randomUUID(), status: "completed", objectKey, profile, parsingProvider: "reactive-resume", providerConfigured: true, parsedAt: stored.parsedAt, demoMode: false }, { status: 201 });
+    const headers = new Headers({ "cache-control": "private, no-store" });
+    if (setCookie) headers.set("set-cookie", setCookie);
+    return Response.json({ id: crypto.randomUUID(), status: "completed", objectKey, profile, parsingProvider: "reactive-resume", providerConfigured: true, parsedAt: stored.parsedAt, demoMode: false }, { status: 201, headers });
   } catch (error) {
     await storage.delete(objectKey).catch(() => undefined);
-    const message = error instanceof ReactiveResumeApiError ? error.message : "The CV parser is temporarily unavailable";
+    const requestId = crypto.randomUUID();
+    if (error instanceof ReactiveResumeApiError) console.error("[cv-upload] résumé processing failed", { requestId, stage: error.stage, status: error.status, code: error.code });
+    else console.error("[cv-upload] résumé processing failed", { requestId, code: "PARSING_FAILED" });
+    const providerUnavailable = error instanceof ReactiveResumeApiError && error.status >= 500;
+    const message = providerUnavailable
+      ? "We couldn't finish reading this CV. Your file was not saved. Please try again in a moment."
+      : error instanceof ReactiveResumeApiError ? error.message : "The CV parser is temporarily unavailable";
     const code = error instanceof ReactiveResumeApiError ? error.code : "PARSING_FAILED";
     const status = error instanceof ReactiveResumeApiError && error.status === 415 ? 415 : error instanceof ReactiveResumeApiError && error.status === 422 ? 422 : 502;
-    return Response.json({ error: message, code }, { status });
+    return Response.json({ error: message, code, requestId }, { status, headers: { "cache-control": "private, no-store" } });
   }
 }

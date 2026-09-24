@@ -1,5 +1,28 @@
 # NextJOB
 
+## Guest checkout and CV downloads
+
+Visitors upload and review a CV without creating an account. `AUTH_SECRET`
+signs a random, private guest workspace cookie lasting 30 days. Legacy sign-in
+pages redirect to upload; existing authentication APIs remain available.
+
+The on-screen review is free. PDF, DOCX and TXT exports require a one-time
+€1.50 EUR Stripe payment for the selected role. A private purchase record allows
+repeat downloads for seven days in the same browser. Clearing the guest cookie
+loses access to that workspace; account recovery is not implemented.
+
+To enable live payments, configure `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+and `PAYMENTS_PUBLIC_ORIGIN` in the production Site settings. Register
+`/api/payments/webhook` for Stripe's `checkout.session.completed` event and
+verify that Stripe can reach it through the Site's access settings. Checkout
+uses card payments. The return route verifies the paid session, amount, currency,
+workspace and role; signed webhooks record purchases even if the browser closes.
+Test with Stripe test keys before enabling live keys. Refunds are managed in
+Stripe; automated refund/dispute revocation and email recovery are not implemented.
+
+`npm run test:integration` includes mocked payment, ownership, inline-export
+bypass, webhook-signature and duplicate-event tests. No real charge is made by tests.
+
 NextJOB is a production-oriented MVP for global job discovery and truthful,
 job-specific application preparation.
 
@@ -16,8 +39,10 @@ from an employer-verified receipt.
 ## What is implemented
 
 - Public landing page with a focused CV → matches → application journey.
-- Sign-up, sign-in, and password-recovery product surfaces, with hosted Sign in
-  with ChatGPT support and replaceable production identity adapters.
+- Real sign-in: social accounts (Google, LinkedIn, GitHub, Microsoft, Facebook)
+  over OAuth 2.0 with PKCE where the provider supports it, email/password accounts
+  hashed with PBKDF2-SHA256, and hosted Sign in with ChatGPT. Sessions are signed
+  HttpOnly cookies; a provider is offered only when its credentials are present.
 - PDF and DOCX CV upload validation with a 10 MB limit, explicit AI-processing
   consent, file-signature checks, and private R2 object keys.
 - Reactive Resume + AI integration for structured CV parsing, private resume
@@ -136,6 +161,7 @@ npm run test:unit        # scoring, normalization, dedupe, claims, documents
 npm run test:integration # rendered journeys, APIs, auth boundary, downloads
 npm test                 # build plus all tests
 npm run db:generate      # generate a Drizzle migration
+npm run db:local         # apply migrations to the local Miniflare D1 database
 ```
 
 `db:generate` preloads a tiny Windows sandbox workaround because some managed
@@ -149,11 +175,16 @@ not change database behavior.
 - D1 binding `DB` for structured, durable product data.
 - R2 binding `DOCUMENTS` for private CV and generated-document bytes.
 
-The initial migration is in `drizzle/0000_real_stature.sql`. It creates 39
+Migrations live in `drizzle/`. `0000_real_stature.sql` creates 39
 tables covering users, verified candidate facts, providers and ingestion,
 normalized jobs, matches, saved/rejected roles, application history, document
 versions and claim sources, notifications, subscriptions, audit logs, and
-deletion requests.
+deletion requests. `0001_great_expediter.sql` adds `user_identities` (one row per
+linked social account) and `user_credentials` (PBKDF2 password hashes).
+
+Run `npm run db:local` once so the local dev database has these tables; without
+them, email/password sign-up reports that the account database is unavailable
+rather than pretending to create an account.
 
 ```bash
 npm run db:generate
@@ -176,6 +207,71 @@ isolated UI development. They are not inserted into the live Jobs feed. If all
 configured job providers are unavailable, the product shows that state instead
 of replacing real vacancies with fictional ones. Demo mode is enabled only by
 the explicit `FEATURE_DEMO_MODE=true` flag.
+
+## Sign-in
+
+Three identity sources coexist behind one reader, `app/auth.ts`. Every route
+asks it who the caller is, so private document keys and owner-scoped queries
+behave the same whichever sign-in the person used.
+
+1. **Social accounts.** OAuth 2.0 authorization-code, with PKCE on the providers
+   that accept it (Google, Microsoft). NextJOB mints a random `state` and stores
+   it in a short-lived signed cookie; a callback whose state does not match is
+   refused before any token exchange. The access token is used once, server-side,
+   to read the profile and is then discarded. Only name, email address, and
+   picture are kept.
+2. **Email and password.** PBKDF2-SHA256, 210,000 iterations, per-account salt.
+   Sign-in hashes even when no account exists, so response timing does not reveal
+   which addresses are registered.
+3. **Hosted Sign in with ChatGPT**, unchanged, for dispatch deployments.
+
+Sessions are HMAC-SHA256-signed JSON in an HttpOnly, SameSite=Lax cookie, marked
+Secure over HTTPS, valid for 30 days. There is no session table: the signature is
+the proof, and expiry is checked on every read. Without `AUTH_SECRET` no session
+can be issued or read, and each sign-in surface says so rather than appearing to
+work.
+
+An identity is matched first by provider subject, then by verified email address,
+so signing in with Google today and LinkedIn tomorrow reaches the same workspace.
+An unverified provider email never attaches to an existing account.
+
+### Where the account is asked for
+
+The CV comes first. `/upload` is open to anyone: a visitor picks a file and gives
+AI-processing consent without an account. The sign-in step appears when they press
+Analyze CV and continue, because that is the moment the file would be stored, and
+the chosen file stays selected through it. Creating the account is the default
+action there; signing in is one click away.
+
+`POST /api/cv/upload` enforces this rather than trusting the screen. Without a
+session it answers 401 `SIGN_IN_REQUIRED` before reading the body, so a CV can
+never land in a shared owner bucket, and the browser reopens the sign-in step if a
+session expires mid-visit.
+
+The hosted ChatGPT button is hidden unless `AUTH_CHATGPT_ENABLED=true`, because
+`/signin-with-chatgpt` is served by the hosting dispatch and not by this app.
+Advertising it elsewhere sends people to a page that does not exist.
+
+### Enabling a provider
+
+Set both variables and register
+`<AUTH_PUBLIC_URL>/api/auth/<provider>/callback` as the redirect URI with the
+provider. A provider with only one of the two is treated as absent.
+
+| Provider | Variables | Console |
+| --- | --- | --- |
+| Google | `AUTH_GOOGLE_CLIENT_ID` / `_SECRET` | console.cloud.google.com/apis/credentials |
+| LinkedIn | `AUTH_LINKEDIN_CLIENT_ID` / `_SECRET` | linkedin.com/developers/apps |
+| GitHub | `AUTH_GITHUB_CLIENT_ID` / `_SECRET` | github.com/settings/developers |
+| Microsoft | `AUTH_MICROSOFT_CLIENT_ID` / `_SECRET` | entra.microsoft.com |
+| Facebook | `AUTH_FACEBOOK_CLIENT_ID` / `_SECRET` | developers.facebook.com/apps |
+
+LinkedIn needs the "Sign In with LinkedIn using OpenID Connect" product enabled.
+GitHub is not an OpenID provider, so the verified primary address is read from
+its email endpoint rather than from an identity token.
+
+Password reset is not implemented. The recovery screen says so instead of
+pretending to send an email the server cannot deliver.
 
 ## Provider integrations
 

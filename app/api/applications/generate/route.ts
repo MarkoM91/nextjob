@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { getCurrentUser } from "../../../auth";
 import { candidate } from "../../../../lib/demo-data";
 import { aiWriterConfiguration, AiWriterError, applyWrittenDocuments, writeApplicationDocuments, type WriterTone } from "../../../../lib/ai-writer";
 import { atsAnalyze, createDemoApplication, validateGeneratedClaims } from "../../../../lib/engine";
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   if (!limit.allowed) return Response.json({ error: "Too many requests" }, { status: 429 });
   const jobId = new URL(request.url).searchParams.get("job");
   if (!jobId || jobId.length > 80) return Response.json({ error: "A valid live job is required" }, { status: 400 });
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const ownerId = safeOwnerId(user?.id);
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const [pkg, storedResume] = await Promise.all([
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
   if (!job) return Response.json({ error: "This live job is no longer available" }, { status: 404 });
 
   const providerConfigured = isReactiveResumeConfigured();
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const ownerId = safeOwnerId(user?.id);
   const storedResume = providerConfigured ? await readStoredResume(storage, ownerId).catch(() => null) : null;
   if (providerConfigured && !storage) return Response.json({ error: "Private document storage is not available.", code: "DOCUMENT_STORAGE_NOT_CONFIGURED" }, { status: 503 });

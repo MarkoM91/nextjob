@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { getCurrentUser } from "../../../auth";
 import { databaseFromEnvironment, ensureApplicationUser, resolveRealJob } from "../../../../lib/job-store";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 
@@ -26,7 +26,7 @@ type ApplicationRow = {
 };
 
 export async function GET() {
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   const db = databaseFromEnvironment(env);
   if (!user || !db) return Response.json({ applications: [], persisted: false });
   const result = await db.prepare(`SELECT a.id, a.job_id, a.status, a.notes, a.application_date, a.created_at, a.updated_at,
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   const db = databaseFromEnvironment(env);
   const job = await resolveRealJob(parsed.data.jobId, db, (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS);
   if (!job) return Response.json({ error: "This live job is no longer available" }, { status: 404 });
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   if (parsed.data.action === "native") {
     if (!user) return Response.json({ error: "Sign in before submitting an application" }, { status: 401 });
     if (job.applicationMethod !== "native") return Response.json({ error: "This employer has not authorized in-app submission", applicationMethod: job.applicationMethod, sourceUrl: job.originalUrl }, { status: 409 });
