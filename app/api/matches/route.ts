@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getCurrentUser } from "../../auth";
 import { isRelevantRoleTitle, searchKeywords } from "../../../lib/relevance";
 import { DEFAULT_MAX_JOB_AGE_DAYS, isRecentPosting, rankJobs } from "../../../lib/engine";
-import { DEFAULT_RADIUS_KM, jobDistanceKm, parseGeoPoint, resolvePlace } from "../../../lib/geo";
+import { DEFAULT_RADIUS_KM, jobDistanceKm, parseGeoPoint, resolvePlace, withinRadius } from "../../../lib/geo";
 import { facetCounts, filtersFromParams, jobPassesFilters, matchesSearchWords, sortMatches } from "../../../lib/job-filters";
 import { IMPORT_PROVIDER_ID, listImportedJobs } from "../../../lib/job-import";
 import { searchAllProviders } from "../../../lib/providers";
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     .map((match) => near ? { ...match, distanceKm: jobDistanceKm(match.job, near) } : match);
   // Facets describe the relevant feed before the narrowing chips, so every chip shows what it would keep.
   const facets = facetCounts(relevant.map((match) => match.job));
-  const withinReach = (match: (typeof relevant)[number]) => !near || !filters.radiusKm || (match.distanceKm !== undefined && match.distanceKm <= filters.radiusKm);
+  const withinReach = (match: (typeof relevant)[number]) => !near || !filters.radiusKm || withinRadius(match.job, near, filters.radiusKm, country);
   const sort = filters.sort === "distance" && !near ? "relevance" : filters.sort;
   const matches = sortMatches(relevant.filter((match) => jobPassesFilters(match.job, filters) && withinReach(match)), sort);
   const sourceMode = liveJobs.length || imported.length ? "live" : "unavailable";

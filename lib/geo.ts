@@ -105,7 +105,10 @@ export function jobDistanceKm(job: Pick<Job, "city" | "locationText" | "workplac
   return place ? distanceKm(origin, place) : undefined;
 }
 
-export function withinRadius(job: Pick<Job, "city" | "locationText" | "workplace">, origin: GeoPoint, radiusKm: number): boolean {
+export function withinRadius(job: Pick<Job, "city" | "locationText" | "workplace"> & { countryCode?: string }, origin: GeoPoint, radiusKm: number, country?: string): boolean {
+  // Remote is a work style, not worldwide work authorization. Only include a
+  // remote posting in a local feed when its stated market permits that country.
+  if (job.workplace === "Remote" && country && job.countryCode !== country && job.countryCode !== "EU") return false;
   const distance = jobDistanceKm(job, origin);
   return distance !== undefined && distance <= radiusKm;
 }

@@ -6,13 +6,13 @@ import { ArrowRight, ArrowUpDown, Award, Bookmark, BriefcaseBusiness, CheckCircl
 import type { LucideIcon } from "lucide-react";
 import type { MatchResult } from "../../lib/domain";
 import { aggregatorName } from "../../lib/job-source";
-import { DEFAULT_RADIUS_KM, jobDistanceKm, RADIUS_OPTIONS_KM, resolvePlace, type GeoPoint } from "../../lib/geo";
+import { DEFAULT_RADIUS_KM, jobDistanceKm, RADIUS_OPTIONS_KM, resolvePlace, withinRadius, type GeoPoint } from "../../lib/geo";
 import { activeFilterCount, EMPLOYMENT_TYPES, EMPTY_FILTERS, facetCounts, filtersToParams, IMPORT_PROVIDER_ID, jobPassesFilters, matchesSearchWords, PAY_OPTIONS, POSTED_OPTIONS, SENIORITIES, sortMatches, WORKPLACES, type JobFacets, type JobFilters } from "../../lib/job-filters";
 import { AppContent, ApplicationMethodBadge, bandClass, EmptyState, relativeDate, useTargetCountries, type MatchesApiResponse } from "./shared";
 
 type FeedResponse = MatchesApiResponse & { facets?: JobFacets | null; total?: number };
 type ChipOption = { value: string; label: string; count?: number };
-type Located = GeoPoint & { name: string };
+type Located = GeoPoint & { name: string; country?: string };
 type WhereAmI = { profile: Located | null; network: Located | null };
 type Origin = Located & { source: "typed" | "network" | "cv" };
 const TABS = ["Best matches", "New", "Added by you", "Saved", "Not interested"] as const;
@@ -111,7 +111,7 @@ export function MatchesScreen({ savedOnly = false, appliedJobId, applicationStat
     : countryCode === "MINE"
       ? match.job.workplace === "Remote" || match.job.countryCode === "EU" || targetCountries.includes(match.job.country) || match.job.providerId === IMPORT_PROVIDER_ID
       : match.job.countryCode === countryCode;
-  const withinReach = (match: MatchResult) => !origin || !filters.radiusKm || (match.distanceKm !== undefined && match.distanceKm <= filters.radiusKm);
+  const withinReach = (match: MatchResult) => !origin || !filters.radiusKm || withinRadius(match.job, origin, filters.radiusKm, countryParam || origin.country);
   // The same rules the server applies, so rows already loaded narrow instantly while the next page is in flight.
   const inScope = sortMatches(feedMatches.filter((match) => matchesSearchWords(match.job, filters.q) && jobPassesFilters(match.job, effective) && withinReach(match) && countryFits(match)), filters.sort === "distance" && !origin ? "relevance" : filters.sort);
   const visible = (match: MatchResult) => !rejected.has(match.job.id);

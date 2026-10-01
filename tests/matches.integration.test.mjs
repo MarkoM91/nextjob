@@ -53,3 +53,12 @@ test("an unknown location does not silently fall back to Milan, and bad coordina
   assert.equal(unknownArea.matches.length, 0);
   for (const near of ["200,9", "45,", "45,9,10"]) assert.equal((await request(`&near=${encodeURIComponent(near)}`)).status, 400);
 });
+
+test("local searches do not treat foreign remote work as zero kilometres from Milan", async () => {
+  const remote = { ...postings[0], workplace: "Remote" };
+  postings.push({ ...remote, id: "remote-italy", company: "Italy remote employer" }, { ...remote, id: "remote-eu", company: "EU remote employer", countryCode: "EU" }, { ...remote, id: "remote-canada", company: "Canada remote employer", countryCode: "CA", country: "Canada" });
+  try {
+    const payload = await (await request()).json();
+    assert.deepEqual(payload.matches.map((match) => match.job.id), ["milan", "monza", "remote-italy", "remote-eu"]);
+  } finally { postings.splice(4); }
+});
