@@ -1,8 +1,6 @@
 "use client";
 
 import { Document, Link, Page, pdf, StyleSheet, Text, View } from "@react-pdf/renderer";
-import type { CandidateProfile } from "../../lib/domain";
-import type { ReactiveResumeData } from "../../lib/reactive-resume";
 
 /**
  * NextJOB's own CV designs, rendered in the browser as vector PDFs (selectable text, no
@@ -10,50 +8,9 @@ import type { ReactiveResumeData } from "../../lib/reactive-resume";
  * always matches what the candidate reviewed.
  */
 
-import type { CvDesignId } from "./cv-design-catalog";
 
-export type CvDesignInput = { profile: CandidateProfile; resume: ReactiveResumeData | null; summary: string; design: CvDesignId; accent: string };
-
-type Section = { title: string; entries: Array<{ heading: string; meta: string; lines: string[] }> };
-type SkillGroup = { name: string; keywords: string[] };
-type Model = { name: string; headline: string; contact: string[]; links: string[]; summary: string; experience: Section; education: Section; extras: Section[]; skills: SkillGroup[]; languages: string[] };
-
-function lines(value?: string): string[] { return value?.split(/\n+/).map((line) => line.replace(/^\s*[•*-]\s*/, "").trim()).filter(Boolean) ?? []; }
-
-function buildModel(input: CvDesignInput): Model {
-  const { profile, resume } = input;
-  const experienceItems = resume?.sections?.experience?.items ?? [];
-  const experience: Section = {
-    title: "Experience",
-    entries: experienceItems.length
-      ? experienceItems.map((item) => ({ heading: item.position || "Role", meta: [item.company, item.location, item.period].filter(Boolean).join(" · "), lines: [...lines(item.description), ...(item.roles ?? []).flatMap((role) => [role.position ? `${role.position}${role.period ? ` (${role.period})` : ""}` : "", ...lines(role.description)])].filter(Boolean) }))
-      : profile.experiences.map((item) => ({ heading: item.role, meta: [item.company, [item.startDate, item.endDate ?? "Present"].filter(Boolean).join(" — ")].filter(Boolean).join(" · "), lines: item.bullets.flatMap((bullet) => lines(bullet.text)) })),
-  };
-  const educationItems = resume?.sections?.education?.items ?? [];
-  const education: Section = {
-    title: "Education",
-    entries: educationItems.length
-      ? educationItems.map((item) => ({ heading: [item.degree, item.area].filter(Boolean).join(" — ") || "Education", meta: [item.school, item.location, item.period].filter(Boolean).join(" · "), lines: lines(item.description) }))
-      : profile.education.map((item) => ({ heading: item, meta: "", lines: [] })),
-  };
-  const extras: Section[] = [];
-  const certifications = resume?.sections?.certifications?.items ?? [];
-  if (certifications.length) extras.push({ title: "Certifications", entries: certifications.map((item) => ({ heading: item.title ?? "", meta: [item.issuer, item.date].filter(Boolean).join(" · "), lines: lines(item.description) })) });
-  const projects = resume?.sections?.projects?.items ?? [];
-  if (projects.length) extras.push({ title: "Projects", entries: projects.map((item) => ({ heading: item.name ?? "", meta: item.period ?? "", lines: lines(item.description) })) });
-  const skillItems = resume?.sections?.skills?.items ?? [];
-  const skills: SkillGroup[] = skillItems.length ? skillItems.map((item) => ({ name: item.name ?? "", keywords: item.keywords ?? [] })).filter((group) => group.name) : [{ name: "Skills", keywords: profile.skills }];
-  const languages = (resume?.sections?.languages?.items ?? []).map((item) => [item.language, item.fluency].filter(Boolean).join(" · ")).filter(Boolean);
-  return {
-    name: resume?.basics?.name || profile.fullName,
-    headline: resume?.basics?.headline || profile.currentRole,
-    contact: [resume?.basics?.location || profile.location, resume?.basics?.email || profile.email, resume?.basics?.phone || profile.phone].filter(Boolean),
-    links: (resume?.sections?.profiles?.items ?? []).map((item) => item.website || [item.network, item.username].filter(Boolean).join(": ")).filter(Boolean),
-    summary: input.summary,
-    experience, education, extras, skills,
-    languages: languages.length ? languages : profile.languages,
-  };
-}
+import { buildCvModel as buildModel, type CvDesignInput, type CvSection as Section } from "./cv-design-model";
+export type { CvDesignInput } from "./cv-design-model";
 
 const base = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 9.5, lineHeight: 1.45, color: "#1f2937" },
@@ -79,11 +36,11 @@ function SectionTitle({ children, color, light = false, spaced = false }: { chil
   return <Text style={{ fontFamily: "Helvetica-Bold", fontSize: spaced ? 9 : 11, color: light ? "#ffffff" : color, letterSpacing: spaced ? 1.4 : 0.2, textTransform: "uppercase", marginBottom: 5, marginTop: 4, paddingBottom: 3, borderBottomWidth: light ? 0 : 1, borderBottomColor: color, borderBottomStyle: "solid" }}>{children}</Text>;
 }
 
-function SkillGroups({ groups, light = false }: { groups: SkillGroup[]; light?: boolean }) {
+function SkillGroups({ groups, light = false }: { groups: ReturnType<typeof buildModel>["skills"]; light?: boolean }) {
   return <View>{groups.map((group, index) => <View key={index} style={{ marginBottom: 4 }}><Text style={[base.bold, { color: light ? "#ffffff" : "#1f2937" }]}>{group.name}</Text>{group.keywords.length ? <Text style={{ color: light ? "rgba(255,255,255,0.88)" : "#374151", fontSize: 8.8 }}>{group.keywords.join(" · ")}</Text> : null}</View>)}</View>;
 }
 
-function SidebarDesign({ model, accent }: { model: Model; accent: string }) {
+function SidebarDesign({ model, accent }: { model: ReturnType<typeof buildModel>; accent: string }) {
   return <Page size="A4" style={[base.page, { paddingLeft: 0, paddingTop: 0, paddingBottom: 0, paddingRight: 0 }]}>
     <View fixed style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "33%", backgroundColor: accent }} />
     <View style={{ flexDirection: "row" }}>
@@ -107,7 +64,7 @@ function SidebarDesign({ model, accent }: { model: Model; accent: string }) {
   </Page>;
 }
 
-function ModernDesign({ model, accent }: { model: Model; accent: string }) {
+function ModernDesign({ model, accent }: { model: ReturnType<typeof buildModel>; accent: string }) {
   return <Page size="A4" style={[base.page, { padding: 0 }]}>
     <View style={{ backgroundColor: accent, padding: 28, paddingBottom: 22, color: "#ffffff" }}>
       <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 26, color: "#ffffff", lineHeight: 1.1 }}>{model.name}</Text>
@@ -129,7 +86,7 @@ function ModernDesign({ model, accent }: { model: Model; accent: string }) {
   </Page>;
 }
 
-function MinimalDesign({ model, accent }: { model: Model; accent: string }) {
+function MinimalDesign({ model, accent }: { model: ReturnType<typeof buildModel>; accent: string }) {
   return <Page size="A4" style={[base.page, { padding: 34, paddingTop: 30 }]}>
     <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 24, color: accent, lineHeight: 1.1 }}>{model.name}</Text>
     <Text style={{ fontSize: 11, marginTop: 2 }}>{model.headline}</Text>

@@ -1060,3 +1060,56 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
   .trust-row { display: grid; }
   .upload-layout h1 { font-size: 34px; }
 }
+/* CV layout previews share their content model with the PDF export. */
+.cv-design-preview { --cv-accent: #2a8b68; width: min(760px, 100%); background: #fff; color: #1f2937; border: 1px solid var(--line); box-shadow: var(--shadow); font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.cv-design-preview h2, .cv-design-preview h3, .cv-design-preview h4, .cv-design-preview p { margin: 0; }
+.cv-preview-identity h2 { color: var(--cv-accent); font-size: 28px; line-height: 1.15; letter-spacing: -.03em; }
+.cv-preview-identity > p { margin-top: 5px; font-size: 16px; }
+.cv-preview-contact { margin-top: 12px; font-size: 13px; color: #4b5563; }
+.cv-preview-contact p + p { margin-top: 3px; }
+.cv-preview-main { min-width: 0; padding: 34px; }
+.cv-preview-section { margin-top: 22px; }
+.cv-preview-section h3 { color: var(--cv-accent); border-bottom: 1px solid var(--cv-accent); padding-bottom: 5px; margin-bottom: 10px; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; }
+.cv-preview-section h4 { font-size: 15px; line-height: 1.35; }
+.cv-preview-section article + article { margin-top: 18px; }
+.cv-preview-meta { color: #4b5563; font-size: 13px; margin-top: 3px !important; }
+.cv-preview-section ul { padding-left: 18px; margin: 6px 0 0; }
+.cv-preview-section li + li { margin-top: 3px; }
+.cv-preview-skill + .cv-preview-skill { margin-top: 10px; }
+.cv-preview-skill strong { font-size: 14px; }
+.cv-preview-skill p { margin-top: 2px; }
+.cv-design-sidebar { display: grid; grid-template-columns: 33% minmax(0, 1fr); }
+.cv-preview-sidebar { padding: 28px 20px; color: #fff; background: var(--cv-accent); min-width: 0; }
+.cv-preview-sidebar .cv-preview-identity h2 { color: #fff; font-size: 24px; }
+.cv-preview-sidebar .cv-preview-contact, .cv-preview-sidebar .cv-preview-section h3 { color: #fff; }
+.cv-preview-sidebar .cv-preview-section h3 { border: 0; padding-bottom: 0; }
+.cv-design-sidebar .cv-preview-main { padding: 28px; }
+.cv-preview-banner { padding: 30px 34px 26px; background: var(--cv-accent); color: #fff; }
+.cv-preview-banner .cv-preview-identity h2, .cv-preview-banner .cv-preview-contact { color: #fff; }
+.cv-preview-banner .cv-preview-identity h2 { font-size: 32px; }
+.cv-preview-banner .cv-preview-contact { display: flex; flex-wrap: wrap; gap: 3px 12px; }
+.cv-preview-columns { display: grid; grid-template-columns: minmax(0, 66%) minmax(0, 34%); padding: 26px; }
+.cv-preview-columns .cv-preview-main { padding: 0 20px 0 0; }
+.cv-preview-details { min-width: 0; padding-left: 18px; border-left: 1px solid #e5e7eb; }
+.cv-preview-columns .cv-preview-section:first-child { margin-top: 0; }
+.cv-design-minimal .cv-preview-contact { border-bottom: 2px solid var(--cv-accent); padding-bottom: 14px; }
+.cv-design-minimal .cv-preview-section h3 { font-size: 13px; letter-spacing: .13em; }
+.cv-summary-editor { width: min(760px, 100%); padding: 16px 20px; background: #fff; border: 1px solid var(--line); font-size: 14px; }
+.cv-summary-editor summary { cursor: pointer; font-weight: 650; }
+.cv-summary-editor textarea { width: 100%; min-height: 150px; margin-top: 14px; padding: 12px; resize: vertical; font-size: 16px; }
+.cv-summary-editor p, .cv-template-note { color: var(--ink-soft); font-size: 14px; }
+@media (max-width: 640px) {
+  .cv-preview-main, .cv-design-sidebar .cv-preview-main { padding: 20px 16px; }
+  .cv-preview-sidebar { padding: 20px 12px; }
+  .cv-preview-sidebar .cv-preview-identity h2 { font-size: 20px; }
+  .cv-preview-banner { padding: 24px 20px; }
+  .cv-preview-columns { padding: 20px 16px; grid-template-columns: minmax(0, 60%) minmax(0, 40%); }
+  .cv-preview-columns .cv-preview-main { padding-right: 12px; }
+  .cv-preview-details { padding-left: 12px; }
+}
+.cv-export-preview { width: min(760px, 100%); min-width: 0; }
+.cv-preview-caption { margin: 0 0 14px; color: var(--ink-soft); font-size: 14px; }
+.cv-preview-page { display: block; width: 100%; height: auto; background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow); margin-bottom: 20px; }
+.cv-preview-text { margin-top: 20px; font-size: 14px; }
+.cv-preview-text > summary { cursor: pointer; padding: 14px 0; font-weight: 650; }
+.cv-export-preview .form-error .secondary-action { margin-left: 14px; }
