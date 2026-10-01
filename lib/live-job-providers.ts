@@ -1,6 +1,6 @@
 import type { Job, JobProvider, SalaryPeriod, Workplace } from "./domain";
 
-type ProviderQuery = { keywords?: string[]; countries?: string[] };
+type ProviderQuery = { keywords?: string[]; countries?: string[]; location?: string; radiusKm?: number };
 type Health = "healthy" | "degraded" | "offline";
 
 // Every enabled provider is queried concurrently, so the per-request budget has to
@@ -463,13 +463,15 @@ export class AdzunaJobProvider extends LiveProvider {
     this.markets = markets.map((market) => market.toLowerCase()).filter((market) => market in ADZUNA_CURRENCY);
     if (!appId || !appKey) this.status = "offline";
   }
-  private async fetchMarket(market: string, keywords: string[]): Promise<Job[]> {
+  private async fetchMarket(market: string, keywords: string[], query: ProviderQuery): Promise<Job[]> {
     const url = new URL(`https://api.adzuna.com/v1/api/jobs/${market}/search/1`);
     url.searchParams.set("app_id", this.appId!);
     url.searchParams.set("app_key", this.appKey!);
     url.searchParams.set("results_per_page", "50");
     url.searchParams.set("content-type", "application/json");
     if (keywords.length) url.searchParams.set("what_or", keywords.slice(0, 8).join(" "));
+    if (query.location) url.searchParams.set("where", query.location);
+    if (query.location && query.radiusKm) url.searchParams.set("distance", String(query.radiusKm));
     const data = await fetchJson<{ results?: Array<{ id?: string | number; title?: string; description?: string; created?: string; redirect_url?: string; company?: { display_name?: string }; location?: { display_name?: string }; salary_min?: number; salary_max?: number; salary_is_predicted?: string; contract_time?: string; contract_type?: string }> }>(url.toString());
     const currency = ADZUNA_CURRENCY[market] ?? "EUR";
     return (data.results ?? []).flatMap((item) => {
@@ -492,8 +494,8 @@ export class AdzunaJobProvider extends LiveProvider {
     const requested = query.countries?.map((code) => code.toLowerCase()).filter((code) => code in ADZUNA_CURRENCY) ?? [];
     const markets = requested.length ? requested : this.markets;
     const keywords = query.keywords ?? [];
-    return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 8).join("|")}`, () => this.observe(async () => {
-      const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords)));
+    return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 8).join("|")}:${query.location ?? ""}:${query.radiusKm ?? ""}`, () => this.observe(async () => {
+      const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords, query)));
       const jobs = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
       if (!jobs.length && settled.every((result) => result.status === "rejected")) throw new Error("Adzuna returned no usable markets");
       return jobs;
@@ -530,8 +532,11 @@ export class JoobleJobProvider extends LiveProvider {
     this.markets = markets.map((market) => market.toUpperCase()).filter((market) => market in JOOBLE_COUNTRY);
     if (!apiKey) this.status = "offline";
   }
-  private async fetchMarket(code: string, keywords: string[]): Promise<Job[]> {
-    const body = JSON.stringify({ keywords: keywords.slice(0, 6).join(", "), location: JOOBLE_COUNTRY[code], page: "1" });
+  private async fetchMarket(code: string, keywords: string[], query: ProviderQuery): Promise<Job[]> {
+    // Jooble accepts discrete radii; fetch the next wider ring and enforce the
+    // candidate's precise radius on our server.
+    const providerRadius = query.radiusKm ? [4, 8, 16, 26, 40, 80].find((km) => km >= query.radiusKm!) : undefined;
+    const body = JSON.stringify({ keywords: keywords.slice(0, 6).join(", "), location: query.location ? `${query.location}, ${JOOBLE_COUNTRY[code]}` : JOOBLE_COUNTRY[code], ...(query.location && providerRadius ? { radius: String(providerRadius) } : {}), page: "1" });
     const data = await postJson<{ jobs?: JoobleRow[] }>(`https://jooble.org/api/${encodeURIComponent(this.apiKey!)}`, body);
     return (data.jobs ?? []).flatMap((item) => {
       const link = item.link;
@@ -556,8 +561,8 @@ export class JoobleJobProvider extends LiveProvider {
     const requested = query.countries?.map((code) => code.toUpperCase()).filter((code) => code in JOOBLE_COUNTRY) ?? [];
     const markets = requested.length ? requested : this.markets;
     const keywords = query.keywords ?? [];
-    return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 6).join("|")}`, () => this.observe(async () => {
-      const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords)));
+    return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 6).join("|")}:${query.location ?? ""}:${query.radiusKm ?? ""}`, () => this.observe(async () => {
+      const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords, query)));
       const jobs = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
       if (!jobs.length && settled.every((result) => result.status === "rejected")) throw new Error("Jooble returned no usable markets");
       return jobs;
@@ -596,7 +601,7 @@ export class CareerjetJobProvider extends LiveProvider {
     this.markets = markets.map((market) => market.toUpperCase()).filter((market) => market in CAREERJET_LOCALE);
     if (!affiliateId) this.status = "offline";
   }
-  private async fetchMarket(code: string, keywords: string[]): Promise<Job[]> {
+  private async fetchMarket(code: string, keywords: string[], query: ProviderQuery): Promise<Job[]> {
     const url = new URL("http://public.api.careerjet.net/search");
     url.searchParams.set("affid", this.affiliateId!);
     // Careerjet ANDs across words and binds OR only to adjacent terms, so a combined
@@ -604,6 +609,8 @@ export class CareerjetJobProvider extends LiveProvider {
     // primary role term is sent alone and NextJOB's own relevance filter does the rest.
     const primary = keywords.find((keyword) => keyword.trim().length > 0);
     if (primary) url.searchParams.set("keywords", primary.trim());
+    if (query.location) url.searchParams.set("location", query.location);
+    if (query.location && query.radiusKm) url.searchParams.set("radius", String(query.radiusKm));
     url.searchParams.set("locale_code", CAREERJET_LOCALE[code]!);
     url.searchParams.set("pagesize", "50");
     url.searchParams.set("user_agent", USER_AGENT);
@@ -632,8 +639,8 @@ export class CareerjetJobProvider extends LiveProvider {
     const requested = query.countries?.map((code) => code.toUpperCase()).filter((code) => code in CAREERJET_LOCALE) ?? [];
     const markets = requested.length ? requested : this.markets;
     const keywords = query.keywords ?? [];
-    return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 6).join("|")}`, () => this.observe(async () => {
-      const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords)));
+    return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 6).join("|")}:${query.location ?? ""}:${query.radiusKm ?? ""}`, () => this.observe(async () => {
+      const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords, query)));
       const jobs = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
       if (!jobs.length && settled.every((result) => result.status === "rejected")) throw new Error("Careerjet returned no usable markets");
       return jobs;

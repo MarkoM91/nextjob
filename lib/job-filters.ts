@@ -127,7 +127,7 @@ export function sortMatches(matches: MatchResult[], sort: SortOrder): MatchResul
     ? publishedTime(b.job) - publishedTime(a.job) || b.score - a.score
     // Unlocated postings sink to the end rather than pretending to be close.
     : sort === "distance"
-      ? (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity) || b.score - a.score
+      ? Number(a.job.workplace === "Remote") - Number(b.job.workplace === "Remote") || (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity) || b.score - a.score
       : b.score - a.score || publishedTime(b.job) - publishedTime(a.job);
   const pinned = (match: MatchResult) => Number(match.job.providerId === IMPORT_PROVIDER_ID);
   return [...matches].sort((a, b) => pinned(b) - pinned(a) || byOrder(a, b));

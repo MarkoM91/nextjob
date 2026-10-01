@@ -112,9 +112,12 @@ export function withinRadius(job: Pick<Job, "city" | "locationText" | "workplace
 
 export function parseGeoPoint(value: string | null | undefined): GeoPoint | null {
   if (!value) return null;
-  const [lat, lon] = value.split(",").map((part) => Number(part.trim()));
+  const parts = value.split(",");
+  if (parts.length !== 2 || parts.some((part) => !part.trim())) return null;
+  const [lat, lon] = parts.map((part) => Number(part.trim()));
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
   return { lat, lon };
 }
 
+export const DEFAULT_RADIUS_KM = 50;
 export const RADIUS_OPTIONS_KM = [10, 25, 50, 100] as const;

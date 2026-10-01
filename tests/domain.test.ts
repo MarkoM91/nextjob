@@ -9,6 +9,36 @@ import type { Job } from "../lib/domain.ts";
 import { aggregatorName, employerSearchUrl, jobSourceKind, linkMayAskHumanCheck } from "../lib/job-source.ts";
 import { candidateFromReactiveResume, createTailoredReactiveResume, parseAndImportReactiveResume, reactiveResumeInternals, sanitizeReactiveResumeData } from "../lib/reactive-resume.ts";
 
+test("licensed providers search the selected city and isolate caches by city and radius", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: Array<{ provider: string; city: string | null; radius: string | null }> = [];
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.hostname === "jooble.org") {
+      const body = JSON.parse(String(init?.body));
+      calls.push({ provider: "jooble", city: body.location, radius: body.radius });
+      return Response.json({ jobs: [] });
+    }
+    const adzuna = url.hostname === "api.adzuna.com";
+    calls.push({ provider: adzuna ? "adzuna" : "careerjet", city: url.searchParams.get(adzuna ? "where" : "location"), radius: url.searchParams.get(adzuna ? "distance" : "radius") });
+    return Response.json(adzuna ? { results: [] } : { jobs: [] });
+  };
+  try {
+    const providers = [new AdzunaJobProvider("geo-test-id", "test-key"), new JoobleJobProvider("geo-test-key"), new CareerjetJobProvider("geo-test-affid")];
+    for (const provider of providers) {
+      for (const query of [{ location: "Milano", radiusKm: 50 }, { location: "Roma", radiusKm: 50 }, { location: "Milano", radiusKm: 25 }]) {
+        await provider.searchJobs({ ...query, keywords: ["geographic-cache-test"], countries: ["IT"] });
+      }
+    }
+    assert.equal(calls.length, 9, "changing city or radius must issue a fresh provider query");
+    for (const provider of ["adzuna", "jooble", "careerjet"]) {
+      const scoped = calls.filter((call) => call.provider === provider);
+      assert.deepEqual(scoped.map((call) => call.city), provider === "jooble" ? ["Milano, Italy", "Roma, Italy", "Milano, Italy"] : ["Milano", "Roma", "Milano"]);
+      assert.deepEqual(scoped.map((call) => call.radius), provider === "jooble" ? ["80", "80", "26"] : ["50", "50", "25"]);
+    }
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test("normalizes titles and accents deterministically", () => {
   assert.equal(normalizeText("  Customer-Succès  Manager "), "customer succes manager");
   assert.equal(canonicalJobKey(jobs[0]), canonicalJobKey(jobs[19]));

@@ -154,7 +154,7 @@ export interface JobProvider {
   name: string;
   countriesSupported: string[];
   languagesSupported: string[];
-  searchJobs(query: { keywords?: string[]; countries?: string[]; cursor?: string }): Promise<Job[]>;
+  searchJobs(query: { keywords?: string[]; countries?: string[]; location?: string; radiusKm?: number; cursor?: string }): Promise<Job[]>;
   fetchJobDetails(externalId: string): Promise<Job | null>;
   healthCheck(): Promise<{ status: "healthy" | "degraded" | "offline"; latencyMs: number; checkedAt: string }>;
 }

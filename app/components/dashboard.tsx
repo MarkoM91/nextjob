@@ -31,16 +31,16 @@ export function Dashboard() {
     }).catch(() => undefined);
     return () => { active = false; };
   }, []);
-  // Nearby first: the network's view of the request on the edge, else the home town on the CV; the wider feed when nothing is close.
+  // Start from the verified CV city, with the network location as a fallback.
   const [origin, setOrigin] = useState<{ name: string; lat: number; lon: number } | null>(null);
   const [nearby, setNearby] = useState(false);
   useEffect(() => {
     let active = true;
     const load = async () => {
       const where = await fetch("/api/whereami", { headers: { accept: "application/json" } }).then((response) => response.ok ? response.json() : null).catch(() => null) as { profile?: { name: string; lat: number; lon: number } | null; network?: { name: string; lat: number; lon: number } | null } | null;
-      const place = where?.network ?? where?.profile ?? null;
+      const place = where?.profile ?? where?.network ?? null;
       if (active) setOrigin(place);
-      const feed = async (near: boolean) => fetch(`/api/matches?limit=4${near && place ? `&near=${place.lat},${place.lon}&radius=50` : ""}`, { headers: { accept: "application/json" } }).then(async (response) => { if (!response.ok) throw new Error("Live jobs unavailable"); return response.json() as Promise<MatchesApiResponse>; });
+      const feed = async (near: boolean) => fetch(`/api/matches?limit=4${near && place ? `&scope=nearby&near=${place.lat},${place.lon}&area=${encodeURIComponent(place.name)}&radius=50&sort=distance` : "&scope=anywhere"}`, { headers: { accept: "application/json" } }).then(async (response) => { if (!response.ok) throw new Error("Live jobs unavailable"); return response.json() as Promise<MatchesApiResponse>; });
       let payload = await feed(Boolean(place));
       let close = Boolean(place) && payload.matches.length > 0;
       if (place && !payload.matches.length && !payload.profileRequired) { payload = await feed(false); close = false; }

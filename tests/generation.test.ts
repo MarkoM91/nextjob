@@ -74,6 +74,9 @@ test("feed filters parse leniently, round-trip, and narrow like Indeed-style chi
   const added = { job: { ...jobs[1], id: "added", providerId: IMPORT_PROVIDER_ID, publishedAt: new Date(now - 5 * 86400000).toISOString() }, score: 61, distanceKm: 40 } as unknown as Parameters<typeof sortMatches>[0][number];
   for (const sort of ["relevance", "date", "distance"] as const) assert.equal(sortMatches([live, added], sort)[0].job.id, "added", sort + " sort keeps added jobs first");
   assert.equal(sortMatches([live, { ...live, job: { ...live.job, id: "closer" }, distanceKm: 1 }], "distance")[0].job.id, "closer");
+  const remote = { ...live, job: { ...live.job, id: "remote", workplace: "Remote" as const }, distanceKm: 0, score: 99 };
+  const local = { ...live, job: { ...live.job, workplace: "On-site" as const } };
+  assert.equal(sortMatches([remote, local], "distance")[0].job.id, "live", "physical nearby roles lead remote roles, whose zero distance is not a physical location");
   const newest = sortMatches(rankJobs(candidate, jobs, true), "date");
   assert.ok(new Date(newest[0].job.publishedAt).getTime() >= new Date(newest[newest.length - 1].job.publishedAt).getTime());
 });

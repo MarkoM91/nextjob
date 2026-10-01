@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getCurrentUser } from "../../auth";
 import { isRelevantRoleTitle, searchKeywords } from "../../../lib/relevance";
 import { DEFAULT_MAX_JOB_AGE_DAYS, isRecentPosting, rankJobs } from "../../../lib/engine";
-import { jobDistanceKm, parseGeoPoint } from "../../../lib/geo";
+import { DEFAULT_RADIUS_KM, jobDistanceKm, parseGeoPoint, resolvePlace } from "../../../lib/geo";
 import { facetCounts, filtersFromParams, jobPassesFilters, matchesSearchWords, sortMatches } from "../../../lib/job-filters";
 import { IMPORT_PROVIDER_ID, listImportedJobs } from "../../../lib/job-import";
 import { searchAllProviders } from "../../../lib/providers";
@@ -16,6 +16,8 @@ const querySchema = z.object({
   country: z.string().length(2).optional(),
   q: z.string().trim().max(80).optional(),
   location: z.string().trim().max(80).optional(),
+  area: z.string().trim().max(80).optional(),
+  scope: z.enum(["nearby", "anywhere"]).optional(),
   near: z.string().trim().max(40).optional(),
   radius: z.coerce.number().int().min(1).max(500).optional(),
   posted: z.coerce.number().int().min(1).max(30).optional(),
@@ -35,8 +37,9 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const parsed = querySchema.safeParse(Object.fromEntries(url.searchParams));
   if (!parsed.success) return Response.json({ error: "Invalid filters", details: parsed.error.flatten() }, { status: 400 });
-  const filters = filtersFromParams(url.searchParams);
-  const near = parseGeoPoint(parsed.data.near);
+  let filters = filtersFromParams(url.searchParams);
+  const explicitNear = parseGeoPoint(parsed.data.near);
+  if (parsed.data.near && !explicitNear) return Response.json({ error: "Invalid search coordinates" }, { status: 400 });
   const user = await getCurrentUser();
   const ownerId = safeOwnerId(user?.id);
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
@@ -45,12 +48,22 @@ export async function GET(request: Request) {
     return Response.json({ matches: [], nextCursor: null, facets: null, filters, estimateLabel: "NextJOB match estimate", sourceMode: "profile-required", fictional: false, profileRequired: true, profileSource: "missing", refreshedAt: new Date().toISOString(), providerFailures: [], sourceCounts: {} }, { headers: { "cache-control": "private, no-store" } });
   }
   const profile = storedResume.profile;
+  // Start from the verified CV city unless the candidate deliberately widens the
+  // search or supplies another city. Never substitute a sample location.
+  const areaText = parsed.data.area || filters.location;
+  const place = resolvePlace(areaText || profile.location);
+  const nearby = parsed.data.scope !== "anywhere";
+  const near = nearby ? explicitNear ?? place : null;
+  const radiusKm = near ? filters.radiusKm || DEFAULT_RADIUS_KM : 0;
+  filters = { ...filters, radiusKm, location: near && place ? "" : areaText, sort: parsed.data.sort ?? (near ? "distance" : "relevance") };
+  const providerLocation = nearby ? areaText || place?.name : filters.location || undefined;
+  const country = parsed.data.country || (nearby ? place?.country : undefined);
   const search = filters.q;
   // An explicit search is sent to the providers too, so results are not limited to
   // what the profile keywords already pulled back.
   const keywords = search ? [search, ...searchKeywords(profile)].slice(0, 30) : searchKeywords(profile);
   const [live, imported] = await Promise.all([
-    searchAllProviders({ keywords, countries: parsed.data.country ? [parsed.data.country] : undefined }),
+    searchAllProviders({ keywords, countries: country ? [country] : undefined, location: providerLocation, radiusKm: radiusKm || undefined }),
     listImportedJobs(storage, ownerId).catch(() => []),
   ]);
   // Aggregators keep serving long-closed vacancies, so anything past the freshness
