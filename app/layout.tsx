@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
+import { BuildUpdateNotice } from "./components/build-update-notice";
+import { BUILD_VERSION } from "../lib/build-version";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -28,5 +30,5 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#43A047", colorScheme: "light" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className={`${geistSans.variable} ${geistMono.variable} ${display.variable}`}>{children}</body></html>;
+  return <html lang="en"><head><meta name="nextjob-build" content={BUILD_VERSION} /></head><body className={`${geistSans.variable} ${geistMono.variable} ${display.variable}`}>{children}<BuildUpdateNotice /></body></html>;
 }

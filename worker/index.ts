@@ -1,6 +1,7 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { BUILD_VERSION } from "../lib/build-version";
 
 interface Env {
   ASSETS: Fetcher;
@@ -43,6 +44,11 @@ const worker = {
 
     const response = await handler.fetch(request, env, ctx);
     const secured = new Response(response.body, response);
+    secured.headers.set("x-nextjob-build", BUILD_VERSION);
+    // Personalized HTML and navigation responses must come from the current
+    // deployment. Fingerprinted static assets retain their normal cache policy.
+    const contentType = secured.headers.get("content-type") ?? "";
+    if (contentType.includes("text/html") || contentType.includes("text/x-component")) secured.headers.set("cache-control", "private, no-store");
     secured.headers.set("x-content-type-options", "nosniff");
     secured.headers.set("referrer-policy", "strict-origin-when-cross-origin");
     secured.headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=()");

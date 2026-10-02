@@ -25,6 +25,19 @@ test("landing page replaces the starter and communicates the core promise", asyn
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/);
 });
 
+test("HTML and version checks identify the same deployment and cannot reuse stale responses", async () => {
+  const versionResponse = await request("/api/version");
+  assert.equal(versionResponse.status, 200);
+  assert.match(versionResponse.headers.get("cache-control"), /no-store/);
+  const { version } = await versionResponse.json();
+  assert.equal(typeof version, "string");
+  assert.notEqual(version, "dev", "production builds must identify the deployed bundle");
+  const page = await request("/matches");
+  assert.match(page.headers.get("cache-control"), /no-store/);
+  assert.equal(page.headers.get("x-nextjob-build"), version);
+  assert.ok((await page.text()).includes(`name="nextjob-build" content="${version}"`));
+});
+
 test("main onboarding pages render in a complete walkthrough", async () => {
   for (const [path, text] of [["/upload", "Upload your current CV"], ["/profile-review", "Confirm your experience"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "Checking current employer listings"]]) {
     const response = await request(path);

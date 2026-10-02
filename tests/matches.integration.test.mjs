@@ -26,6 +26,7 @@ const request = (params = "", includeIneligible = true) => worker.fetch(new Requ
 test("a selected nearby radius uses the verified CV city and includes nearby towns", async () => {
   const response = await request("&scope=nearby");
   assert.equal(response.status, 200);
+  assert.match(response.headers.get("cache-control"), /no-store/);
   const payload = await response.json();
   assert.equal(payload.near.name, "Milano");
   assert.equal(payload.filters.radiusKm, 50);
@@ -95,4 +96,30 @@ test("country selection overrides the old city, radius and stored geographic pre
     assert.deepEqual(payload.matches.map((match) => match.job.id), ["paris"]);
     assert.equal(payload.matches[0].eligible, true);
   } finally { profile.preferences.relocation = beforeRelocation; }
+});
+
+test("a help desk search rejects Toronto remote counsel and unrelated European leadership roles", async () => {
+  const originalFetch = globalThis.fetch;
+  process.env.NEXTJOB_DISABLE_LIVE_JOBS = "false";
+  const timestamp = new Date().toISOString();
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes("boards-api.greenhouse.io")) return Response.json({ jobs: [
+      { id: "helpdesk", title: "Help Desk Technician", content: "Help desk, Windows 11 and Networking. Full-time IT support.", location: { name: "Milano, Italy" }, absolute_url: "https://example.test/jobs/helpdesk", updated_at: timestamp },
+      { id: "legal", title: "Senior Legal Counsel", content: "Legal advice to help desk teams. Networking with company leadership.", location: { name: "Toronto, Canada (Remote)" }, absolute_url: "https://example.test/jobs/legal", updated_at: timestamp },
+      { id: "director", title: "Director of Marketing", content: "Help desk collaboration and Networking. Marketing leadership.", location: { name: "Berlin, Germany (Remote)" }, absolute_url: "https://example.test/jobs/director", updated_at: timestamp },
+    ] });
+    if (url.includes("api.lever.co")) return Response.json([]);
+    if (url.includes("personio")) return new Response("<workzag-jobs></workzag-jobs>");
+    return Response.json({ jobs: [], data: [], content: [], results: [] });
+  };
+  try {
+    for (const scope of ["regional", "nearby"]) {
+      const response = await request(`&q=help%20desk&scope=${scope}`, false);
+      const payload = await response.json();
+      assert.ok(payload.matches.some((match) => match.job.title === "Help Desk Technician"), "the genuine help desk posting remains visible");
+      assert.equal(payload.matches.some((match) => /Legal Counsel|Director of Marketing/.test(match.job.title)), false);
+      assert.equal(payload.matches.every((match) => scope === "nearby" ? match.job.countryCode === "IT" : match.job.countryCode !== "CA"), true);
+    }
+  } finally { globalThis.fetch = originalFetch; process.env.NEXTJOB_DISABLE_LIVE_JOBS = "true"; }
 });

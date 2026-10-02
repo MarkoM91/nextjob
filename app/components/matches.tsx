@@ -51,7 +51,7 @@ export function MatchesScreen({ savedOnly = false, appliedJobId, applicationStat
   const wantsOrigin = regional || filters.radiusKm > 0;
   useEffect(() => {
     let active = true;
-    void fetch("/api/whereami", { headers: { accept: "application/json" } })
+    void fetch("/api/whereami", { cache: "no-store", headers: { accept: "application/json" } })
       .then((response) => response.ok ? response.json() : { profile: null, network: null })
       .then((payload: WhereAmI) => {
         if (!active) return;
@@ -89,7 +89,7 @@ export function MatchesScreen({ savedOnly = false, appliedJobId, applicationStat
     if (whereAmI === null) return;
     let active = true;
     const country = countryParam ? `&country=${encodeURIComponent(countryParam)}` : "";
-    void fetch(`/api/matches?limit=30${country}${serverParams ? `&${serverParams}` : ""}`, { headers: { accept: "application/json" } })
+    void fetch(`/api/matches?limit=30${country}${serverParams ? `&${serverParams}` : ""}`, { cache: "no-store", headers: { accept: "application/json" } })
       .then(async (response) => { if (!response.ok) throw new Error("Job feed unavailable"); return response.json() as Promise<FeedResponse>; })
       .then((payload) => { if (active) setLoaded({ key: requestKey, matches: payload.matches, mode: payload.sourceMode, counts: payload.sourceCounts ?? {}, facets: payload.facets ?? null, total: payload.total ?? payload.matches.length, nextCursor: payload.nextCursor ?? null }); })
       .catch(() => { if (active) setLoaded({ key: requestKey, matches: [], mode: "unavailable", counts: {}, facets: null, total: 0, nextCursor: null }); });
@@ -146,7 +146,7 @@ export function MatchesScreen({ savedOnly = false, appliedJobId, applicationStat
     if (settled?.nextCursor == null || loadingMore) return;
     setLoadingMore(true); setPageError("");
     try {
-      const response = await fetch(`/api/matches?limit=30&cursor=${settled.nextCursor}${countryParam ? `&country=${countryParam}` : ""}&${serverParams}`, { headers: { accept: "application/json" } });
+      const response = await fetch(`/api/matches?limit=30&cursor=${settled.nextCursor}${countryParam ? `&country=${countryParam}` : ""}&${serverParams}`, { cache: "no-store", headers: { accept: "application/json" } });
       if (!response.ok) throw new Error("Could not load more jobs");
       const payload = await response.json() as FeedResponse;
       setLoaded((current) => current?.key === requestKey ? { ...current, matches: [...current.matches, ...payload.matches.filter((match) => !current.matches.some((previous) => previous.job.id === match.job.id))], nextCursor: payload.nextCursor ?? null, total: payload.total ?? current.total } : current);

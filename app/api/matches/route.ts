@@ -96,5 +96,5 @@ export async function GET(request: Request) {
   const page = matches.slice(parsed.data.cursor, parsed.data.cursor + parsed.data.limit);
   const nextCursor = parsed.data.cursor + page.length < matches.length ? parsed.data.cursor + page.length : null;
   const sourceCounts = imported.length ? { ...live.sourceCounts, [IMPORT_PROVIDER_ID]: imported.length } : live.sourceCounts;
-  return Response.json({ matches: page, nextCursor, total: matches.length, facets, filters, near, estimateLabel: "NextJOB match estimate", sourceMode, fictional: false, profileRequired: false, refreshedAt: new Date().toISOString(), providerFailures: live.failures, sourceCounts, profileSource: "verified-cv" }, { headers: { "cache-control": "private, max-age=60" } });
+  return Response.json({ matches: page, nextCursor, total: matches.length, facets, filters, near, estimateLabel: "NextJOB match estimate", sourceMode, fictional: false, profileRequired: false, refreshedAt: new Date().toISOString(), providerFailures: live.failures, sourceCounts, profileSource: "verified-cv" }, { headers: { "cache-control": "private, no-store" } });
 }
