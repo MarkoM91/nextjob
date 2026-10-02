@@ -21,10 +21,10 @@ env.DOCUMENTS = { get: async (key) => {
     : key === `private/${ownerId}/imported-jobs/index.json` ? { jobs: postings } : null;
   return content ? { text: async () => JSON.stringify(content) } : null;
 } };
-const request = (params = "") => worker.fetch(new Request(`http://localhost/api/matches?includeIneligible=true${params}`, { headers: { cookie: `nextjob_guest=${token}`, accept: "application/json" } }), { ASSETS: { fetch: async () => new Response(null, { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
+const request = (params = "", includeIneligible = true) => worker.fetch(new Request(`http://localhost/api/matches?includeIneligible=${includeIneligible}${params}`, { headers: { cookie: `nextjob_guest=${token}`, accept: "application/json" } }), { ASSETS: { fetch: async () => new Response(null, { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
 
-test("initial matches use the verified CV city and include nearby towns", async () => {
-  const response = await request();
+test("a selected nearby radius uses the verified CV city and includes nearby towns", async () => {
+  const response = await request("&scope=nearby");
   assert.equal(response.status, 200);
   const payload = await response.json();
   assert.equal(payload.near.name, "Milano");
@@ -58,7 +58,41 @@ test("local searches do not treat foreign remote work as zero kilometres from Mi
   const remote = { ...postings[0], workplace: "Remote" };
   postings.push({ ...remote, id: "remote-italy", company: "Italy remote employer" }, { ...remote, id: "remote-eu", company: "EU remote employer", countryCode: "EU" }, { ...remote, id: "remote-canada", company: "Canada remote employer", countryCode: "CA", country: "Canada" });
   try {
-    const payload = await (await request()).json();
+    const payload = await (await request("&scope=nearby")).json();
     assert.deepEqual(payload.matches.map((match) => match.job.id), ["milan", "monza", "remote-italy", "remote-eu"]);
   } finally { postings.splice(4); }
+});
+
+test("default feed orders Milan, Northern Italy, Italy, then Europe and never worldwide jobs", async () => {
+  const beforeRelocation = profile.preferences.relocation;
+  profile.preferences.relocation = false;
+  postings.push(
+    { ...postings[0], id: "turin", city: "Torino", locationText: "Torino, Piemonte", company: "Northern employer" },
+    { ...postings[0], id: "berlin", city: "Berlin", country: "Germany", countryCode: "DE", locationText: "Berlin", company: "European employer" },
+    { ...postings[0], id: "us", city: "New York", country: "United States", countryCode: "US", locationText: "New York", workplace: "Remote", company: "US employer" },
+  );
+  try {
+    const payload = await (await request("", false)).json();
+    assert.equal(payload.filters.radiusKm, 0, "the default ranks nearby first without discarding wider areas");
+    assert.deepEqual(payload.matches.slice(0, 4).map((match) => match.job.id), ["milan", "monza", "turin", "rome"]);
+    assert.deepEqual(payload.matches.slice(0, 4).map((match) => match.searchRegion), ["nearby", "nearby", "north-italy", "home-country"]);
+    assert.deepEqual(new Set(payload.matches.slice(4).map((match) => match.job.id)), new Set(["paris", "berlin"]));
+    assert.equal(payload.matches.some((match) => match.job.id === "us"), false);
+    assert.equal(payload.matches.every((match) => match.eligible), true);
+    const page = await (await request("&limit=2")).json();
+    const next = await (await request(`&limit=2&cursor=${page.nextCursor}`)).json();
+    assert.deepEqual(next.matches.map((match) => match.job.id), ["turin", "rome"]);
+  } finally { postings.splice(4); profile.preferences.relocation = beforeRelocation; }
+});
+
+test("country selection overrides the old city, radius and stored geographic preferences", async () => {
+  const beforeRelocation = profile.preferences.relocation;
+  profile.preferences.relocation = false;
+  try {
+    const payload = await (await request("&country=FR&scope=regional&area=Milano&near=45.46,9.19&radius=50", false)).json();
+    assert.equal(payload.near, null);
+    assert.equal(payload.filters.radiusKm, 0);
+    assert.deepEqual(payload.matches.map((match) => match.job.id), ["paris"]);
+    assert.equal(payload.matches[0].eligible, true);
+  } finally { profile.preferences.relocation = beforeRelocation; }
 });

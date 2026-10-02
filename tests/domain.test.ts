@@ -36,6 +36,8 @@ test("licensed providers search the selected city and isolate caches by city and
       assert.deepEqual(scoped.map((call) => call.city), provider === "jooble" ? ["Milano, Italy", "Roma, Italy", "Milano, Italy"] : ["Milano", "Roma", "Milano"]);
       assert.deepEqual(scoped.map((call) => call.radius), provider === "jooble" ? ["80", "80", "26"] : ["50", "50", "25"]);
     }
+    for (const provider of providers) await provider.searchJobs({ keywords: ["regional-market-test"], countries: ["IT", "FR", "DE"], regional: true });
+    assert.equal(calls.length, 12, "a regional search uses each configured market once instead of every European market");
   } finally { globalThis.fetch = originalFetch; }
 });
 

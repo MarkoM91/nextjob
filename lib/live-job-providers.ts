@@ -1,6 +1,6 @@
 import type { Job, JobProvider, SalaryPeriod, Workplace } from "./domain";
 
-type ProviderQuery = { keywords?: string[]; countries?: string[]; location?: string; radiusKm?: number };
+type ProviderQuery = { keywords?: string[]; countries?: string[]; location?: string; radiusKm?: number; regional?: boolean };
 type Health = "healthy" | "degraded" | "offline";
 
 // Every enabled provider is queried concurrently, so the per-request budget has to
@@ -492,7 +492,7 @@ export class AdzunaJobProvider extends LiveProvider {
   private async allJobs(query: ProviderQuery): Promise<Job[]> {
     if (!this.appId || !this.appKey) throw new Error("Adzuna requires ADZUNA_APP_ID and ADZUNA_APP_KEY");
     const requested = query.countries?.map((code) => code.toLowerCase()).filter((code) => code in ADZUNA_CURRENCY) ?? [];
-    const markets = requested.length ? requested : this.markets;
+    const markets = query.regional ? this.markets.filter((market) => !query.countries?.length || query.countries.some((code) => code.toLowerCase() === market.toLowerCase())) : requested.length ? requested : this.markets;
     const keywords = query.keywords ?? [];
     return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 8).join("|")}:${query.location ?? ""}:${query.radiusKm ?? ""}`, () => this.observe(async () => {
       const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords, query)));
@@ -559,7 +559,7 @@ export class JoobleJobProvider extends LiveProvider {
   private async allJobs(query: ProviderQuery): Promise<Job[]> {
     if (!this.apiKey) throw new Error("Jooble requires JOOBLE_API_KEY");
     const requested = query.countries?.map((code) => code.toUpperCase()).filter((code) => code in JOOBLE_COUNTRY) ?? [];
-    const markets = requested.length ? requested : this.markets;
+    const markets = query.regional ? this.markets.filter((market) => !query.countries?.length || query.countries.some((code) => code.toLowerCase() === market.toLowerCase())) : requested.length ? requested : this.markets;
     const keywords = query.keywords ?? [];
     return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 6).join("|")}:${query.location ?? ""}:${query.radiusKm ?? ""}`, () => this.observe(async () => {
       const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords, query)));
@@ -637,7 +637,7 @@ export class CareerjetJobProvider extends LiveProvider {
   private async allJobs(query: ProviderQuery): Promise<Job[]> {
     if (!this.affiliateId) throw new Error("Careerjet requires CAREERJET_AFFILIATE_ID");
     const requested = query.countries?.map((code) => code.toUpperCase()).filter((code) => code in CAREERJET_LOCALE) ?? [];
-    const markets = requested.length ? requested : this.markets;
+    const markets = query.regional ? this.markets.filter((market) => !query.countries?.length || query.countries.some((code) => code.toLowerCase() === market.toLowerCase())) : requested.length ? requested : this.markets;
     const keywords = query.keywords ?? [];
     return cachedJobs(`${this.id}:${markets.join(",")}:${keywords.slice(0, 6).join("|")}:${query.location ?? ""}:${query.radiusKm ?? ""}`, () => this.observe(async () => {
       const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market, keywords, query)));
@@ -784,7 +784,7 @@ export class SmartRecruitersJobProvider extends LiveProvider {
   }
   private async allJobs(query: ProviderQuery): Promise<Job[]> {
     const requested = query.countries?.map((code) => code.toLowerCase()).filter((code) => /^[a-z]{2}$/.test(code)) ?? [];
-    const markets = requested.length ? requested : this.markets;
+    const markets = query.regional ? this.markets.filter((market) => !query.countries?.length || query.countries.some((code) => code.toLowerCase() === market.toLowerCase())) : requested.length ? requested : this.markets;
     return cachedJobs(`${this.id}:${markets.join(",")}`, () => this.observe(async () => {
       const settled = await Promise.allSettled(markets.map((market) => this.fetchMarket(market)));
       const jobs = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);

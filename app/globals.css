@@ -333,6 +333,12 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
 .pdf-preview iframe { display: block; width: 100%; height: min(760px, 80vh); border: 0; }
 .filter-chips .filter-reset svg { width: 14px; }
 .match-list { display: grid; gap: 12px; }
+.regional-order { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px; color: var(--ink-soft); font-size: 12px; }
+.regional-order strong { margin-right: 4px; color: var(--ink); }
+.regional-order svg { width: 13px; height: 13px; color: var(--ink-faint); }
+.match-area-heading { margin: 12px 0 2px; font-size: 16px; color: var(--ink); }
+.matches-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; margin: 24px 0; }
+.matches-pagination small { color: var(--ink-faint); }
 .match-list-item { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 26px; align-items: stretch; padding: 22px 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); box-shadow: var(--shadow-small); transition: border-color .18s, transform .18s, box-shadow .18s; }
 .match-list-item:hover { border-color: var(--line-strong); transform: translateY(-1px); box-shadow: var(--shadow); }
 .match-list-copy { min-width: 0; }

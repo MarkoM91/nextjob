@@ -116,6 +116,7 @@ export type MatchResult = {
   breakdown: Record<string, number>;
   /** Straight-line distance from the candidate's place, when both sides could be located. */
   distanceKm?: number;
+  searchRegion?: "nearby" | "north-italy" | "home-country" | "europe";
 };
 
 export type AtsReport = {
@@ -154,7 +155,7 @@ export interface JobProvider {
   name: string;
   countriesSupported: string[];
   languagesSupported: string[];
-  searchJobs(query: { keywords?: string[]; countries?: string[]; location?: string; radiusKm?: number; cursor?: string }): Promise<Job[]>;
+  searchJobs(query: { keywords?: string[]; countries?: string[]; location?: string; radiusKm?: number; regional?: boolean; cursor?: string }): Promise<Job[]>;
   fetchJobDetails(externalId: string): Promise<Job | null>;
   healthCheck(): Promise<{ status: "healthy" | "degraded" | "offline"; latencyMs: number; checkedAt: string }>;
 }

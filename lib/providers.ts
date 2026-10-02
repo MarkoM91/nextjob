@@ -54,7 +54,7 @@ export function findRecentJob(jobId: string): Job | null {
   return entry.job;
 }
 
-export async function searchAllProviders(query: { keywords?: string[]; countries?: string[]; location?: string; radiusKm?: number }) {
+export async function searchAllProviders(query: { keywords?: string[]; countries?: string[]; location?: string; radiusKm?: number; regional?: boolean }) {
   if (process.env.NEXTJOB_DISABLE_LIVE_JOBS === "true") return { jobs: [] as Job[], failures: [{ providerId: "live-jobs", message: "Live providers are disabled for this environment" }], sourceCounts: {} as Record<string, number> };
   const settled = await Promise.allSettled(providerRegistry.map((provider) => provider.searchJobs(query)));
   const availableJobs: Job[] = [];

@@ -9,7 +9,7 @@ import { normalizeText } from "./engine.ts";
 
 export type GeoPlace = { name: string; aliases?: string[]; region?: string; country: string; lat: number; lon: number; kind: "city" | "region" };
 export type GeoPoint = { lat: number; lon: number };
-export type LocatedPlace = GeoPoint & { name: string; country: string; kind: GeoPlace["kind"] };
+export type LocatedPlace = GeoPoint & { name: string; country: string; region?: string; kind: GeoPlace["kind"] };
 
 const it = (name: string, region: string, lat: number, lon: number, aliases?: string[]): GeoPlace => ({ name, aliases, region, country: "IT", lat, lon, kind: "city" });
 const eu = (name: string, country: string, lat: number, lon: number, aliases?: string[]): GeoPlace => ({ name, aliases, country, lat, lon, kind: "city" });
@@ -80,7 +80,7 @@ export function resolvePlace(text: string): LocatedPlace | null {
   let regionMatch: IndexedPlace | null = null;
   for (const place of INDEX) {
     if (!place.keys.some((key) => containsWord(normalized, key))) continue;
-    if (place.kind === "city") return { name: place.name, country: place.country, lat: place.lat, lon: place.lon, kind: "city" };
+    if (place.kind === "city") return { name: place.name, country: place.country, region: place.region, lat: place.lat, lon: place.lon, kind: "city" };
     regionMatch ??= place;
   }
   return regionMatch ? { name: regionMatch.name, country: regionMatch.country, lat: regionMatch.lat, lon: regionMatch.lon, kind: "region" } : null;
