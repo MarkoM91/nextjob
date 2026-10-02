@@ -33,7 +33,7 @@ export function Landing() {
 
       <div className="hero-product">
         <article className="hero-card" aria-label="Example NextJOB match">
-          <div className="hero-card-status"><p className="hero-card-eyebrow">Live role brief</p><span><i /> Source checked</span></div>
+          <div className="hero-card-status"><p className="hero-card-eyebrow">Example role brief</p><span><i /> Sample assessment</span></div>
           <div className="hero-card-title">
             <h2>{match.job.title}</h2>
             <span className={`match-label ${bandClass(match.band)}`}><BadgeCheck /> {match.band}</span>
@@ -46,7 +46,7 @@ export function Landing() {
           <div className="hero-card-meta">
             <span><Wallet /><div><strong>{formatSalary(match.job)}</strong><small>From the listing</small></div></span>
             <span><FileCheck2 /><div><strong>{match.matchedSkills.length} requirement{match.matchedSkills.length === 1 ? "" : "s"} met</strong><small>Verified in your profile</small></div></span>
-            <span><BadgeCheck /><div><strong>{relativeDate(match.job.publishedAt)}</strong><small>Source checked</small></div></span>
+            <span><BadgeCheck /><div><strong>{relativeDate(match.job.publishedAt)}</strong><small>Example posting</small></div></span>
           </div>
           <div className="hero-card-why">
             <p>Why this match?</p>

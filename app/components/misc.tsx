@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Check, CheckCircle2, Mail, MessageCircle, RefreshCw, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
+import type { CandidateProfile } from "../../lib/domain";
 import { AppContent, candidate, Metric, PageIntro } from "./shared";
 
 export function Notifications() {
@@ -33,6 +35,7 @@ export function Admin() {
 }
 
 export function StaticScreen({ screen }: { screen: string }) {
+  if (screen === "profile") return <ProfileOverview />;
   const experienceBullets = candidate.experiences.reduce((count, experience) => count + experience.bullets.length, 0);
   const content: Record<string, [string, string, string[]]> = {
     privacy: ["Privacy", "Your career history deserves careful handling.", ["Private CV and document storage", "Explicit consent before document and language-model processing", "Data export and deletion controls", "No raw CV text in analytics"]],
@@ -44,4 +47,19 @@ export function StaticScreen({ screen }: { screen: string }) {
   };
   const [title, subtitle, items] = content[screen] ?? ["Not found", "This workspace view is not available.", []];
   return <AppContent narrow><PageIntro eyebrow="NextJOB" title={title} subtitle={subtitle} /><section className="panel static-panel">{items.map((item) => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}</section></AppContent>;
+}
+
+function ProfileOverview() {
+  const [profile, setProfile] = useState<CandidateProfile | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/cv/profile", { cache: "no-store", signal: controller.signal }).then(async (response) => {
+      if (!response.ok) throw new Error("Your profile could not be loaded.");
+      const body = await response.json(); if (body.source === "reactive-resume") setProfile(body.profile);
+    }).catch((reason) => { if (!controller.signal.aborted) setError(reason.message); }).finally(() => setLoaded(true));
+    return () => controller.abort();
+  }, []);
+  return <AppContent narrow><PageIntro eyebrow="Your CV" title={profile?.fullName || "Your profile"} subtitle={profile ? `${profile.currentRole} · ${profile.location}` : "The experience used for your matches and documents."} /><section className="panel profile-overview">{profile ? <><h2>Experience and skills</h2><p>{profile.yearsOfExperience} years of experience · {profile.skills.length} skills</p>{profile.experiences.map((item) => <p key={item.id}><strong>{item.role}</strong><br />{item.company} · {item.startDate} — {item.endDate || "Present"}</p>)}<p>{profile.languages.join(" · ")}</p><div className="profile-overview-actions"><Link className="button" href="/profile-review">Edit and verify profile</Link><Link className="secondary-action" href="/preferences">Edit job preferences</Link></div></> : <p role="status">{error || (loaded ? <>Upload a CV to build your profile. <Link href="/upload">Upload CV</Link></> : "Loading your profile…")}</p>}</section></AppContent>;
 }

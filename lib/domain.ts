@@ -48,6 +48,7 @@ export type CandidateProfile = {
   yearsOfExperience: number;
   targetTitles: string[];
   skills: string[];
+  skillLevels?: Record<string, "unspecified" | "beginner" | "intermediate" | "advanced">;
   languages: string[];
   education: string[];
   workAuthorizations: string[];
@@ -117,6 +118,8 @@ export type MatchResult = {
   /** Straight-line distance from the candidate's place, when both sides could be located. */
   distanceKm?: number;
   searchRegion?: "nearby" | "north-italy" | "home-country" | "europe";
+  reviewNotes?: string[];
+  evidenceCoverage?: "limited" | "partial" | "detailed";
 };
 
 export type AtsReport = {

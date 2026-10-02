@@ -4,7 +4,7 @@ import { candidate } from "../../../../lib/demo-data";
 import { createDemoApplication } from "../../../../lib/engine";
 import { applicationPlainText, coverLetterText, emailText, interviewPrepText, textToDocx, textToPdf } from "../../../../lib/documents";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
-import { readStoredResume, readStoredTailoredApplication, safeOwnerId, tailoredResumeKey } from "../../../../lib/resume-storage";
+import { applicationNeedsRefresh, readStoredResume, readStoredTailoredApplication, safeOwnerId, tailoredResumeKey } from "../../../../lib/resume-storage";
 import { hasCvPurchase } from "../../../../lib/payment-records";
 import { clientKey, rateLimit } from "../../../../lib/security";
 
@@ -36,6 +36,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ form
     readStoredTailoredApplication(storage, ownerId, job.id).catch(() => null),
   ]);
   if (kind === "cv" && (!user || !storedResume?.verifiedAt)) return Response.json({ error: "Upload and verify your CV before downloading it.", code: "CV_REQUIRED" }, { status: 409, headers: { "cache-control": "private, no-store" } });
+  if (storedPackage && applicationNeedsRefresh(storedPackage, storedResume)) {
+    const reviewUrl = new URL(`/generating?job=${encodeURIComponent(job.id)}`, request.url);
+    if (request.headers.get("accept")?.includes("application/json")) return Response.json({ error: "Update your documents with your corrected profile first.", code: "PROFILE_CHANGED", reviewUrl: reviewUrl.toString() }, { status: 409 });
+    return Response.redirect(reviewUrl.toString(), 303);
+  }
   if (kind === "cv" && !(await hasCvPurchase(storage, ownerId, job.id))) {
     const checkout = new URL("/checkout", request.url);
     checkout.searchParams.set("job", job.id);

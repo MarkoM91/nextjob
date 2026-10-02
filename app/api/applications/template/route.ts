@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   await storage.put(tailoredApplicationKey(ownerId, job.id), new TextEncoder().encode(JSON.stringify(updated)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, jobId: job.id, resumeProvider: updated.resumeProvider, documentsProvider: updated.documentsProvider } });
   if (storedResume) {
     storedResume.preferredTemplate = template;
-    await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(storedResume)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "reactive-resume", verified: storedResume.verifiedAt ? "true" : "false", externalResumeId: storedResume.externalResumeId } }).catch(() => undefined);
+    await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(storedResume)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "reactive-resume", verified: storedResume.verifiedAt ? "true" : "false", externalResumeId: storedResume.externalResumeId } });
   }
   return Response.json({ template, templates: REACTIVE_RESUME_TEMPLATES, documentUrl: `/api/documents/pdf?job=${encodeURIComponent(job.id)}`, updatedAt: new Date().toISOString() }, { headers: { "cache-control": "private, no-store" } });
 }

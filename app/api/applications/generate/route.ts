@@ -5,7 +5,7 @@ import { candidate } from "../../../../lib/demo-data";
 import { aiWriterConfiguration, AiWriterError, applyWrittenDocuments, writeApplicationDocuments, type WriterTone } from "../../../../lib/ai-writer";
 import { atsAnalyze, createDemoApplication, validateGeneratedClaims } from "../../../../lib/engine";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
-import { readStoredResume, readStoredTailoredApplication, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
+import { applicationNeedsRefresh, readStoredResume, readStoredTailoredApplication, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { createTailoredReactiveResume, isReactiveResumeConfigured, isReactiveResumeTemplate, REACTIVE_RESUME_TEMPLATES, ReactiveResumeApiError } from "../../../../lib/reactive-resume";
 
@@ -18,7 +18,7 @@ function documentsStatement(pkg: StoredTailoredApplication): string {
     : "Reactive Resume + AI tailored the CV to this posting. The cover letter, email and interview prep use the NextJOB template.";
 }
 
-function packageResponse(pkg: StoredTailoredApplication, reused: boolean, profileForValidation: Parameters<typeof validateGeneratedClaims>[1]) {
+function packageResponse(pkg: StoredTailoredApplication, reused: boolean, profileForValidation: Parameters<typeof validateGeneratedClaims>[1], profileChanged = false) {
   return Response.json({
     application: pkg.application,
     tailoredResume: pkg.content,
@@ -36,6 +36,7 @@ function packageResponse(pkg: StoredTailoredApplication, reused: boolean, profil
     template: pkg.template,
     templates: REACTIVE_RESUME_TEMPLATES,
     reused,
+    profileChanged,
     warnings: pkg.warnings,
     demoMode: pkg.resumeProvider !== "reactive-resume",
   }, { headers: { "cache-control": "private, no-store" } });
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
     readStoredResume(storage, ownerId).catch(() => null),
   ]);
   if (!pkg) return Response.json({ error: "No application has been generated for this job yet", code: "NOT_GENERATED" }, { status: 404, headers: { "cache-control": "private, no-store" } });
-  return packageResponse(pkg, true, storedResume?.profile ?? candidate);
+  return packageResponse(pkg, true, storedResume?.profile ?? candidate, applicationNeedsRefresh(pkg, storedResume));
 }
 
 export async function POST(request: Request) {
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
   // AI providers are not billed again for the same job and tone.
   if (!parsed.data.regenerate && storage) {
     const existing = await readStoredTailoredApplication(storage, ownerId, job.id).catch(() => null);
-    if (existing && existing.tone === tone && existing.externalResumeId === storedResume?.externalResumeId) return packageResponse(existing, true, sourceProfile);
+    if (existing && existing.tone === tone && existing.sourceRevision === (storedResume?.updatedAt ?? storedResume?.parsedAt)) return packageResponse(existing, true, sourceProfile);
   }
 
   let application = createDemoApplication(sourceProfile, job, tone);
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
   const preferredTemplate = isReactiveResumeTemplate(storedResume.preferredTemplate) ? storedResume.preferredTemplate : undefined;
   let generated: Awaited<ReturnType<typeof createTailoredReactiveResume>>;
   try {
-    generated = await createTailoredReactiveResume(storedResume.externalResumeId, job, preferredTemplate);
+    generated = await createTailoredReactiveResume(storedResume.externalResumeId, job, preferredTemplate, { content: storedResume.content, profile: sourceProfile, summary: application.summary });
     await storage!.put(tailoredResumeKey(ownerId, job.id), generated.pdf, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "reactive-resume", jobId: job.id, applicationId: generated.applicationId, externalResumeId: generated.resumeId } });
   } catch (error) {
     const message = error instanceof ReactiveResumeApiError ? error.message : "The résumé generator is temporarily unavailable";
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
   if (!validation.valid) return Response.json({ error: "Generated claims failed factual validation", unsupported: validation.unsupported }, { status: 422 });
 
   const pkg: StoredTailoredApplication = {
-    jobId: job.id, generatedAt: application.generatedAt, tone, resumeProvider: "reactive-resume", documentsProvider,
+    jobId: job.id, generatedAt: application.generatedAt, sourceRevision: storedResume.updatedAt ?? storedResume.parsedAt, tone, resumeProvider: "reactive-resume", documentsProvider,
     externalResumeId: generated.resumeId, applicationId: generated.applicationId, writerModel, content: generated.content, application, warnings,
     template: generated.content?.metadata?.template ?? preferredTemplate,
   };

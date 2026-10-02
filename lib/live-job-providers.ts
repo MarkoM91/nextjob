@@ -62,7 +62,12 @@ function stripHtml(value: string): string {
 
 function stableId(provider: string, externalId: string): string {
   const clean = `${provider}-${externalId}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").slice(0, 76);
-  return clean.replace(/^-|-$/g, "") || crypto.randomUUID();
+  const source = `${provider}-${externalId}`;
+  // Keep existing short provider IDs; long descriptive IDs need the entire identity.
+  if (source.length <= 76) return clean.replace(/^-|-$/g, "") || crypto.randomUUID();
+  let hash = BigInt("0xcbf29ce484222325");
+  for (const byte of new TextEncoder().encode(source)) hash = BigInt.asUintN(64, (hash ^ BigInt(byte)) * BigInt("0x100000001b3"));
+  return `${clean.slice(0, 58).replace(/-+$/g, "")}-${hash.toString(16).padStart(16, "0")}`;
 }
 
 function extractSkills(text: string): string[] {
@@ -879,4 +884,4 @@ export function createLiveProviderRegistry(): JobProvider[] {
   ];
 }
 
-export const liveJobInternals = { discoverJobLinks, xmlTag, extractSkills, fetchCrawlableHtml, inferCountryCode, inferCountryCodeOrNull, jobFromPosting, jobFromSource, jobPostingsFromHtml, parseSalaryText, robotsAllows, robotsPermits, safeConfiguredUrl, salaryFromSource, stripHtml };
+export const liveJobInternals = { stableId, discoverJobLinks, xmlTag, extractSkills, fetchCrawlableHtml, inferCountryCode, inferCountryCodeOrNull, jobFromPosting, jobFromSource, jobPostingsFromHtml, parseSalaryText, robotsAllows, robotsPermits, safeConfiguredUrl, salaryFromSource, stripHtml };

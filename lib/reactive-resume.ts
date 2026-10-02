@@ -1,4 +1,5 @@
 import type { CandidateProfile, Job } from "./domain";
+import { reviewedResumeData, tailoredResumeData } from "./cv-tailoring.ts";
 
 const API_ROOT = "https://rxresu.me/api/openapi";
 const MAX_JSON_RESPONSE_BYTES = 4_000_000;
@@ -372,6 +373,12 @@ export async function setReactiveResumeTemplate(resumeId: string, template: Reac
   return { pdf: await downloadPdf(resumeId) };
 }
 
+export async function setReactiveResumeSummary(resumeId: string, summary: string): Promise<{ pdf: ArrayBuffer }> {
+  const escaped = summary.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]!));
+  await jsonRequest<unknown>(`/resumes/${encodeURIComponent(resumeId)}`, { method: "PATCH", body: JSON.stringify({ operations: [{ op: "replace", path: "/summary/content", value: `<p>${escaped}</p>` }] }) }, 30_000);
+  return { pdf: await downloadPdf(resumeId) };
+}
+
 /** The candidate's chosen design is applied before export, so every tailored CV looks the same. */
 async function exportTailored(applicationId: string, resumeId: string, name: string | undefined, template?: ReactiveResumeTemplate): Promise<TailoredReactiveResume> {
   let content = await tailoredContent(resumeId);
@@ -383,17 +390,31 @@ async function exportTailored(applicationId: string, resumeId: string, name: str
   return { applicationId, resumeId, name, pdf: await downloadPdf(resumeId), content };
 }
 
-export async function createTailoredReactiveResume(baseResumeId: string, job: Job, template?: ReactiveResumeTemplate): Promise<TailoredReactiveResume> {
+export async function createTailoredReactiveResume(baseResumeId: string, job: Job, template?: ReactiveResumeTemplate, reviewed?: { content: ReactiveResumeData; profile: CandidateProfile; summary: string }): Promise<TailoredReactiveResume> {
   if (!isReactiveResumeConfigured()) throw new ReactiveResumeApiError("Reactive Resume + AI is not configured", 503, "PROVIDER_NOT_CONFIGURED");
   await ensureSavedAiProvider();
+  let base: Record<string, unknown> | undefined;
+  if (reviewed) {
+    const raw = parsePayload(await jsonRequest<unknown>(`/resumes/${encodeURIComponent(baseResumeId)}`, { method: "GET" }, 30_000));
+    base = reviewedResumeData(raw, reviewed.content);
+    await jsonRequest<unknown>(`/resumes/${encodeURIComponent(baseResumeId)}`, { method: "PATCH", body: JSON.stringify({ operations: [{ op: "replace", path: "/basics", value: base.basics }, { op: "replace", path: "/sections", value: base.sections }] }) }, 30_000);
+  }
   const existing = await existingTailoredApplication(baseResumeId, job);
-  if (existing) return exportTailored(existing.applicationId, existing.resumeId, undefined, template);
+  const finish = async (applicationId: string, resumeId: string, name?: string) => {
+    if (reviewed && base) {
+      const raw = parsePayload(await jsonRequest<unknown>(`/resumes/${encodeURIComponent(resumeId)}`, { method: "GET" }, 30_000));
+      const grounded = tailoredResumeData(base, raw, reviewed.profile, job, reviewed.summary);
+      await jsonRequest<unknown>(`/resumes/${encodeURIComponent(resumeId)}`, { method: "PATCH", body: JSON.stringify({ operations: ["basics", "sections", "summary", "metadata", ...(grounded.customSections ? ["customSections"] : [])].map((key) => ({ op: "replace", path: `/${key}`, value: grounded[key] })) }) }, 30_000);
+    }
+    return exportTailored(applicationId, resumeId, name, template);
+  };
+  if (existing) return finish(existing.applicationId, existing.resumeId);
   const applicationPayload = await jsonRequest<unknown>("/applications", { method: "POST", body: JSON.stringify({ company: job.company.replace(/\s+\(fictional\)$/i, ""), role: job.title, location: job.locationText, source: job.providerName, sourceUrl: job.originalUrl || undefined, jobDescription: job.description.slice(0, 20_000), resumeId: baseResumeId, tags: ["NextJOB"] }) }, 30_000);
   const applicationId = responseId(applicationPayload, "application");
   const tailoredPayload = await jsonRequest<{ resumeId?: string; name?: string }>(`/applications/${encodeURIComponent(applicationId)}/ai/tailor-resume`, { method: "POST" }, 90_000);
   const resumeId = cleanText(tailoredPayload?.resumeId, 160);
   if (!resumeId) throw new ReactiveResumeApiError("Reactive Resume did not return a tailored résumé", 502, "MISSING_TAILORED_RESUME");
-  return exportTailored(applicationId, resumeId, cleanText(tailoredPayload.name, 240), template);
+  return finish(applicationId, resumeId, cleanText(tailoredPayload.name, 240));
 }
 
 export const reactiveResumeInternals = { bytesToBase64, cleanRichText, supportedAiProviders };

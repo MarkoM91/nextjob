@@ -7,12 +7,13 @@ const skillAliases: Record<string, string[]> = {
   "process improvement": ["continuous improvement", "service improvement", "operational excellence"],
   "team training": ["coaching", "enablement", "learning design"],
   "data analysis": ["reporting", "analytics", "customer insights"],
-  "it support": ["help desk", "service desk", "desktop support", "technical support", "workplace support"],
+  "it support": ["help desk", "helpdesk", "service desk", "desktop support", "technical support", "workplace support", "supporto it", "supporto informatico", "assistenza informatica"],
   "microsoft 365": ["office 365", "m365"],
   "active directory": ["azure active directory", "microsoft entra", "entra id"],
   networking: ["network support", "tcp ip", "dns", "dhcp", "vpn"],
-  "hardware troubleshooting": ["device troubleshooting", "desktop troubleshooting", "computer repair"],
+  "hardware troubleshooting": ["device troubleshooting", "desktop troubleshooting", "computer repair", "troubleshooting hardware", "manutenzione pc", "risoluzione problemi hardware"],
   "software troubleshooting": ["application support", "desktop support", "windows support"],
+  english: ["inglese"], italian: ["italiano"], german: ["tedesco", "deutsch"], french: ["francese"], spanish: ["spagnolo", "espanol"],
 };
 
 export const MATCH_WEIGHTS = {
@@ -42,10 +43,12 @@ export function normalizeSalary(min: number, max: number, currency: string, peri
 function equivalentSkill(candidateSkill: string, requirement: string): boolean {
   const a = normalizeText(candidateSkill);
   const b = normalizeText(requirement);
-  if (a === b || a.includes(b) || b.includes(a)) return true;
+  if (!a || !b) return false;
+  if (a === b || ` ${a} `.includes(` ${b} `) || ` ${b} `.includes(` ${a} `)) return true;
   return Object.entries(skillAliases).some(([root, aliases]) => {
     const group = [root, ...aliases].map(normalizeText);
-    return group.includes(a) && group.includes(b);
+    const contains = (text: string) => group.some((term) => ` ${text} `.includes(` ${term} `));
+    return contains(a) && contains(b);
   });
 }
 
@@ -73,7 +76,9 @@ const VAGUE_CITY = /^(?:|italia|italy|europe|eu|remote|remoto|location not state
 
 function jobCity(job: Job): string {
   const city = normalizeText(job.city || job.locationText.split(/[,;·]/)[0] || "").replace(CITY_PREFIX, "");
-  const resolved = CITY_ALIASES[city] ?? city;
+  // A neighbourhood or province suffix must not split a city's copies across feeds.
+  const cityToken = Object.keys(CITY_ALIASES).concat(Object.values(CITY_ALIASES)).find((name) => ` ${city} `.includes(` ${name} `));
+  const resolved = CITY_ALIASES[cityToken ?? city] ?? cityToken ?? city;
   return VAGUE_CITY.test(resolved) ? "" : resolved;
 }
 
@@ -149,7 +154,7 @@ export function scoreJob(profile: CandidateProfile, job: Job, now = new Date()):
   const missingRequired = job.requiredSkills.filter((skill) => !matchedSkills.includes(skill));
   const preferredMatched = job.preferredSkills.filter((required) => profile.skills.some((skill) => equivalentSkill(skill, required)));
   const authorizationMismatch = Boolean(job.workAuthorization && !profile.workAuthorizations.includes(job.workAuthorization));
-  const languageMismatch = job.languages.some((language) => language !== "English" && !profile.languages.some((known) => equivalentSkill(known, language)));
+  const languageMismatch = job.languages.some((language) => !profile.languages.some((known) => equivalentSkill(known, language)));
   const locationFit = profile.preferences.countries.length === 0 || job.workplace === "Remote" || profile.preferences.countries.includes(job.country) || profile.preferences.relocation;
   const eligible = job.active && !authorizationMismatch && !languageMismatch && locationFit;
 
@@ -178,14 +183,28 @@ export function scoreJob(profile: CandidateProfile, job: Job, now = new Date()):
   let score = Object.values(breakdown).reduce((sum, value) => sum + value, 0);
   if (!eligible) score = Math.min(score, 38);
   if (!job.requiredSkills.length) score = Math.min(score, 70);
+  const reviewNotes: string[] = [];
+  const listingText = `${job.title}\n${job.description}`;
+  const incomplete = job.description.trim().length < 300 || /(?:…|\.\.\.)\s*$/.test(job.description);
+  const limited = job.requiredSkills.length < 3 || incomplete;
+  if (incomplete) reviewNotes.push("The feed contains a short or incomplete description. Check the original listing for full requirements.");
+  else if (job.requiredSkills.length < 3) reviewNotes.push("Few requirements could be identified. This is a preliminary fit, not a complete assessment.");
+  const mentionedLanguages: Array<[string, RegExp]> = [["German", /\b(?:german|tedesco|deutsch)\b/i], ["French", /\b(?:french|francese)\b/i], ["Spanish", /\b(?:spanish|spagnolo|español)\b/i]];
+  for (const [language, pattern] of mentionedLanguages) {
+    if (pattern.test(listingText) && !profile.languages.some((known) => equivalentSkill(known, language))) reviewNotes.push(`${language} is mentioned in the listing and is not in your profile. Check the required level.`);
+  }
+  if (/categorie?\s+protett[aei]|categoria\s+protetta|l\.?\s*68\s*\/\s*99|legge\s+68/i.test(listingText)) reviewNotes.push("This listing has a protected-category eligibility requirement. Check it with the employer; your eligibility has not been assessed.");
+  if (profile.preferences.visaSponsorshipRequired && job.visaSponsorship !== true) reviewNotes.push("Visa sponsorship is not confirmed in this listing. Check with the employer before applying.");
+  if (limited) score = Math.min(score, 71);
+  else if (reviewNotes.length || job.requirements.some((item) => item.mandatory && item.confidence < 0.9)) score = Math.min(score, 84);
   const gaps = [...missingRequired, ...job.preferredSkills.filter((skill) => !preferredMatched.includes(skill))].slice(0, 3);
   const band = bandFor(score, eligible);
   const explanation = !eligible
     ? `Not eligible because ${authorizationMismatch ? `work authorization for ${job.workAuthorization} is not confirmed` : languageMismatch ? "a mandatory language is not confirmed" : !job.active ? "the vacancy has expired" : "the location is incompatible with your preferences"}.`
     : job.requiredSkills.length === 0
       ? "Ranked on title, seniority, and location fit because the employer listing does not state requirements NextJOB can verify. Review the original description before applying."
-      : `${band.replace(" match", "")} because you meet ${matchedSkills.length} of ${job.requiredSkills.length} principal requirements${matchedSkills.length ? `, including ${matchedSkills.slice(0, 3).join(", ")}` : ""}.${gaps.length ? ` ${gaps[0]} is not confirmed in your profile.` : " No material gaps were found."}`;
-  return { job, score, band, eligible, explanation, matchedSkills, gaps, breakdown };
+      : `${matchedSkills.length} of ${job.requiredSkills.length} identified skills found in your CV${matchedSkills.length ? `: ${matchedSkills.slice(0, 3).join(", ")}` : ""}.${gaps.length ? ` Check ${gaps[0]}; it is not confirmed in your profile.` : " Review the full requirements before applying."}`;
+  return { job, score, band, eligible, explanation, matchedSkills, gaps, breakdown, reviewNotes, evidenceCoverage: limited ? "limited" : reviewNotes.length ? "partial" : "detailed" };
 }
 
 export const DEFAULT_MAX_JOB_AGE_DAYS = 30;

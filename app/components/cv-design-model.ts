@@ -32,7 +32,7 @@ export function buildCvModel(input: CvDesignInput): Model {
   const projects = resume?.sections?.projects?.items ?? [];
   if (projects.length) extras.push({ title: "Projects", entries: projects.map((item) => ({ heading: item.name ?? "", meta: item.period ?? "", lines: lines(item.description) })) });
   const skillItems = resume?.sections?.skills?.items ?? [];
-  const skills: SkillGroup[] = skillItems.length ? skillItems.map((item) => ({ name: item.name ?? "", keywords: item.keywords ?? [] })).filter((group) => group.name) : [{ name: "Skills", keywords: profile.skills }];
+  const skills: SkillGroup[] = skillItems.length ? skillItems.map((item) => ({ name: item.name ?? "", keywords: [item.proficiency, ...(item.keywords ?? [])].filter((value): value is string => Boolean(value)) })).filter((group) => group.name) : [{ name: "Skills", keywords: profile.skills }];
   const languages = (resume?.sections?.languages?.items ?? []).map((item) => [item.language, item.fluency].filter(Boolean).join(" · ")).filter(Boolean);
   return {
     name: resume?.basics?.name || profile.fullName,

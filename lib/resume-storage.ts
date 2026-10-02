@@ -6,6 +6,7 @@ export type StoredResumeProfile = {
   externalResumeId: string;
   parsedAt: string;
   verifiedAt?: string;
+  updatedAt?: string;
   /** Reactive Resume design the candidate picked; applied to every tailored CV. */
   preferredTemplate?: string;
   content: ReactiveResumeData;
@@ -16,6 +17,7 @@ export type StoredResumeProfile = {
 export type StoredTailoredApplication = {
   jobId: string;
   generatedAt: string;
+  sourceRevision?: string;
   tone: string;
   /** Who produced the CV: Reactive Resume + AI, or the deterministic template. */
   resumeProvider: "reactive-resume" | "nextjob-template";
@@ -31,6 +33,10 @@ export type StoredTailoredApplication = {
   application: GeneratedApplication;
   warnings: string[];
 };
+
+export function applicationNeedsRefresh(pkg: Pick<StoredTailoredApplication, "generatedAt" | "sourceRevision">, resume: StoredResumeProfile | null): boolean {
+  return Boolean(resume && (!resume.verifiedAt || (resume.updatedAt && pkg.sourceRevision !== resume.updatedAt) || resume.parsedAt > pkg.generatedAt));
+}
 
 export function safeOwnerId(value?: string | null): string {
   return (value || "demo-user").replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 120);

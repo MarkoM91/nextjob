@@ -62,7 +62,7 @@ test("groups duplicate vacancies and prefers an employer ATS source", () => {
 });
 
 test("scoring uses hard eligibility and transparent match bands", () => {
-  const good = scoreJob(candidate, jobs[0]);
+  const good = scoreJob(candidate, { ...jobs[0], description: jobs[0].description.repeat(4) });
   const unauthorized = scoreJob(candidate, jobs.find((job) => job.workAuthorization === "United States")!);
   assert.ok(good.score >= 72);
   assert.ok(["Excellent match", "Strong match"].includes(good.band));
@@ -70,6 +70,29 @@ test("scoring uses hard eligibility and transparent match bands", () => {
   assert.equal(unauthorized.band, "Not eligible");
   assert.match(unauthorized.explanation, /work authorization/i);
   assert.ok(Object.keys(good.breakdown).includes("requiredSkills"));
+});
+
+test("short listings cannot promise a perfect fit and flag requirements that need review", () => {
+  const profile = { ...candidate, skills: ["Supporto informatico e IT support", "Troubleshooting hardware"], languages: ["Italiano", "Inglese B2"] };
+  const posting = { ...jobs[0], requiredSkills: ["IT Support", "Hardware troubleshooting"], languages: [], description: "Help desk con Spanish. Categorie protette L. 68/99…" };
+  const result = scoreJob(profile, posting);
+  assert.equal(result.matchedSkills.length, 2);
+  assert.ok(result.score <= 71);
+  assert.equal(result.evidenceCoverage, "limited");
+  assert.ok(result.reviewNotes?.some((note) => note.includes("Spanish")));
+  assert.ok(result.reviewNotes?.some((note) => note.includes("protected-category")));
+  assert.doesNotMatch(result.explanation, /No material gaps|perfect|100/i);
+});
+
+test("long provider ids remain distinct and city aliases deduplicate a vacancy", () => {
+  const prefix = "Il Gabbiano cooperativa sociale operatore help desk con esperienza pluriennale ";
+  const milan = liveJobInternals.stableId("careerjet-it", prefix + "Milano");
+  const varese = liveJobInternals.stableId("careerjet-it", prefix + "Varese");
+  assert.notEqual(milan, varese);
+  assert.equal(milan, liveJobInternals.stableId("careerjet-it", prefix + "Milano"));
+  assert.ok(milan.length <= 80);
+  const base = { ...jobs[0], company: "NTWK", title: "IT Help Desk", city: "Milano", locationText: "Milano" };
+  assert.equal(deduplicateJobs([base, { ...base, id: "other-source", city: "Lanza, Milano", locationText: "Lanza, Milano" }]).length, 1);
 });
 
 test("stale vacancies are withheld and undated postings are kept", () => {

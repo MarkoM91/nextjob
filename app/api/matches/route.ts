@@ -49,6 +49,8 @@ export async function GET(request: Request) {
     return Response.json({ matches: [], nextCursor: null, facets: null, filters, estimateLabel: "NextJOB match estimate", sourceMode: "profile-required", fictional: false, profileRequired: true, profileSource: "missing", refreshedAt: new Date().toISOString(), providerFailures: [], sourceCounts: {} }, { headers: { "cache-control": "private, no-store" } });
   }
   const profile = storedResume.profile;
+  if (!parsed.data.workplace && profile.preferences.workplace.length === 1) filters = { ...filters, workplace: profile.preferences.workplace[0] };
+  if (!parsed.data.minSalary) filters = { ...filters, minSalary: profile.preferences.minimumAnnualSalaryEur };
   // Start from the verified CV city unless the candidate deliberately widens the
   // search or supplies another city. Never substitute a sample location.
   const areaText = parsed.data.area || filters.location;
@@ -83,6 +85,7 @@ export async function GET(request: Request) {
   const searchProfile = regional || parsed.data.country ? { ...profile, preferences: { ...profile.preferences, countries: [] } } : profile;
   const geographicJobs = [...liveJobs, ...imported].filter((job) => parsed.data.country ? job.countryCode === parsed.data.country : isEuropeanJob(job));
   const relevant = rankJobs(searchProfile, geographicJobs, parsed.data.includeIneligible === "true")
+    .filter((match) => (parsed.data.workplace || profile.preferences.workplace.includes(match.job.workplace)) && (!profile.preferences.visaSponsorshipRequired || match.job.visaSponsorship !== false))
     // A job the candidate added is always theirs to see; for the rest an explicit search outranks the occupation heuristic.
     .filter((match) => match.job.providerId === IMPORT_PROVIDER_ID || (match.score >= 45 && (search ? matchesSearchWords(match.job, search) && (isRelevantRoleTitle(match.job.title, profile) || matchesSearchWords({ ...match.job, description: "", requiredSkills: [] }, search)) : isRelevantRoleTitle(match.job.title, profile))))
     .map((match) => near ? { ...match, distanceKm: jobDistanceKm(match.job, near) } : match);

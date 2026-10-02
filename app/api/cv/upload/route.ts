@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { ensureGuestUser } from "../../../auth";
-import { resumeProfileKey, safeOwnerId, type StoredResumeProfile } from "../../../../lib/resume-storage";
+import { readStoredResume, resumeProfileKey, safeOwnerId, type StoredResumeProfile } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { candidateFromReactiveResume, parseAndImportReactiveResume, reactiveResumeConfiguration, ReactiveResumeApiError } from "../../../../lib/reactive-resume";
 
@@ -46,7 +46,8 @@ export async function POST(request: Request) {
     const imported = await parseAndImportReactiveResume(bytes, file.name, file.type);
     const profile = candidateFromReactiveResume(imported.content, ownerId);
     if (!profile.facts.length) throw new ReactiveResumeApiError("The CV did not contain enough structured information to review", 422, "EMPTY_PROFILE");
-    const stored: StoredResumeProfile = { provider: "reactive-resume", externalResumeId: imported.resumeId, parsedAt: new Date().toISOString(), content: imported.content, profile };
+    const previous = await readStoredResume(storage, ownerId);
+    const stored: StoredResumeProfile = { provider: "reactive-resume", externalResumeId: imported.resumeId, parsedAt: new Date().toISOString(), preferredTemplate: previous?.preferredTemplate, content: imported.content, profile };
     await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "reactive-resume", externalResumeId: imported.resumeId } });
     const headers = new Headers({ "cache-control": "private, no-store" });
     if (setCookie) headers.set("set-cookie", setCookie);

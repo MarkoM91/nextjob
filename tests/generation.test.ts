@@ -159,3 +159,65 @@ test("the AI writer only chooses verified bullets, never sees contact details, a
     for (const [key, value] of Object.entries(saved)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
   }
 });
+
+
+test("reviewed facts carry through to tailoring without invented levels or career history", async () => {
+  const { reviewedResumeData, tailoredResumeData } = await import("../lib/cv-tailoring.ts");
+  const { applyProfileUpdate, profileUpdateSchema, reviewFields } = await import("../lib/profile-review.ts");
+  const { applicationNeedsRefresh } = await import("../lib/resume-storage.ts");
+  const profile = structuredClone(careerChanger);
+  const content = { basics: { name: profile.fullName }, sections: { experience: { items: profile.experiences.map(item => ({ id: item.id, company: item.company, position: item.role, period: item.startDate + " - " + (item.endDate || "Present"), description: item.bullets.map(b => b.text).join("\n") })) }, skills: { items: [{ id: "skill-1", name: "PowerShell", proficiency: "Basic" }] }, languages: { items: [{ id: "lang-1", language: "English", fluency: "B2" }] } } };
+  const stored = { provider: "reactive-resume" as const, externalResumeId: "base", parsedAt: "2026-01-01", verifiedAt: "2026-01-02", content, profile };
+  const corrected = { ...reviewFields(profile), fullName: "Corrected Name", experiences: profile.experiences.map(item => ({ ...item, company: item.id === "exp-re" ? "Corrected Company" : item.company })) };
+  const update = profileUpdateSchema.parse({ profile: corrected, confirmAll: true });
+  const saved = applyProfileUpdate(stored, update);
+  assert.equal(saved.profile.fullName, "Corrected Name");
+  assert.ok(saved.verifiedAt && saved.updatedAt);
+  assert.equal(saved.profile.id, profile.id);
+  assert.equal(saved.content.sections?.skills?.items?.[0].proficiency, "Basic");
+  assert.throws(() => profileUpdateSchema.parse({ profile: { ...corrected, id: "other-owner" } }));
+  const raw = { ...content, sections: { ...content.sections, education: { items: [{ school: "Verified School" }] } }, metadata: { template: "onyx", layout: { pages: [{ main: ["summary", "education", "experience"], sidebar: ["skills"] }] } } };
+  const reviewed = reviewedResumeData(raw, saved.content);
+  const tailored = tailoredResumeData(reviewed, { ...raw, basics: { name: "Invented Name" }, sections: { experience: { items: [{ company: "Invented Employer" }] } } }, saved.profile, realEstatePosting, "Verified summary");
+  assert.equal(tailored.basics.name, "Corrected Name");
+  assert.equal(tailored.sections.experience.items[0].company, "Corrected Company");
+  assert.equal(tailored.sections.education.items[0].school, "Verified School");
+  assert.equal(tailored.sections.skills.items[0].proficiency, "Basic");
+  assert.equal(tailored.sections.skills.items[0].level, 0);
+  assert.equal(tailored.sections.languages.items[0].fluency, "B2");
+  assert.deepEqual(tailored.metadata.layout.pages[0].main, ["summary", "experience", "education"]);
+  assert.equal(tailored.metadata.template, "onyx");
+  assert.equal(applicationNeedsRefresh({ generatedAt: "2026-01-03", sourceRevision: stored.parsedAt }, saved), true);
+  assert.equal(applicationNeedsRefresh({ generatedAt: "2026-01-03", sourceRevision: saved.updatedAt }, saved), false);
+});
+
+
+test("the provider export uses corrected facts and keeps the selected design", async () => {
+  const originalFetch = globalThis.fetch;
+  const names = ["REACTIVE_RESUME_API_KEY", "AI_PROVIDER", "AI_PROVIDER_API_KEY", "AI_MODEL"];
+  const settings = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  process.env.REACTIVE_RESUME_API_KEY = "unit-resume-key"; process.env.AI_PROVIDER = "openai"; process.env.AI_PROVIDER_API_KEY = "unit-ai-key"; process.env.AI_MODEL = "unit-model";
+  let base = { basics: { name: "Original" }, summary: {}, sections: { experience: { items: careerChanger.experiences.map(item => ({ id: item.id, company: item.company, position: item.role, period: item.startDate, description: item.bullets.map(b => b.text).join("\n") })) }, skills: { items: [] }, languages: { items: [] }, education: { items: [{ school: "Verified school" }] } }, metadata: { template: "onyx", layout: { pages: [{ main: ["education", "experience"], sidebar: [] }] } } };
+  let tailored = { ...structuredClone(base), basics: { name: "Invented" }, sections: { experience: { items: [{ company: "Invented" }] } } };
+  const apply = <T extends object>(data: T, init?: RequestInit): T => { const result = structuredClone(data) as T & Record<string, unknown>; for (const operation of JSON.parse(String(init?.body)).operations) (result as Record<string, unknown>)[operation.path.slice(1)] = operation.value; return result; };
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    if (url.endsWith("/ai-providers")) return Response.json([{ id: "ai", label: "NextJOB", provider: "openai", model: "unit-model", enabled: true, tested: true }]);
+    if (url.endsWith("/applications")) return Response.json([{ id: "application", company: realEstatePosting.company, role: realEstatePosting.title, resumeId: "tailored", tags: ["NextJOB"] }]);
+    if (url.endsWith("/resumes/base")) { if (init?.method === "PATCH") base = apply(base, init); return Response.json({ data: base }); }
+    if (url.endsWith("/resumes/tailored")) { if (init?.method === "PATCH") tailored = apply(tailored, init); return Response.json({ data: tailored }); }
+    if (url.endsWith("/resumes/tailored/pdf?target=resume")) return new Response(new TextEncoder().encode("%PDF-" + tailored.basics.name), { headers: { "content-type": "application/pdf" } });
+    throw new Error("Unexpected provider request: " + url);
+  };
+  try {
+    const content = { ...structuredClone(base), basics: { name: "Corrected" } };
+    const result = await createTailoredReactiveResume("base", realEstatePosting, "onyx", { content, profile: careerChanger, summary: "A factual summary" });
+    assert.ok(result.content);
+    assert.equal(base.basics.name, "Corrected");
+    assert.equal(result.content.basics?.name, "Corrected");
+    assert.equal(result.content.sections?.experience?.items?.[0].company, "Linea Casa");
+    assert.equal(result.content.sections?.education?.items?.[0].school, "Verified school");
+    assert.equal(result.content.metadata?.template, "onyx");
+    assert.equal(new TextDecoder().decode(result.pdf), "%PDF-Corrected");
+  } finally { globalThis.fetch = originalFetch; for (const [name, value] of Object.entries(settings)) { if (value === undefined) delete process.env[name]; else process.env[name] = value; } }
+});
