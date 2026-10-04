@@ -28,11 +28,11 @@ function ChipSelect({ icon: Icon, label, value, display, options, onChange }: { 
 
 const euro = new Intl.NumberFormat("en", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
-export function MatchesScreen({ savedOnly = false, appliedJobId, applicationState }: { savedOnly?: boolean; appliedJobId?: string; applicationState?: string }) {
+export function MatchesScreen({ savedOnly = false, appliedJobId, applicationState, initialLocation = "" }: { savedOnly?: boolean; appliedJobId?: string; applicationState?: string; initialLocation?: string }) {
   const targetCountries = useTargetCountries();
-  const [filters, setFilters] = useState<JobFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<JobFilters>(() => ({ ...EMPTY_FILTERS, location: savedOnly ? "" : initialLocation }));
   const [geoMode, setGeoMode] = useState<"regional" | "nearby" | "anywhere">(savedOnly ? "anywhere" : "regional");
-  const locationEdited = useRef(false);
+  const locationEdited = useRef(Boolean(initialLocation) && !savedOnly);
   const [countryCode, setCountryCode] = useState(savedOnly ? "ALL" : "EUROPE");
   const [tab, setTab] = useState<Tab>(savedOnly ? "Saved" : "Best matches");
   const savedState = useSavedJobs();
@@ -42,7 +42,7 @@ export function MatchesScreen({ savedOnly = false, appliedJobId, applicationStat
   const countryParam = countryCode.length === 2 ? countryCode : "";
   const update = (patch: Partial<JobFilters>) => setFilters((current) => ({ ...current, ...patch }));
   // Typed text reaches the providers after a pause; chip filters are sent immediately.
-  const [typed, setTyped] = useState({ q: "", location: "" });
+  const [typed, setTyped] = useState({ q: "", location: savedOnly ? "" : initialLocation });
   useEffect(() => {
     const timer = window.setTimeout(() => setTyped({ q: filters.q.trim(), location: filters.location.trim() }), 400);
     return () => window.clearTimeout(timer);

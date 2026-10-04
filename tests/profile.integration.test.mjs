@@ -24,9 +24,9 @@ const request = (path, body, identity = owner) => worker.fetch(new Request(`http
 
 test("profile corrections and job preferences survive a fresh request without changing ownership", async () => {
   const corrected = { ...reviewFields(candidate), location: "Milano", fullName: "Reviewed Candidate", skills: [...candidate.skills, "PowerShell (basic)"] };
-  assert.equal((await request("/api/cv/profile", { profile: corrected, confirmAll: true })).status, 200);
   const preferences = { ...candidate.preferences, targetTitles: ["IT Help Desk"], workplace: ["Hybrid"], countries: ["Italy", "Germany"], minimumAnnualSalaryEur: 28000 };
-  assert.equal((await request("/api/cv/profile", { preferences })).status, 200);
+  // The quick review confirms corrections and search choices in one atomic action.
+  assert.equal((await request("/api/cv/profile", { profile: corrected, confirmAll: true, preferences })).status, 200);
   const persisted = await (await request("/api/cv/profile")).json();
   assert.equal(persisted.profile.fullName, corrected.fullName);
   assert.equal(persisted.profile.location, "Milano");
@@ -38,6 +38,15 @@ test("profile corrections and job preferences survive a fresh request without ch
   assert.equal(persisted.profile.id, candidate.id);
   assert.equal((await request("/api/cv/profile", { profile: { ...corrected, id: "other" } })).status, 400);
   assert.equal((await request("/api/cv/profile", { profile: corrected, confirmAll: true }, other)).status, 409);
+  const before = JSON.parse(store.get(profileKey));
+  before.preferredTemplate = "nextjob:professional:a8c9c4";
+  store.set(profileKey, JSON.stringify(before));
+  assert.equal((await request("/api/cv/profile", { confirmAll: true, preferences })).status, 200);
+  const quickReview = JSON.parse(store.get(profileKey));
+  assert.equal(quickReview.updatedAt, before.updatedAt, "unchanged CV must not invalidate personalized documents");
+  assert.equal(quickReview.preferredTemplate, before.preferredTemplate);
+  assert.deepEqual(quickReview.content, before.content);
+  assert.ok(quickReview.profile.facts.every((fact) => fact.verifiedByUser));
 });
 
 test("saved jobs round-trip, remain visible outside the feed, and are isolated by owner", async () => {

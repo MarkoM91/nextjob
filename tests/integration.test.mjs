@@ -39,7 +39,7 @@ test("HTML and version checks identify the same deployment and cannot reuse stal
 });
 
 test("main onboarding pages render in a complete walkthrough", async () => {
-  for (const [path, text] of [["/upload", "Upload your current CV"], ["/profile-review", "Confirm your experience"], ["/preferences", "What should NextJOB look for?"], ["/dashboard", "Checking current employer listings"]]) {
+  for (const [path, text] of [["/upload", "Upload your current CV"], ["/profile-review", "Ready to find your next job?"], ["/preferences", "Your job search"], ["/dashboard", "Checking current employer listings"]]) {
     const response = await request(path);
     assert.equal(response.status, 200, path);
     assert.match(await response.text(), new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), path);

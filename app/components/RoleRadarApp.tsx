@@ -12,7 +12,7 @@ import { DocumentsScreen, Tracker } from "./tracker";
 import { Admin, Notifications, StaticScreen } from "./misc";
 import { CheckoutScreen } from "./checkout";
 
-export function NextJobApp({ screen, jobId, appliedJobId, applicationState, generationProvider, format, payment, user, demoMode = true }: Props) {
+export function NextJobApp({ screen, jobId, appliedJobId, applicationState, generationProvider, format, payment, searchLocation, user, demoMode = true }: Props) {
   if (screen === "landing") return <Landing />;
   if (screen === "checkout") return <AppShell screen={screen} user={user} demoMode={demoMode}><CheckoutScreen jobId={jobId} format={format} payment={payment} /></AppShell>;
   if (screen === "upload") return <UploadScreen />;
@@ -20,7 +20,7 @@ export function NextJobApp({ screen, jobId, appliedJobId, applicationState, gene
   if (screen === "preferences") return <UploadScreen stage="preferences" />;
   let content: React.ReactNode;
   if (screen === "dashboard") content = <Dashboard />;
-  else if (screen === "matches") content = <MatchesScreen appliedJobId={applicationState ? jobId : appliedJobId} applicationState={applicationState ?? (appliedJobId ? "reported" : undefined)} />;
+  else if (screen === "matches") content = <MatchesScreen initialLocation={searchLocation} appliedJobId={applicationState ? jobId : appliedJobId} applicationState={applicationState ?? (appliedJobId ? "reported" : undefined)} />;
   else if (screen === "saved") content = <MatchesScreen savedOnly />;
   else if (screen === "add-job") content = <AddJob />;
   else if (screen === "job") content = <JobDetail jobId={jobId} />;

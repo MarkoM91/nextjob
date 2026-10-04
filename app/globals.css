@@ -1191,6 +1191,47 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
 }
 
 .more-job-filters { margin: 12px 0 18px; font-size: 14px; }
+.quick-review { width: min(720px, calc(100% - 48px)); padding: 12px 0 40px; }
+.quick-review-heading h1 { font-size: clamp(28px, 3vw, 36px); line-height: 1.2; margin: 0 0 10px; letter-spacing: -.035em; }
+.quick-review .onboarding-lead { font-size: 16px; margin-bottom: 22px; }
+.cv-summary-card { background: white; border: 1px solid var(--line); border-left: 4px solid var(--pine, #143d35); border-radius: 8px; padding: 22px 24px 0; }
+.cv-summary-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.cv-summary-heading .eyebrow { margin: 0; font-size: 12px; }
+.cv-summary-heading a { font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.cv-summary-card h2 { font-size: 24px; margin: 12px 0 5px; line-height: 1.25; overflow-wrap: anywhere; }
+.cv-summary-role { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.5; }
+.cv-summary-role span { color: var(--ink-soft); font-weight: 400; }
+.cv-summary-contact { margin: 5px 0 12px; color: var(--ink-soft); font-size: 14px; overflow-wrap: anywhere; }
+.cv-summary-counts { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--ink-soft); line-height: 1.5; margin-bottom: 16px; }
+.cv-details-edit { border-top: 1px solid var(--line); }
+.cv-details-edit > summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 14px 0; }
+.quick-review h3 { font-size: 18px; margin: 18px 0 8px; }
+.quick-review .review-section p, .quick-review .search-options p { font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
+.quick-search { margin-top: 24px; }
+.quick-search h2 { font-size: 20px; margin: 0 0 4px; }
+.quick-search .profile-fields { gap: 16px; }
+.quick-search .profile-fields label { font-size: 14px; margin: 8px 0; }
+.quick-search input { font-size: 16px; background: white; }
+.search-start-note { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 5px 0 14px; }
+.search-options { padding: 0; background: transparent; border: none; margin: 0; }
+.search-options > summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; }
+.search-options > summary span { font-weight: 400; color: var(--ink-soft); margin-left: 8px; }
+.search-options[open] { padding-bottom: 18px; }
+.quick-review-action { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 14px; }
+.quick-review-action > p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0 0 14px; }
+.quick-review-action .button { width: 100%; min-height: 48px; font-size: 16px; }
+.quick-review-action .quick-review-price { text-align: center; margin: 12px 0 0; }
+.quick-review summary:focus-visible { outline: 2px solid var(--pine, #143d35); outline-offset: 4px; border-radius: 2px; }
+@media (max-width: 640px) {
+  .onboarding-progress { width: calc(100% - 32px); gap: 8px; }
+  .onboarding-progress span { font-size: 14px; padding: 8px 10px; }
+  .quick-review { width: calc(100% - 32px); padding-top: 0; }
+  .cv-summary-card { padding: 18px 18px 0; }
+  .cv-summary-role span { display: block; }
+  .quick-search .profile-fields { gap: 0; }
+  .search-options > summary span { display: block; margin: 5px 0 0 16px; }
+  .quick-review .country-tokens { flex-wrap: wrap; }
+}
 .more-job-filters > summary { cursor: pointer; display: list-item; width: fit-content; color: var(--ink-soft); font-weight: 600; padding: 6px 0; }
 .more-job-filters[open] { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .more-job-filters .filter-chips { margin-top: 12px; }

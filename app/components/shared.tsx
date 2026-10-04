@@ -11,7 +11,7 @@ import { usableSalary } from "../../lib/salary-quality";
 import type { Job, MatchResult } from "../../lib/domain";
 import { aggregatorName, employerSearchUrl, jobSourceKind, linkMayAskHumanCheck } from "../../lib/job-source";
 
-export type Props = { screen: string; jobId?: string; appliedJobId?: string; applicationState?: string; generationProvider?: string; format?: string; payment?: string; user?: SessionUser | null; demoMode?: boolean };
+export type Props = { screen: string; jobId?: string; appliedJobId?: string; applicationState?: string; generationProvider?: string; format?: string; payment?: string; searchLocation?: string; user?: SessionUser | null; demoMode?: boolean };
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 export type MatchesApiResponse = { matches: MatchResult[]; sourceMode: "live" | "unavailable" | "profile-required"; profileRequired?: boolean; providerFailures?: Array<{ providerId: string; message: string }>; sourceCounts?: Record<string, number> };
 export type ApplicationRecord = { id: string; jobId: string; status: string; verification: string; applicationDate?: string | null; updatedAt: string; title: string; company: string; location: string; sourceUrl?: string | null; providerName: string };

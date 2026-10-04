@@ -11,7 +11,7 @@ import type { CandidateProfile } from "../../lib/domain";
 import { Logo } from "./shared";
 
 export function OnboardingFrame({ step, children }: { step: number; children: React.ReactNode }) {
-  return <main className="onboarding"><header><Logo /><Link href="/help">Help</Link></header><div className="onboarding-progress"><span className={step >= 1 ? "active" : ""}>1 <em>Add CV</em></span><i /><span className={step >= 2 ? "active" : ""}>2 <em>Check profile</em></span><i /><span className={step >= 3 ? "active" : ""}>3 <em>Choose jobs</em></span></div>{children}<footer><ShieldCheck /> Private by default. You approve every application.</footer></main>;
+  return <main className="onboarding"><header><Logo /><Link href="/help">Help</Link></header><nav className="onboarding-progress" aria-label="Getting started"><span className={step >= 1 ? "active" : ""} aria-current={step === 1 ? "step" : undefined}>1 <em>Add CV</em></span><i /><span className={step >= 2 ? "active" : ""} aria-current={step >= 2 ? "step" : undefined}>2 <em>Review & find jobs</em></span></nav>{children}<footer><ShieldCheck /> Private by default. You approve every application.</footer></main>;
 }
 
 export function UploadScreen({ stage = "upload" }: { stage?: "upload" | "profile" | "preferences" }) {
