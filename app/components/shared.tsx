@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { ArrowRight, Bell, BriefcaseBusiness, CircleHelp, ExternalLink, FileText, Info, LayoutDashboard, LogOut, Radar, RefreshCw, Search, Settings, ArrowLeft } from "lucide-react";
+import { ArrowRight, Bell, BriefcaseBusiness, CircleHelp, ExternalLink, FileText, Info, LayoutDashboard, LogOut, Radar, RefreshCw, Search, Settings, ShieldCheck, ArrowLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SessionUser } from "../../lib/auth-session";
 import { candidate, jobs } from "../../lib/demo-data";
@@ -60,18 +60,19 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
 }
 
 export function AppShell({ screen, user, demoMode, children }: Props & { children: React.ReactNode }) {
-  const displayName = user?.displayName ?? candidate.fullName;
-  const isGuest = user?.provider === "guest";
+  // Hosting identity protects private documents; it is not a NextJOB signup.
+  const hasAppAccount = Boolean(user && user.provider !== "guest" && user.provider !== "chatgpt");
+  const displayName = user?.displayName ?? "Your workspace";
   const isActive = (href: string) => href === "/dashboard" ? screen === "dashboard" : href === "/matches" ? ["matches", "saved", "job", "add-job"].includes(screen) : href === "/tracker" ? ["tracker", "package", "done", "generating", "ats", "studio", "workspace", "cv-editor", "cover-letter", "application-email", "interview"].includes(screen) : ["profile", "profile-review", "preferences", "settings"].includes(screen);
   return <div className="app-frame">
     <aside className="sidebar">
       <div className="sidebar-head"><Logo /></div>
-      <nav aria-label="Product">{productNav.map((item) => <SidebarLink key={item.href} item={item} active={isActive(item.href)} />)}<p className="nav-label support-label">Account</p>{supportNav.map((item) => <SidebarLink key={item.href} item={item} active={screen === item.href.slice(1)} />)}</nav>
-      <div className="profile-card">
+      <nav aria-label="Product">{productNav.map((item) => <SidebarLink key={item.href} item={item} active={isActive(item.href)} />)}<p className="nav-label support-label">Support</p>{supportNav.map((item) => <SidebarLink key={item.href} item={item} active={screen === item.href.slice(1)} />)}</nav>
+      {hasAppAccount ? <div className="profile-card">
         <span className="avatar">{displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}</span>
-        <div><strong>{displayName.split(" ")[0]}</strong><span>{demoMode ? "Private QA profile" : isGuest ? "Guest workspace" : user?.email ?? "Guest workspace"}</span></div>
-        {user && !isGuest ? <form action="/api/auth/signout?return_to=%2F" method="post"><button type="submit" className="profile-action" title="Sign out" aria-label="Sign out"><LogOut /></button></form> : null}
-      </div>
+        <div><strong>{displayName.split(" ")[0]}</strong><span>{demoMode ? "Private QA profile" : user?.email}</span></div>
+        <form action="/api/auth/signout?return_to=%2F" method="post"><button type="submit" className="profile-action" title="Sign out" aria-label="Sign out"><LogOut /></button></form>
+      </div> : <div className="profile-card workspace-card"><span className="workspace-icon" aria-hidden><ShieldCheck /></span><div><strong>Your workspace</strong><span>CV, jobs & applications</span></div></div>}
     </aside>
     <div className="app-main">
       <header className="mobile-appbar"><Logo /><Link className="mobile-alerts" href="/notifications" aria-label="Notifications"><Bell /><i /></Link></header>

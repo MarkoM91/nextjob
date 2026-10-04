@@ -52,6 +52,24 @@ test("the obsolete simulated processing screen returns to the real upload flow",
   assert.equal(response.headers.get("location"), "http://localhost/upload");
 });
 
+test("hosting identity keeps workspace access without impersonating an app account", async () => {
+  const hostHeaders = { "oai-authenticated-user-id": "hosting-viewer", "oai-authenticated-user-email": "host-only@example.com" };
+  for (const headers of [{}, hostHeaders]) {
+    const response = await request("/dashboard", { headers });
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    const sidebar = html.match(/<aside\b[^>]*>[\s\S]*?<\/aside>/)?.[0];
+    assert.ok(sidebar);
+    assert.match(sidebar, /Your workspace/);
+    assert.match(sidebar, /Support/);
+    assert.doesNotMatch(sidebar, /host-only@example.com|Sign out|Private QA profile|>Account</);
+    assert.doesNotMatch(html, /Search overview · Marko/);
+  }
+  const session = await (await request("/api/auth/session", { headers: hostHeaders })).json();
+  assert.equal(session.user.provider, "chatgpt", "private workspace identity must remain intact");
+  assert.equal(session.user.email, hostHeaders["oai-authenticated-user-email"]);
+});
+
 test("legacy application links never claim verified submission", async () => {
   const response = await request("/matches?applied=job-01");
   assert.equal(response.status, 200);

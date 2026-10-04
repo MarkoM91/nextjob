@@ -43,7 +43,7 @@ export function StaticScreen({ screen }: { screen: string }) {
     help: ["Help centre", "A clear answer at every step.", ["Uploading and verifying your CV", "Understanding match explanations", "Editing and downloading documents", "Managing privacy and alerts"]],
     billing: ["Billing", "Simple plans, clear limits.", ["Free demo workspace", "Production subscription adapter", "No payment details collected in demo mode", "Cancel before a paid integration is activated"]],
     profile: ["Profile", "Your verified source of truth.", [`${candidate.yearsOfExperience} years of confirmed experience`, `${candidate.skills.length} verified skills`, `${candidate.languages.length} language${candidate.languages.length === 1 ? "" : "s"}`, `${experienceBullets} grounded experience bullets`]],
-    settings: ["Settings", "Control your workspace.", ["Account and security", "Language and regional formats", "Data retention", "Export or delete your account"]],
+    settings: ["Settings", "Control your workspace.", ["Workspace privacy", "Language and regional formats", "Data retention", "Your CV and application data"]],
   };
   const [title, subtitle, items] = content[screen] ?? ["Not found", "This workspace view is not available.", []];
   return <AppContent narrow><PageIntro eyebrow="NextJOB" title={title} subtitle={subtitle} /><section className="panel static-panel">{items.map((item) => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}</section></AppContent>;
