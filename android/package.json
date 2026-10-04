@@ -1,0 +1,22 @@
+{
+  "name": "nextjob-android",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "check": "node scripts/check.mjs",
+    "check:public": "node scripts/check.mjs --public"
+  },
+  "overrides": {
+    "node-forge": "1.4.0",
+    "uuid": "11.1.1",
+    "extract-zip": "2.0.1",
+    "file-type": "16.5.4"
+  },
+  "dependencies": {
+    "@bubblewrap/core": "1.25.0",
+    "@resvg/resvg-js": "2.6.2"
+  }
+}

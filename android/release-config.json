@@ -1,0 +1,10 @@
+{
+  "applicationId": "com.markom91.nextjob",
+  "applicationIdConfirmed": false,
+  "origin": "https://role-radar.markom91.chatgpt.site",
+  "startPath": "/upload?source=android",
+  "versionName": "0.1.0",
+  "versionCode": 1,
+  "playSigningSha256": [],
+  "productId": "tailored_cv_download"
+}

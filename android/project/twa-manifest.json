@@ -1,0 +1,46 @@
+{
+  "packageId": "com.markom91.nextjob",
+  "host": "role-radar.markom91.chatgpt.site",
+  "name": "NextJOB",
+  "launcherName": "NextJOB",
+  "display": "standalone",
+  "themeColor": "#123B34",
+  "themeColorDark": "#123B34",
+  "navigationColor": "#F4F5F1",
+  "navigationColorDark": "#123B34",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#F4F5F1",
+  "enableNotifications": false,
+  "startUrl": "/upload?source=android",
+  "iconUrl": "https://role-radar.markom91.chatgpt.site/icons/icon-512.png",
+  "maskableIconUrl": "https://role-radar.markom91.chatgpt.site/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 150,
+  "signingKey": {
+    "path": "../private/upload-key.jks",
+    "alias": "nextjob-upload"
+  },
+  "appVersionName": "0.1.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "minSdkVersion": 28,
+  "orientation": "default",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "displayOverride": [],
+  "appVersion": "0.1.0"
+}
