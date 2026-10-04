@@ -4,7 +4,7 @@ import { ensureGuestUser } from "../../../auth";
 import { readStoredResume, resumeProfileKey, safeOwnerId, type StoredResumeProfile } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { candidateFromReactiveResume, reactiveResumeConfiguration, ReactiveResumeApiError } from "../../../../lib/reactive-resume";
-import { CvParserError, directCvParserConfigured, parseCv } from "../../../../lib/cv-parser";
+import { CV_PARSER_VERSION, CvParserError, directCvParserConfigured, parseCv } from "../../../../lib/cv-parser";
 
 const MAX_FILE_SIZE = Number(process.env.CV_MAX_BYTES ?? 10 * 1024 * 1024);
 const allowedTypes = new Set(["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]);
@@ -47,14 +47,14 @@ export async function POST(request: Request) {
   const headers = new Headers({ "cache-control": "private, no-store" });
   if (setCookie) headers.set("set-cookie", setCookie);
   // Identical uploads preserve reviewed corrections, search choices and the selected design.
-  if (previous?.sourceHash === sourceHash) return Response.json({ status: "completed", profile: previous.profile, parsingProvider: previous.provider, reused: true, demoMode: false }, { headers });
+  if (previous?.sourceHash === sourceHash && (previous.verifiedAt || previous.parserVersion === CV_PARSER_VERSION)) return Response.json({ status: "completed", profile: previous.profile, parsingProvider: previous.provider, reused: true, demoMode: false }, { headers });
   const objectKey = `private/${ownerId}/cv/${crypto.randomUUID()}.${extension}`;
   try {
     await storage.put(objectKey, bytes, { httpMetadata: { contentType: file.type }, customMetadata: { ownerId, validation: "signature-and-type-v1" } });
     const imported = await parseCv(bytes, file.name, file.type);
     const profile = candidateFromReactiveResume(imported.content, ownerId);
     if (!profile.facts.length) throw new ReactiveResumeApiError("The CV did not contain enough structured information to review", 422, "EMPTY_PROFILE");
-    const stored: StoredResumeProfile = { provider: imported.provider, externalResumeId: imported.resumeId, sourceHash, parsedAt: new Date().toISOString(), preferredTemplate: previous?.preferredTemplate, content: imported.content, profile };
+    const stored: StoredResumeProfile = { provider: imported.provider, externalResumeId: imported.resumeId, sourceHash, parserVersion: CV_PARSER_VERSION, parsedAt: new Date().toISOString(), preferredTemplate: previous?.preferredTemplate, content: imported.content, profile };
     await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: stored.provider, externalResumeId: imported.resumeId ?? "" } });
     return Response.json({ id: crypto.randomUUID(), status: "completed", objectKey, profile, parsingProvider: stored.provider, providerConfigured: true, parsedAt: stored.parsedAt, demoMode: false }, { status: 201, headers });
   } catch (error) {

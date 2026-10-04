@@ -5,6 +5,7 @@ export type StoredResumeProfile = {
   provider: "reactive-resume" | "nextjob-parser";
   externalResumeId?: string;
   sourceHash?: string;
+  parserVersion?: string;
   parsedAt: string;
   verifiedAt?: string;
   updatedAt?: string;
