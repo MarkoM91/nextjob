@@ -266,3 +266,13 @@ test("local designs use reviewed facts without a provider and preserve an edited
   assert.equal(prepareDesignedResume(base, careerChanger, job, "My manually edited summary").summary, "My manually edited summary");
   assert.match(result.content.sections?.experience?.items?.[0].description ?? "", /Imaging/);
 });
+
+test("related development roles retain their order ahead of unrelated generic vocabulary", async () => {
+  const { prepareDesignedResume } = await import("../lib/cv-tailoring.ts");
+  const profile = structuredClone(careerChanger);
+  const bullets = [{ id: "dev-bullet", text: "Sviluppo interfacce web responsive e refactoring." }];
+  profile.experiences.splice(1, 0, { id: "front", company: "BRI", role: "Junior Front-End Developer", startDate: "2019-10", endDate: "2020-03", bullets }, { id: "web", company: "ELEVA", role: "Junior Web Developer", startDate: "2019-07", endDate: "2019-09", bullets });
+  const base = { sections: { experience: { items: profile.experiences.map(item => ({ id: item.id, company: item.company, position: item.role })) } } };
+  const result = prepareDesignedResume(base, profile, { ...jobs[0], title: "Help Desk", description: "Gestione CRM, clienti, vendita e contratti." }, "Summary");
+  assert.deepEqual(result.content.sections?.experience?.items?.map(item => item.company), ["Engineering Spa", "BRI", "ELEVA", "Linea Casa"]);
+});

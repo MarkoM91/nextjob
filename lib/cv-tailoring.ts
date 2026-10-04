@@ -50,7 +50,7 @@ export function tailoredResumeData(base: Raw, generated: Raw, profile: Candidate
   for (const bullet of evidence) rank.set(bullet.experienceId, Math.max(rank.get(bullet.experienceId) ?? 0, bullet.score));
   const experience = next.sections?.experience;
   if (experience?.items) {
-    experience.items = experience.items.map((item: Raw, index: number) => ({ item, index, rank: rank.get(item.id) ?? 0 })).sort((a: Raw, b: Raw) => b.rank - a.rank || a.index - b.index).map(({ item, rank: relevance }: Raw) => {
+    experience.items = experience.items.map((item: Raw, index: number) => ({ item, index, rank: rank.get(item.id) ?? 0, alignment: experienceRoleAlignment(profile.experiences.find(entry => entry.id === item.id)?.role ?? item.position ?? "", job.title) })).sort((a: Raw, b: Raw) => b.alignment - a.alignment || (a.alignment ? b.rank - a.rank : 0) || a.index - b.index).map(({ item }: Raw) => {
       const source = profile.experiences.find((entry) => entry.id === item.id);
       if (!source || item.roles?.length) return item;
       const bullets = evidence.filter((bullet) => bullet.experienceId === item.id);

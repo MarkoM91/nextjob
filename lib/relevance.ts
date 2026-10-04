@@ -40,7 +40,7 @@ export function experienceRoleAlignment(role: string, target: string): number {
   const overlap = specific.filter(term => roleTerms.has(term)).length;
   if (IT_SUPPORT_FAMILY.test(target)) {
     if (IT_SUPPORT_FAMILY.test(role)) return 100 + overlap * 20;
-    if (IT_DOMAIN_SIGNAL.test(role) && !COMPETING_DOMAIN.test(role)) return 40 + overlap * 10;
+    if ((IT_DOMAIN_SIGNAL.test(role) || SOFTWARE_ENGINEERING.test(role)) && !COMPETING_DOMAIN.test(role)) return 40 + overlap * 10;
     return 0;
   }
   return overlap * 40;
