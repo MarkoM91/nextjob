@@ -1,0 +1,60 @@
+name: Android validation build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, codex/android-release-setup]
+    paths:
+      - android/**
+      - .github/workflows/android.yml
+  pull_request:
+    paths:
+      - android/**
+      - .github/workflows/android.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Check installed toolchain
+        shell: bash
+        run: |
+          node --version
+          java -version
+          test -f "$ANDROID_HOME/platforms/android-36/android.jar"
+      - name: Validate generated Android source
+        run: npm run check --prefix android
+      - name: Build debug APK and unsigned release bundle
+        working-directory: android/project
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace lintDebug lintRelease assembleDebug bundleRelease
+      - name: Upload debug APK and unsigned AAB
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nextjob-android-validation
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            android/project/app/build/outputs/apk/debug/app-debug.apk
+            android/project/app/build/outputs/bundle/release/app-release.aab
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nextjob-android-lint
+          retention-days: 7
+          if-no-files-found: ignore
+          path: android/project/app/build/reports/lint-results-*

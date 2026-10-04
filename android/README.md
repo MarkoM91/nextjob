@@ -1,6 +1,6 @@
 # NextJOB for Google Play
 
-Status: Android source generated; **not published and not ready to submit**. No APK or signed AAB has been compiled. No Google developer account, signing key, payment product, or store listing has been created by this preparation.
+Status: Android source generated; **not published and not ready to submit**. An existing personal Google Play developer account is accessible, and the new-app form is prepared for NextJOB, pending the owner's declarations. No signed AAB, payment product, or submitted store listing has been created by this preparation.
 
 The package uses Google's Trusted Web Activity (TWA) architecture, generated with Bubblewrap 1.25.0. It opens the existing NextJOB experience directly on Add CV and keeps the current professional design, reviewed profile, local-first job search, and tailored CV templates. A supporting Android browser renders the app; an internet connection is required. Browser file selection and PDF handling must be verified on a real Android device.
 
@@ -44,7 +44,7 @@ The current toolchain audit still reports 12 findings (8 high, 4 moderate), prop
 
 ## Current blockers observed on 4 October 2026
 
-- Google Play Console account and developer/support identity not yet provided.
+- Existing personal Google Play Console access confirmed; app creation declarations and public support contact still pending.
 - Site owner-private; app screenshots contain personal CV data and are unsuitable for public marketing.
 - Java/Android SDK unavailable in this workspace; no Android build or device test performed.
 - Google Play product, server purchase verification and recoverable guest entitlement absent.
