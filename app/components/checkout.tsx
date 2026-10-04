@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Check, CreditCard, FileText, LockKeyhole, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { AppContent, CompanyMark, LiveJobState, PageIntro, SourceNotice, useLiveMatch } from "./shared";
@@ -17,11 +17,27 @@ export function CheckoutScreen({ jobId, format, payment }: { jobId?: string; for
   const [selectedFormat, setSelectedFormat] = useState<DownloadFormat>(() => validFormat(format));
   const [starting, setStarting] = useState(false);
   const [checkoutError, setCheckoutError] = useState(() => payment === "cancelled" ? "Payment cancelled. Your CV is still ready to preview." : payment === "not-confirmed" ? "We could not confirm that payment. If you were charged, please contact support before trying again." : "");
+  const [access, setAccess] = useState<{ jobId: string; available: boolean; purchased: boolean } | null>(null);
+  const [accessError, setAccessError] = useState("");
+  const [accessCheck, setAccessCheck] = useState(0);
+  const accessJobId = match?.job.id;
+  useEffect(() => {
+    if (!accessJobId) return;
+    const controller = new AbortController();
+    setAccess(null); setAccessError("");
+    void fetch(`/api/payments/cv-download?job=${encodeURIComponent(accessJobId)}`, { cache: "no-store", signal: controller.signal }).then(async (response) => {
+      const payload = await response.json();
+      if (!response.ok || typeof payload.available !== "boolean" || typeof payload.purchased !== "boolean") throw new Error("We couldn’t check download access. Please try again.");
+      if (!controller.signal.aborted) setAccess({ jobId: accessJobId, available: payload.available, purchased: payload.purchased });
+    }).catch((reason) => { if (!controller.signal.aborted) setAccessError(reason instanceof Error ? reason.message : "We couldn’t check download access. Please try again."); });
+    return () => controller.abort();
+  }, [accessJobId, accessCheck]);
+  const currentAccess = access?.jobId === accessJobId ? access : null;
 
   if (!match) return <LiveJobState loading={loading} error={error} />;
 
   const startCheckout = async () => {
-    if (starting) return;
+    if (starting || !currentAccess?.available) return;
     setStarting(true); setCheckoutError("");
     try {
       const response = await fetch("/api/payments/cv-download", { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ jobId: match.job.id, format: selectedFormat }) });
@@ -42,11 +58,14 @@ export function CheckoutScreen({ jobId, format, payment }: { jobId?: string; for
     <div className="checkout-layout">
       <section className="panel checkout-card">
         <div className="checkout-card-head"><span className="checkout-icon"><FileText /></span><div><p className="kicker">Download access</p><h2>Take your CV with you</h2><p>Keep the preview free. Pay once when you want the file for an application.</p></div></div>
-        <div className="checkout-price"><span>One-time download</span><strong>€1.50</strong></div>
+        <div className="checkout-price"><span>{currentAccess?.purchased ? "Download access active" : "One-time download"}</span><strong>{currentAccess?.purchased ? "Paid" : "€1.50"}</strong></div>
         <div className="checkout-format"><span>Choose a format</span><div>{formats.map((item) => <button key={item} type="button" className={selectedFormat === item ? "active" : ""} aria-pressed={selectedFormat === item} onClick={() => setSelectedFormat(item)}>{item.toUpperCase()}</button>)}</div></div>
-        <ul className="checkout-points"><li><Check /> Your verified facts and tailored design</li><li><Check /> Download immediately after payment</li><li><Check /> No account or subscription required</li></ul>
+        <ul className="checkout-points"><li><Check /> Your verified facts and tailored design</li><li><Check /> Free preview remains available</li><li><Check /> No account or subscription required</li></ul>
+        {currentAccess && !currentAccess.available && <p className="form-error" role="status">Downloads are temporarily unavailable. Your CV is saved and you can still use the free preview.</p>}
+        {accessError && <p className="form-error" role="alert">{accessError}</p>}
         {checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}
-        <button className="button full" type="button" disabled={starting} onClick={() => void startCheckout()}><CreditCard />{starting ? "Opening secure checkout…" : "Pay €1.50 and download"}</button>
+        <button className="button full" type="button" disabled={starting || !currentAccess?.available} onClick={() => void startCheckout()}><CreditCard />{starting ? currentAccess?.purchased ? "Opening your download…" : "Opening secure checkout…" : currentAccess?.purchased ? "Download your CV" : currentAccess?.available ? "Pay €1.50 and download" : currentAccess || accessError ? "Downloads unavailable" : "Checking download access…"}</button>
+        {(accessError || currentAccess && !currentAccess.available) && <button className="secondary-action" type="button" onClick={() => setAccessCheck((value) => value + 1)}>Check again</button>}
         <p className="checkout-fineprint"><LockKeyhole /> Includes all three formats for this role and repeat downloads for 7 days in this browser. Keep your browser cookies to retain access.</p>
       </section>
       <aside className="checkout-summary"><div className="checkout-job"><CompanyMark name={match.job.company} large /><div><strong>{match.job.title}</strong><span>{match.job.company} · {match.job.locationText}</span></div></div><div className="checkout-preview"><div><ShieldCheck /><span>Free preview included</span></div><Link href={`/workspace?job=${encodeURIComponent(match.job.id)}`}>Review before you buy</Link></div><SourceNotice job={match.job} /></aside>

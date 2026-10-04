@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
-import { ensureGuestUser } from "../../../auth";
+import { ensureGuestUser, getCurrentUser } from "../../../auth";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
 import { readStoredResume, safeOwnerId } from "../../../../lib/resume-storage";
 import { CV_DOWNLOAD_PRICE_CENTS, CV_DOWNLOAD_PRICE_LABEL } from "../../../../lib/payment";
@@ -21,6 +21,23 @@ function paymentResponse(body: Record<string, unknown>, status: number, setCooki
   const headers = new Headers({ "cache-control": "private, no-store" });
   if (setCookie) headers.set("set-cookie", setCookie);
   return Response.json(body, { status, headers });
+}
+
+/** Read-only readiness check. It never creates a checkout session or guest cookie. */
+export async function GET(request: Request) {
+  const limit = rateLimit(`cv-payment-status:${clientKey(request)}`, 60);
+  if (!limit.allowed) return paymentResponse({ error: "Please wait a moment before checking again." }, 429);
+  const jobId = requestSchema.shape.jobId.safeParse(new URL(request.url).searchParams.get("job"));
+  if (!jobId.success) return paymentResponse({ error: "Choose a valid job." }, 400);
+  const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
+  const user = await getCurrentUser();
+  try {
+    const purchased = user ? await hasCvPurchase(storage, safeOwnerId(user.id), jobId.data) : false;
+    const configured = Boolean(storage && process.env.STRIPE_SECRET_KEY?.trim());
+    return paymentResponse({ available: configured || purchased, purchased, price: CV_DOWNLOAD_PRICE_LABEL }, 200);
+  } catch {
+    return paymentResponse({ error: "We couldn’t check download access. Please try again." }, 503);
+  }
 }
 
 /** Creates a one-time Stripe Checkout session for a verified CV download. */

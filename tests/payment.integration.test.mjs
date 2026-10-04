@@ -38,6 +38,23 @@ test("every CV format including inline PDF requires payment", async () => {
   assert.equal(preview.status, 402);
 });
 
+test("read-only checkout status reports missing configuration without calling Stripe or issuing a cookie", async () => {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  const originalFetch = globalThis.fetch;
+  delete process.env.STRIPE_SECRET_KEY;
+  globalThis.fetch = async () => { throw new Error("A status check must not call Stripe"); };
+  try {
+    const response = await request(`/api/payments/cv-download?job=${jobId}`);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("set-cookie"), null);
+    assert.match(response.headers.get("cache-control"), /no-store/);
+    assert.deepEqual(await response.json(), { available: false, purchased: false, price: "€1.50" });
+    assert.equal((await request("/api/payments/cv-download")).status, 400);
+  } finally { process.env.STRIPE_SECRET_KEY = secret; globalThis.fetch = originalFetch; }
+  const ready = await (await request(`/api/payments/cv-download?job=${jobId}`)).json();
+  assert.deepEqual(ready, { available: true, purchased: false, price: "€1.50" });
+});
+
 test("checkout fixes the price at 150 EUR cents and uses the server owner", async () => {
   const original = globalThis.fetch;
   try {
@@ -74,6 +91,16 @@ test("only a paid session for this workspace, job, currency and amount unlocks t
     const other = await createSessionToken(guestUser("guest_zyxwvutsrqponmlkjihgfedc"), process.env.AUTH_SECRET);
     const wrongOwner = await request(`/api/documents/pdf?job=${jobId}`, { headers: { cookie: `nextjob_session=${other}`, accept: "application/json" } });
     assert.notEqual(wrongOwner.status, 200);
+    const secret = process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_SECRET_KEY;
+    try {
+      const access = await (await request(`/api/payments/cv-download?job=${jobId}`)).json();
+      assert.equal(access.available, true, "paid downloads remain available without opening a new checkout");
+      assert.equal(access.purchased, true);
+      const otherAccess = await (await request(`/api/payments/cv-download?job=${jobId}`, { headers: { cookie: `nextjob_session=${other}` } })).json();
+      assert.equal(otherAccess.purchased, false);
+      assert.equal(otherAccess.available, false);
+    } finally { process.env.STRIPE_SECRET_KEY = secret; }
   } finally { globalThis.fetch = original; }
 });
 
