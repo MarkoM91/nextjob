@@ -27,7 +27,7 @@ export function Dashboard() {
     let active = true;
     void fetch("/api/cv/profile", { headers: { accept: "application/json" } }).then(async (response) => {
       const payload = await response.json().catch(() => null) as { profile?: CandidateProfile; source?: string } | null;
-      if (active && response.ok && payload?.source === "reactive-resume" && payload.profile) setProfile(payload.profile);
+      if (active && response.ok && ["reactive-resume", "nextjob-parser"].includes(payload?.source ?? "") && payload?.profile) setProfile(payload.profile);
     }).catch(() => undefined);
     return () => { active = false; };
   }, []);

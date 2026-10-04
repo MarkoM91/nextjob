@@ -3,7 +3,8 @@ import { z } from "zod";
 import { ensureGuestUser } from "../../../auth";
 import { readStoredResume, resumeProfileKey, safeOwnerId, type StoredResumeProfile } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
-import { candidateFromReactiveResume, parseAndImportReactiveResume, reactiveResumeConfiguration, ReactiveResumeApiError } from "../../../../lib/reactive-resume";
+import { candidateFromReactiveResume, reactiveResumeConfiguration, ReactiveResumeApiError } from "../../../../lib/reactive-resume";
+import { CvParserError, directCvParserConfigured, parseCv } from "../../../../lib/cv-parser";
 
 const MAX_FILE_SIZE = Number(process.env.CV_MAX_BYTES ?? 10 * 1024 * 1024);
 const allowedTypes = new Set(["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]);
@@ -30,39 +31,40 @@ export async function POST(request: Request) {
   const parsedName = fileNameSchema.safeParse(file.name);
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
   if (!parsedName.success || !allowedTypes.has(file.type) || !allowedExtensions.has(extension)) return Response.json({ error: "Unsupported file. Use PDF or DOCX." }, { status: 415 });
+  if ((extension === "pdf") !== (file.type === "application/pdf")) return Response.json({ error: "The file type does not match its extension." }, { status: 415 });
   if (file.size <= 0 || file.size > MAX_FILE_SIZE) return Response.json({ error: "The CV must be between 1 byte and 10 MB." }, { status: 413 });
   const bytes = await file.arrayBuffer();
   if (!hasExpectedSignature(bytes, extension)) return Response.json({ error: "The file contents do not match its PDF or DOCX extension." }, { status: 415 });
 
   const provider = reactiveResumeConfiguration();
-  if (!provider.configured) return Response.json({ error: "Résumé analysis is not configured yet.", code: "PROVIDER_NOT_CONFIGURED", missingConfiguration: provider.missing, providerSupported: provider.providerSupported }, { status: 503 });
+  if (!provider.configured && !directCvParserConfigured()) return Response.json({ error: "CV processing is temporarily unavailable. Please try again later.", code: "PROVIDER_NOT_CONFIGURED" }, { status: 503 });
 
   const ownerId = safeOwnerId(user.id);
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   if (!storage) return Response.json({ error: "Private document storage is not available.", code: "DOCUMENT_STORAGE_NOT_CONFIGURED" }, { status: 503 });
+  const sourceHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), byte => byte.toString(16).padStart(2, "0")).join("");
+  const previous = await readStoredResume(storage, ownerId).catch(() => null);
+  const headers = new Headers({ "cache-control": "private, no-store" });
+  if (setCookie) headers.set("set-cookie", setCookie);
+  // Identical uploads preserve reviewed corrections, search choices and the selected design.
+  if (previous?.sourceHash === sourceHash) return Response.json({ status: "completed", profile: previous.profile, parsingProvider: previous.provider, reused: true, demoMode: false }, { headers });
   const objectKey = `private/${ownerId}/cv/${crypto.randomUUID()}.${extension}`;
-  await storage.put(objectKey, bytes, { httpMetadata: { contentType: file.type }, customMetadata: { ownerId, validation: "signature-and-type-v1" } });
   try {
-    const imported = await parseAndImportReactiveResume(bytes, file.name, file.type);
+    await storage.put(objectKey, bytes, { httpMetadata: { contentType: file.type }, customMetadata: { ownerId, validation: "signature-and-type-v1" } });
+    const imported = await parseCv(bytes, file.name, file.type);
     const profile = candidateFromReactiveResume(imported.content, ownerId);
     if (!profile.facts.length) throw new ReactiveResumeApiError("The CV did not contain enough structured information to review", 422, "EMPTY_PROFILE");
-    const previous = await readStoredResume(storage, ownerId);
-    const stored: StoredResumeProfile = { provider: "reactive-resume", externalResumeId: imported.resumeId, parsedAt: new Date().toISOString(), preferredTemplate: previous?.preferredTemplate, content: imported.content, profile };
-    await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "reactive-resume", externalResumeId: imported.resumeId } });
-    const headers = new Headers({ "cache-control": "private, no-store" });
-    if (setCookie) headers.set("set-cookie", setCookie);
-    return Response.json({ id: crypto.randomUUID(), status: "completed", objectKey, profile, parsingProvider: "reactive-resume", providerConfigured: true, parsedAt: stored.parsedAt, demoMode: false }, { status: 201, headers });
+    const stored: StoredResumeProfile = { provider: imported.provider, externalResumeId: imported.resumeId, sourceHash, parsedAt: new Date().toISOString(), preferredTemplate: previous?.preferredTemplate, content: imported.content, profile };
+    await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: stored.provider, externalResumeId: imported.resumeId ?? "" } });
+    return Response.json({ id: crypto.randomUUID(), status: "completed", objectKey, profile, parsingProvider: stored.provider, providerConfigured: true, parsedAt: stored.parsedAt, demoMode: false }, { status: 201, headers });
   } catch (error) {
     await storage.delete(objectKey).catch(() => undefined);
     const requestId = crypto.randomUUID();
-    if (error instanceof ReactiveResumeApiError) console.error("[cv-upload] résumé processing failed", { requestId, stage: error.stage, status: error.status, code: error.code });
+    if (error instanceof ReactiveResumeApiError || error instanceof CvParserError) console.error("[cv-upload] résumé processing failed", { requestId, status: error.status, code: error.code });
     else console.error("[cv-upload] résumé processing failed", { requestId, code: "PARSING_FAILED" });
-    const providerUnavailable = error instanceof ReactiveResumeApiError && error.status >= 500;
-    const message = providerUnavailable
-      ? "We couldn't finish reading this CV. Your file was not saved. Please try again in a moment."
-      : error instanceof ReactiveResumeApiError ? error.message : "The CV parser is temporarily unavailable";
-    const code = error instanceof ReactiveResumeApiError ? error.code : "PARSING_FAILED";
-    const status = error instanceof ReactiveResumeApiError && error.status === 415 ? 415 : error instanceof ReactiveResumeApiError && error.status === 422 ? 422 : 502;
-    return Response.json({ error: message, code, requestId }, { status, headers: { "cache-control": "private, no-store" } });
+    const unreadable = (error instanceof ReactiveResumeApiError || error instanceof CvParserError) && error.status === 422;
+    const message = unreadable ? "We couldn't read this CV. Check that it isn't password-protected, or try a PDF or DOCX copy with readable text." : "We couldn't finish processing your CV right now. Your selected file is still here. Please try again.";
+    const code = error instanceof ReactiveResumeApiError || error instanceof CvParserError ? error.code : "PARSING_FAILED";
+    return Response.json({ error: message, code, requestId }, { status: unreadable ? 422 : 502, headers });
   }
 }

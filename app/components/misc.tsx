@@ -57,7 +57,7 @@ function ProfileOverview() {
     const controller = new AbortController();
     void fetch("/api/cv/profile", { cache: "no-store", signal: controller.signal }).then(async (response) => {
       if (!response.ok) throw new Error("Your profile could not be loaded.");
-      const body = await response.json(); if (body.source === "reactive-resume") setProfile(body.profile);
+      const body = await response.json(); if (["reactive-resume", "nextjob-parser"].includes(body.source)) setProfile(body.profile);
     }).catch((reason) => { if (!controller.signal.aborted) setError(reason.message); }).finally(() => setLoaded(true));
     return () => controller.abort();
   }, []);

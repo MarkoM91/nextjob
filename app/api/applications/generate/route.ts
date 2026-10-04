@@ -5,6 +5,7 @@ import { candidate } from "../../../../lib/demo-data";
 import { aiWriterConfiguration, AiWriterError, applyWrittenDocuments, writeApplicationDocuments, type WriterTone } from "../../../../lib/ai-writer";
 import { atsAnalyze, createDemoApplication, validateGeneratedClaims } from "../../../../lib/engine";
 import { experienceRoleAlignment } from "../../../../lib/relevance";
+import { prepareDesignedResume } from "../../../../lib/cv-tailoring";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
 import { applicationNeedsRefresh, readStoredResume, readStoredTailoredApplication, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
@@ -35,11 +36,11 @@ function packageResponse(pkg: StoredTailoredApplication, reused: boolean, profil
     generatedAt: pkg.generatedAt,
     tone: pkg.tone,
     template: pkg.template,
-    templates: REACTIVE_RESUME_TEMPLATES,
+    templates: pkg.resumeProvider === "reactive-resume" ? REACTIVE_RESUME_TEMPLATES : [],
     reused,
     profileChanged,
     warnings: pkg.warnings,
-    demoMode: pkg.resumeProvider !== "reactive-resume",
+    demoMode: false,
   }, { headers: { "cache-control": "private, no-store" } });
 }
 
@@ -73,9 +74,9 @@ export async function POST(request: Request) {
   const providerConfigured = isReactiveResumeConfigured();
   const user = await getCurrentUser();
   const ownerId = safeOwnerId(user?.id);
-  const storedResume = providerConfigured ? await readStoredResume(storage, ownerId).catch(() => null) : null;
-  if (providerConfigured && !storage) return Response.json({ error: "Private document storage is not available.", code: "DOCUMENT_STORAGE_NOT_CONFIGURED" }, { status: 503 });
-  if (providerConfigured && !storedResume) return Response.json({ error: "Upload and verify your CV before creating a tailored application.", code: "CV_PROFILE_REQUIRED" }, { status: 409 });
+  const storedResume = await readStoredResume(storage, ownerId).catch(() => null);
+  if (!storage) return Response.json({ error: "Private document storage is not available.", code: "DOCUMENT_STORAGE_NOT_CONFIGURED" }, { status: 503 });
+  if (!storedResume) return Response.json({ error: "Upload and verify your CV before creating a tailored application.", code: "CV_PROFILE_REQUIRED" }, { status: 409 });
   if (storedResume && !storedResume.verifiedAt) return Response.json({ error: "Confirm every extracted CV fact before creating a tailored application.", code: "CV_PROFILE_UNVERIFIED" }, { status: 409 });
 
   const sourceProfile = storedResume?.profile ?? candidate;
@@ -91,25 +92,19 @@ export async function POST(request: Request) {
   // A relevant source profile is already the candidate's own wording and language.
   const sourceSummary = storedResume?.content.summary?.content?.trim();
   if (sourceSummary && experienceRoleAlignment(sourceProfile.currentRole, job.title) > 0) application = { ...application, summary: sourceSummary };
-  if (!providerConfigured || !storedResume) {
-    const validation = validateGeneratedClaims(application, sourceProfile);
-    if (!validation.valid) return Response.json({ error: "Generated claims failed factual validation", unsupported: validation.unsupported }, { status: 422 });
-    return Response.json({ application, factualValidation: validation, statement: "NextJOB improves wording and relevance but never invents experience.", generationProvider: "nextjob-fallback", documentsProvider: "nextjob-template", providerConfigured: false, demoMode: true, warnings: [] });
-  }
-
   const warnings: string[] = [];
   const preferredTemplate = isReactiveResumeTemplate(storedResume.preferredTemplate) ? storedResume.preferredTemplate : undefined;
-  let generated: Awaited<ReturnType<typeof createTailoredReactiveResume>>;
-  try {
+  let generated: Awaited<ReturnType<typeof createTailoredReactiveResume>> | undefined;
+  if (providerConfigured && storedResume.externalResumeId) try {
     generated = await createTailoredReactiveResume(storedResume.externalResumeId, job, preferredTemplate, { content: storedResume.content, profile: sourceProfile, summary: application.summary });
     await storage!.put(tailoredResumeKey(ownerId, job.id), generated.pdf, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "reactive-resume", jobId: job.id, applicationId: generated.applicationId, externalResumeId: generated.resumeId } });
   } catch (error) {
-    const message = error instanceof ReactiveResumeApiError ? error.message : "The résumé generator is temporarily unavailable";
-    return Response.json({ error: message, code: error instanceof ReactiveResumeApiError ? error.code : "GENERATION_FAILED" }, { status: 502 });
+    generated = undefined;
+    console.warn("[cv-generation] using local design", { code: error instanceof ReactiveResumeApiError ? error.code : "GENERATION_FAILED" });
   }
-  const tailoredSummary = generated.content?.summary?.content?.trim();
+  const tailoredSummary = generated?.content?.summary?.content?.trim();
   if (tailoredSummary) application = { ...application, summary: tailoredSummary };
-  if (!generated.content) warnings.push("Reactive Resume exported the tailored PDF but did not return its structured content, so the on-screen CV shows your base résumé.");
+  if (generated && !generated.content) warnings.push("The on-screen CV uses your reviewed source résumé.");
 
   let documentsProvider: StoredTailoredApplication["documentsProvider"] = "nextjob-template";
   let writerModel: string | undefined;
@@ -117,7 +112,7 @@ export async function POST(request: Request) {
   if (!writer.configured) warnings.push(`The cover letter, email and interview prep use the NextJOB template because the AI writer is not configured: ${writer.missing.join(", ")}.`);
   else {
     try {
-      const written = await writeApplicationDocuments({ profile: sourceProfile, job, tone, tailoredSummary, resume: generated.content });
+      const written = await writeApplicationDocuments({ profile: sourceProfile, job, tone, tailoredSummary, resume: generated?.content ?? storedResume.content });
       application = { ...applyWrittenDocuments(application, written, sourceProfile), summary: tailoredSummary || application.summary };
       documentsProvider = "ai-writer";
       writerModel = written.model;
@@ -130,10 +125,11 @@ export async function POST(request: Request) {
   const validation = validateGeneratedClaims(application, sourceProfile);
   if (!validation.valid) return Response.json({ error: "Generated claims failed factual validation", unsupported: validation.unsupported }, { status: 422 });
 
+  const designed = generated ? null : prepareDesignedResume(storedResume.content, sourceProfile, job, application.summary);
   const pkg: StoredTailoredApplication = {
-    jobId: job.id, generatedAt: application.generatedAt, sourceRevision: storedResume.updatedAt ?? storedResume.parsedAt, tone, resumeProvider: "reactive-resume", documentsProvider,
-    externalResumeId: generated.resumeId, applicationId: generated.applicationId, writerModel, content: generated.content, application, warnings,
-    template: generated.content?.metadata?.template ?? preferredTemplate,
+    jobId: job.id, generatedAt: application.generatedAt, sourceRevision: storedResume.updatedAt ?? storedResume.parsedAt, tone, resumeProvider: generated ? "reactive-resume" : "nextjob-template", documentsProvider,
+    externalResumeId: generated?.resumeId, applicationId: generated?.applicationId, writerModel, content: generated?.content ?? designed?.content ?? storedResume.content, application: designed ? { ...application, summary: designed.summary } : application, warnings,
+    template: generated?.content?.metadata?.template ?? (generated ? preferredTemplate : undefined),
   };
   await storage!.put(tailoredApplicationKey(ownerId, job.id), new TextEncoder().encode(JSON.stringify(pkg)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, jobId: job.id, resumeProvider: pkg.resumeProvider, documentsProvider } });
   return packageResponse(pkg, false, sourceProfile);

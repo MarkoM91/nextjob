@@ -95,7 +95,7 @@ function StudioView({ match, generationProvider }: { match: MatchResult; generat
   const templateApplication = useMemo(() => createDemoApplication(cvProfile, match.job), [cvProfile, match.job]);
   const application = pkg?.application ?? templateApplication;
   const resume = pkg?.tailoredResume ?? resumeContent;
-  const tailoredCv = pkg?.generationProvider === "reactive-resume" && Boolean(pkg.tailoredResume);
+  const tailoredCv = Boolean(pkg?.tailoredResume);
   const writtenByAi = pkg?.documentsProvider === "ai-writer";
   // The saved design controls both the NextJOB layout preview and PDF export.
   const [template, setTemplate] = useState("");
@@ -155,7 +155,7 @@ function StudioView({ match, generationProvider }: { match: MatchResult; generat
   const autoApplied = useRef(false);
   useEffect(() => {
     if (autoApplied.current || pkgState !== "ready" || !profileLoaded || !tailoredCv) return;
-    const preferred = parseDesignKey(preferredTemplate);
+    const preferred = parseDesignKey(preferredTemplate) ?? (pkg?.generationProvider === "nextjob-template" ? { design: "professional" as const, accent: "a8c9c4" } : null);
     if (!preferred) return;
     if (pkg?.template === preferredTemplate) { autoApplied.current = true; return; }
     autoApplied.current = true;

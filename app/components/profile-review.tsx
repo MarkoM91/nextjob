@@ -25,7 +25,7 @@ export function ProfileReview({ preferencesOnly = false }: { preferencesOnly?: b
     void fetch("/api/cv/profile", { cache: "no-store", signal: controller.signal }).then(async (response) => {
       if (!response.ok) throw new Error("Your CV could not be loaded. Refresh and try again.");
       const body = await response.json();
-      if (body.source === "reactive-resume") {
+      if (["reactive-resume", "nextjob-parser"].includes(body.source)) {
         const candidate = body.profile as CandidateProfile;
         setProfile(candidate); setRole(candidate.targetTitles[0] || candidate.currentRole); setAdditionalRoles(candidate.targetTitles.slice(1).join("\n")); setCity(candidate.location); setCountries(candidate.preferences.countries);
         setLanguageDetail((body.resume?.sections?.languages?.items ?? []).map((item: { language: string; fluency?: string }) => [item.language, item.fluency].filter(Boolean).join(" ")).join(" · "));

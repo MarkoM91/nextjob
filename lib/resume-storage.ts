@@ -2,8 +2,9 @@ import type { CandidateProfile, GeneratedApplication } from "./domain";
 import type { ReactiveResumeData } from "./reactive-resume";
 
 export type StoredResumeProfile = {
-  provider: "reactive-resume";
-  externalResumeId: string;
+  provider: "reactive-resume" | "nextjob-parser";
+  externalResumeId?: string;
+  sourceHash?: string;
   parsedAt: string;
   verifiedAt?: string;
   updatedAt?: string;

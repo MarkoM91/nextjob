@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const original = await readStoredResume(storage, ownerId).catch(() => null);
   if (!storage || !original) return Response.json({ error: "Upload and parse your CV first" }, { status: 409 });
   const stored = applyProfileUpdate(original, body.data);
-  await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: "reactive-resume", verified: "true", externalResumeId: stored.externalResumeId } });
+  await storage.put(resumeProfileKey(ownerId), new TextEncoder().encode(JSON.stringify(stored)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, provider: stored.provider, verified: "true", externalResumeId: stored.externalResumeId ?? "" } });
   const headers = new Headers({ "cache-control": "private, no-store" });
   if (setCookie) headers.set("set-cookie", setCookie);
   return Response.json({ profile: stored.profile, source: stored.provider, verifiedAt: stored.verifiedAt, updatedAt: stored.updatedAt }, { headers });

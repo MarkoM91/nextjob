@@ -243,7 +243,7 @@ export function setTargetCountries(next: string[]): void {
 export function useTargetCountries(): string[] {
   useEffect(() => {
     const controller = new AbortController();
-    void fetch("/api/cv/profile", { cache: "no-store", signal: controller.signal }).then((response) => response.ok ? response.json() : null).then((body) => { if (body?.source === "reactive-resume") setTargetCountries(body.profile.preferences.countries); }).catch(() => undefined);
+    void fetch("/api/cv/profile", { cache: "no-store", signal: controller.signal }).then((response) => response.ok ? response.json() : null).then((body) => { if (["reactive-resume", "nextjob-parser"].includes(body?.source ?? "")) setTargetCountries(body.profile.preferences.countries); }).catch(() => undefined);
     return () => controller.abort();
   }, []);
   return useSyncExternalStore(
