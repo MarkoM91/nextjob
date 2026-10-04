@@ -1193,7 +1193,7 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
 .more-job-filters { margin: 12px 0 18px; font-size: 14px; }
 .quick-review { width: min(720px, calc(100% - 48px)); padding: 12px 0 40px; }
 .quick-review-heading h1 { font-size: clamp(28px, 3vw, 36px); line-height: 1.2; margin: 0 0 10px; letter-spacing: -.035em; }
-.quick-review .onboarding-lead { font-size: 16px; margin-bottom: 22px; }
+.quick-review .onboarding-lead { font-size: 16px; margin-bottom: 16px; }
 .cv-summary-card { background: white; border: 1px solid var(--line); border-left: 4px solid var(--pine, #143d35); border-radius: 8px; padding: 22px 24px 0; }
 .cv-summary-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .cv-summary-heading .eyebrow { margin: 0; font-size: 12px; }
@@ -1217,13 +1217,13 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
 .search-options > summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; }
 .search-options > summary span { font-weight: 400; color: var(--ink-soft); margin-left: 8px; }
 .search-options[open] { padding-bottom: 18px; }
-.quick-review-action { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 14px; }
-.quick-review-action > p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0 0 14px; }
+.quick-review-action { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px; }
+.quick-review-action > p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0 0 8px; }
 .quick-review-action .button { width: 100%; min-height: 48px; font-size: 16px; }
 .quick-review-action .quick-review-price { text-align: center; margin: 12px 0 0; }
 .quick-review summary:focus-visible { outline: 2px solid var(--pine, #143d35); outline-offset: 4px; border-radius: 2px; }
 @media (min-width: 800px) {
-  .quick-review form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 24px; align-items: start; }
+  .quick-review form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 24px; align-items: start; }
   .quick-review .cv-summary-card { padding: 20px 20px 0; }
   .quick-review .cv-summary-role span { display: block; }
   .quick-review .quick-search { margin-top: 0; }
