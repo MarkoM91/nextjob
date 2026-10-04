@@ -1222,6 +1222,19 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
 .quick-review-action .button { width: 100%; min-height: 48px; font-size: 16px; }
 .quick-review-action .quick-review-price { text-align: center; margin: 12px 0 0; }
 .quick-review summary:focus-visible { outline: 2px solid var(--pine, #143d35); outline-offset: 4px; border-radius: 2px; }
+@media (min-width: 800px) {
+  .quick-review form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 24px; align-items: start; }
+  .quick-review .cv-summary-card { padding: 20px 20px 0; }
+  .quick-review .cv-summary-role span { display: block; }
+  .quick-review .quick-search { margin-top: 0; }
+  .quick-review .quick-search .profile-fields { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .quick-review .quick-review-action, .quick-review form > .form-error { grid-column: 1 / -1; margin-top: 0; }
+  .quick-review form:has(.cv-summary-card) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .quick-review form:not(:has(.cv-summary-card)) { display: block; }
+  .quick-review form:has(details[open]) { display: block; }
+  .quick-review form:has(details[open]) .quick-search { margin-top: 24px; }
+  .quick-review form:has(details[open]) .quick-review-action { margin-top: 14px; }
+}
 @media (max-width: 640px) {
   .onboarding-progress { width: calc(100% - 32px); gap: 8px; }
   .onboarding-progress span { font-size: 14px; padding: 8px 10px; }
