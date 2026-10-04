@@ -1,7 +1,8 @@
 import { env } from "cloudflare:workers";
 import { getCurrentUser } from "../../../auth";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
-import { readStoredResume, readStoredTailoredApplication, resumeProfileKey, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
+import { applicationNeedsRefresh, readStoredResume, readStoredTailoredApplication, resumeProfileKey, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
+import { prepareDesignedResume } from "../../../../lib/cv-tailoring";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { parseDesignKey } from "../../../components/cv-design-catalog";
 
@@ -20,8 +21,18 @@ export async function POST(request: Request) {
   const design = url.searchParams.get("design") ?? "";
   if (!jobId || jobId.length > 80) return Response.json({ error: "A valid live job is required" }, { status: 400 });
   if (!parseDesignKey(design)) return Response.json({ error: "Unknown CV design" }, { status: 400 });
-  if (!/^application\/pdf/i.test(request.headers.get("content-type") ?? "")) return Response.json({ error: "Send the rendered PDF" }, { status: 415 });
-  const bytes = await request.arrayBuffer();
+  const contentType = request.headers.get("content-type") ?? "";
+  let bytes: ArrayBuffer;
+  let submittedSummary: string | undefined;
+  if (/^multipart\/form-data/i.test(contentType)) {
+    const form = await request.formData().catch(() => null);
+    const file = form?.get("pdf");
+    const text = form?.get("summary");
+    if (!(file instanceof Blob) || typeof text !== "string" || !text.trim() || text.length > 5000) return Response.json({ error: "Send the rendered PDF and its summary." }, { status: 400 });
+    submittedSummary = text.trim();
+    bytes = await file.arrayBuffer();
+  } else if (/^application\/pdf/i.test(contentType)) bytes = await request.arrayBuffer();
+  else return Response.json({ error: "Send the rendered PDF" }, { status: 415 });
   if (bytes.byteLength < 100 || bytes.byteLength > MAX_PDF_BYTES || new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") return Response.json({ error: "The file is not a valid PDF" }, { status: 415 });
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   if (!storage) return Response.json({ error: "Private document storage is not available.", code: "DOCUMENT_STORAGE_NOT_CONFIGURED" }, { status: 503 });
@@ -34,8 +45,10 @@ export async function POST(request: Request) {
     readStoredResume(storage, ownerId).catch(() => null),
   ]);
   if (!pkg) return Response.json({ error: "Create the tailored application before saving a CV design.", code: "NOT_GENERATED" }, { status: 409 });
+  if (applicationNeedsRefresh(pkg, storedResume)) return Response.json({ error: "Update the application with your profile corrections before changing its design.", code: "PROFILE_CHANGED" }, { status: 409 });
+  const designed = storedResume ? prepareDesignedResume(storedResume.content, storedResume.profile, job, submittedSummary ?? pkg.application.summary) : null;
   await storage.put(tailoredResumeKey(ownerId, job.id), bytes, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "nextjob-designer", jobId: job.id, design } });
-  const updated: StoredTailoredApplication = { ...pkg, template: design };
+  const updated: StoredTailoredApplication = { ...pkg, template: design, ...(designed ? { content: designed.content, application: { ...pkg.application, summary: designed.summary } } : {}) };
   await storage.put(tailoredApplicationKey(ownerId, job.id), new TextEncoder().encode(JSON.stringify(updated)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, jobId: job.id, resumeProvider: updated.resumeProvider, documentsProvider: updated.documentsProvider } });
   if (storedResume) {
     storedResume.preferredTemplate = design;

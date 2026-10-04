@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import type { CandidateProfile, GeneratedApplication, MatchResult } from "../../lib/domain";
 import { REACTIVE_RESUME_TEMPLATES, type ReactiveResumeData } from "../../lib/reactive-resume";
 import { createDemoApplication } from "../../lib/engine";
+import { prepareDesignedResume } from "../../lib/cv-tailoring";
 import { CvPdfPreview } from "./cv-pdf-preview";
 import { CvDesignPreview } from "./cv-design-preview";
 import { CV_ACCENTS, CV_DESIGNS, designKey, parseDesignKey, type CvDesignId } from "./cv-design-catalog";
@@ -120,20 +121,25 @@ function StudioView({ match, generationProvider }: { match: MatchResult; generat
     setTemplateBusy(true); setTemplateError("");
     try {
       const { renderCvPdf } = await import("./cv-designs");
-      const blob = await renderCvPdf({ profile: cvProfile, resume, summary: summary || application.summary, design, accent });
+      const designed = prepareDesignedResume(resumeContent ?? resume ?? {}, cvProfile, match.job, summary || application.summary);
+      const blob = await renderCvPdf({ profile: cvProfile, resume: designed.content, summary: designed.summary, design, accent });
       const key = designKey(design, accent);
-      const response = await fetch(`/api/documents/cv?job=${encodeURIComponent(match.job.id)}&design=${encodeURIComponent(key)}`, { method: "POST", headers: { "content-type": "application/pdf" }, body: blob });
+      const form = new FormData();
+      form.set("pdf", blob, "cv.pdf"); form.set("summary", designed.summary);
+      const response = await fetch(`/api/documents/cv?job=${encodeURIComponent(match.job.id)}&design=${encodeURIComponent(key)}`, { method: "POST", body: form });
       const payload = await response.json().catch(() => null) as { error?: string } | null;
       if (!response.ok) throw new Error(payload?.error ?? "The CV design could not be saved.");
       setTemplate(key);
       setPreferredTemplate(key);
+      setSummary("");
       setPreviewRevision((current) => current + 1);
-      setPkg((current) => current ? { ...current, template: key } : current);
+      setPkg((current) => current ? { ...current, template: key, tailoredResume: designed.content, application: { ...current.application, summary: designed.summary } } : current);
     } catch (error) { setTemplateError(error instanceof Error ? error.message : "The CV design could not be rendered."); }
     setTemplateBusy(false);
   };
   const saveSummary = async () => {
     if (templateBusy || !summary.trim()) return;
+    if (nextjobDesign) { await applyDesign(nextjobDesign.design, nextjobDesign.accent); return; }
     setTemplateBusy(true); setTemplateError("");
     try {
       const response = await fetch("/api/applications/summary", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jobId: match.job.id, summary }) });

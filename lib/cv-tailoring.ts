@@ -1,5 +1,5 @@
 import type { CandidateProfile, Job } from "./domain";
-import type { ReactiveResumeData } from "./reactive-resume";
+import { sanitizeReactiveResumeData, type ReactiveResumeData } from "./reactive-resume.ts";
 import { selectRelevantBullets } from "./engine.ts";
 import { experienceRoleAlignment } from "./relevance.ts";
 
@@ -67,4 +67,13 @@ export function tailoredResumeData(base: Raw, generated: Raw, profile: Candidate
     if (work > education && education >= 0) { sections.splice(work, 1); sections.splice(education, 0, "experience"); }
   }
   return next;
+}
+
+/** Local design changes need no provider call and use the same reviewed facts on both sides. */
+export function prepareDesignedResume(base: ReactiveResumeData, profile: CandidateProfile, job: Job, summary: string) {
+  const sourceSummary = base.summary?.content?.trim();
+  const chosenSummary = sourceSummary && /\byears of verified experience\b/i.test(summary) && experienceRoleAlignment(profile.currentRole, job.title) > 0 ? sourceSummary : summary;
+  const reviewed = reviewedResumeData(base, base);
+  const content = sanitizeReactiveResumeData(tailoredResumeData(reviewed, reviewed, profile, job, chosenSummary));
+  return { content, summary: chosenSummary };
 }

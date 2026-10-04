@@ -4,6 +4,7 @@ import { env } from "cloudflare:workers";
 import { candidate, jobs } from "../lib/demo-data.ts";
 import { createGuestToken } from "../lib/auth-session.ts";
 import { reviewFields } from "../lib/profile-review.ts";
+import { createDemoApplication } from "../lib/engine.ts";
 
 process.env.AUTH_SECRET = "profile-tests-private-secret-123456789";
 process.env.NEXTJOB_DISABLE_LIVE_JOBS = "true";
@@ -54,4 +55,25 @@ test("saved jobs round-trip, remain visible outside the feed, and are isolated b
   try { assert.equal((await request("/api/saved-jobs", { jobId: realJob.id, saved: true })).status, 503); }
   finally { unavailable = false; }
   assert.deepEqual((await (await request("/api/saved-jobs")).json()).savedJobIds, []);
+});
+
+test("a local CV design persists its PDF, reviewed content and edited summary without calling a provider", async () => {
+  const resume = JSON.parse(store.get(profileKey));
+  const { tailoredApplicationKey } = await import("../lib/resume-storage.ts");
+  const key = tailoredApplicationKey(owner, realJob.id);
+  store.set(key, JSON.stringify({ jobId: realJob.id, generatedAt: new Date().toISOString(), sourceRevision: resume.updatedAt, resumeProvider: "reactive-resume", application: createDemoApplication(resume.profile, realJob), content: resume.content }));
+  const form = new FormData();
+  form.set("pdf", new Blob(["%PDF-" + "test ".repeat(40)], { type: "application/pdf" }), "cv.pdf");
+  form.set("summary", "My reviewed and edited summary.");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("A design change must not call a provider"); };
+  try {
+    const response = await worker.fetch(new Request(`http://localhost/api/documents/cv?job=${realJob.id}&design=nextjob:professional:a8c9c4`, { method: "POST", headers: { cookie: `nextjob_guest=${tokens[owner]}`, origin: "http://localhost" }, body: form }), {}, { waitUntil() {} });
+    assert.equal(response.status, 200, await response.text());
+    const saved = JSON.parse(store.get(key));
+    assert.equal(saved.application.summary, "My reviewed and edited summary.");
+    assert.equal(saved.content.basics.name, "Reviewed Candidate");
+    assert.equal(saved.template, "nextjob:professional:a8c9c4");
+    assert.equal(JSON.parse(store.get(profileKey)).preferredTemplate, saved.template);
+  } finally { globalThis.fetch = originalFetch; }
 });

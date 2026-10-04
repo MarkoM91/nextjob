@@ -255,3 +255,14 @@ test("the professional design keeps employment dates and employers as structured
   assert.match(model.experience.entries[0].period!, /2026/);
   assert.equal(model.experience.entries[0].lines[0], careerChanger.experiences[0].bullets[0].text);
 });
+
+test("local designs use reviewed facts without a provider and preserve an edited summary", async () => {
+  const { prepareDesignedResume } = await import("../lib/cv-tailoring.ts");
+  const job = { ...jobs[0], title: "Help Desk" };
+  const base = { basics: { name: careerChanger.fullName }, summary: { content: "Tecnico IT con competenze in hardware e reti." }, sections: { experience: { items: careerChanger.experiences.map(item => ({ id: item.id, company: item.company, position: item.role, description: "Installazione dell'utente" })) } } };
+  const result = prepareDesignedResume(base, careerChanger, job, "IT Help Desk with 5 years of verified experience.");
+  assert.equal(result.summary, base.summary.content);
+  assert.equal(result.content.sections?.experience?.items?.[0].company, "Engineering Spa");
+  assert.equal(prepareDesignedResume(base, careerChanger, job, "My manually edited summary").summary, "My manually edited summary");
+  assert.match(result.content.sections?.experience?.items?.[0].description ?? "", /Imaging/);
+});

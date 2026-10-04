@@ -98,6 +98,8 @@ function cleanRichText(value: unknown, max = 4_000): string | undefined {
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&quot;/gi, '"')
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s+/g, "\n"), max);
 }
