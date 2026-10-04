@@ -26,7 +26,7 @@ export function UploadScreen({ stage = "upload" }: { stage?: "upload" | "profile
     let active = true;
     void fetch("/api/cv/profile", { cache: "no-store" }).then(response => response.ok ? response.json() : null).then(payload => { if (active) setHasSavedCv(["reactive-resume", "nextjob-parser"].includes(payload?.source ?? "")); }).catch(() => undefined);
     return () => { active = false; };
-  }, []);
+  }, [stage]);
 
   const upload = async () => {
     if (!file || !consent || uploading) return;
@@ -36,6 +36,7 @@ export function UploadScreen({ stage = "upload" }: { stage?: "upload" | "profile
       const response = await fetch("/api/cv/upload", { method: "POST", body: form });
       const payload = await response.json().catch(() => ({})) as { error?: string; code?: string };
       if (!response.ok) throw new Error(payload.error ?? "We could not upload that file.");
+      setUploading(false);
       router.push("/profile-review");
     } catch (uploadError) { setError(uploadError instanceof Error ? uploadError.message : "We could not upload that file."); setUploading(false); }
   };
