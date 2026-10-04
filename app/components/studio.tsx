@@ -30,24 +30,20 @@ export function Generating({ jobId }: { jobId?: string }) {
 
 function GeneratingView({ match }: { match: MatchResult }) {
   const router = useRouter();
-  const [step, setStep] = useState(0);
   const [generationError, setGenerationError] = useState("");
   const [retryAttempt, setRetryAttempt] = useState(0);
-  const steps = ["Reading the job requirements", "Matching your verified experience", "Drafting your documents", "Running ATS checks"];
   useEffect(() => {
     let active = true;
-    const interval = window.setInterval(() => setStep((current) => Math.min(steps.length, current + 1)), 550);
     void fetch("/api/applications/generate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jobId: match.job.id, tone: "Professional" }) }).then(async (response) => {
       const payload = await response.json().catch(() => ({})) as { error?: string; generationProvider?: string };
       if (!response.ok) throw new Error(payload.error ?? "Your tailored CV could not be generated.");
       if (!active) return;
-      setStep(steps.length); window.clearInterval(interval);
       const provider = payload.generationProvider === "reactive-resume" ? "reactive-resume" : "nextjob";
       window.setTimeout(() => router.push(`/workspace?job=${match.job.id}&provider=${provider}`), 350);
-    }).catch((error) => { if (active) { window.clearInterval(interval); setGenerationError(error instanceof Error ? error.message : "Your tailored CV could not be generated."); } });
-    return () => { active = false; window.clearInterval(interval); };
-  }, [match.job.id, retryAttempt, router, steps.length]);
-  return <AppContent narrow><section className="generation-card"><h1>Preparing your documents</h1><p>{match.job.title} · {match.job.company}</p><div>{steps.map((label, index) => <span key={label} className={index < step ? "done" : index === step ? "active" : ""}>{index < step ? <Check /> : index === step ? <RefreshCw /> : <i />} {label}</span>)}</div>{generationError && <div className="generation-error"><p className="form-error" role="alert">{generationError}</p><div className="generation-error-actions"><button className="button" onClick={() => { setStep(0); setGenerationError(""); setRetryAttempt((current) => current + 1); }}>Try again</button><Link className="secondary-action" href={`/job?job=${match.job.id}`}>Back to job</Link></div></div>}</section></AppContent>;
+    }).catch((error) => { if (active) setGenerationError(error instanceof Error ? error.message : "Your tailored CV could not be generated."); });
+    return () => { active = false; };
+  }, [match.job.id, retryAttempt, router]);
+  return <AppContent narrow><section className="generation-card"><h1>Preparing your documents</h1><p>{match.job.title} · {match.job.company}</p>{!generationError && <div role="status"><span className="active"><RefreshCw /> Preparing your CV from your reviewed profile…</span><p>You can review the complete CV and choose a design before downloading.</p></div>}{generationError && <div className="generation-error"><p className="form-error" role="alert">{generationError}</p><div className="generation-error-actions"><button className="button" onClick={() => { setGenerationError(""); setRetryAttempt((current) => current + 1); }}>Try again</button><Link className="secondary-action" href={`/job?job=${match.job.id}`}>Back to job</Link></div></div>}</section></AppContent>;
 }
 
 export function Studio({ jobId, generationProvider }: { jobId?: string; generationProvider?: string }) {

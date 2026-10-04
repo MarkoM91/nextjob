@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import type { SessionUser } from "../../lib/auth-session";
 import { candidate, jobs } from "../../lib/demo-data";
 import { rankJobs } from "../../lib/engine";
+import { usableSalary } from "../../lib/salary-quality";
 import type { Job, MatchResult } from "../../lib/domain";
 import { aggregatorName, employerSearchUrl, jobSourceKind, linkMayAskHumanCheck } from "../../lib/job-source";
 
@@ -176,6 +177,7 @@ export function LiveJobState({ loading, error }: { loading: boolean; error: stri
 export function formatSalary(job: MatchResult["job"]): string {
   const salary = job.salary;
   if (!salary) return "Salary not provided";
+  if (!usableSalary(salary)) return "Pay amount needs verification";
   const formatter = new Intl.NumberFormat("en", { style: "currency", currency: salary.originalCurrency, maximumFractionDigits: 0 });
   return `${formatter.format(salary.originalAmountMin)}–${formatter.format(salary.originalAmountMax)} / ${salary.originalPeriod.toLowerCase()}`;
 }

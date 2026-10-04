@@ -1,4 +1,6 @@
 import { hasNamedEmployer, jobSourceKind } from "./job-source.ts";
+import { usableSalary } from "./salary-quality.ts";
+import { experienceRoleAlignment } from "./relevance.ts";
 import type { AtsReport, CandidateProfile, GeneratedApplication, Job, MatchBand, MatchResult, SalaryPeriod } from "./domain";
 
 const skillAliases: Record<string, string[]> = {
@@ -165,7 +167,7 @@ export function scoreJob(profile: CandidateProfile, job: Job, now = new Date()):
   const experienceFit = job.seniority === "Lead" ? Math.min(1, profile.yearsOfExperience / 8) : Math.min(1, profile.yearsOfExperience / 5);
   const seniorityFit = job.seniority === "Lead" && profile.yearsOfExperience < 5 ? 0.35 : 1;
   const languageFit = languageMismatch ? 0 : 1;
-  const salaryFit = !job.salary || job.salary.normalizedAnnualMax >= profile.preferences.minimumAnnualSalaryEur ? 1 : 0.35;
+  const salaryFit = !usableSalary(job.salary) || job.salary!.normalizedAnnualMax >= profile.preferences.minimumAnnualSalaryEur ? 1 : 0.35;
   const ageDays = Math.max(0, (now.getTime() - new Date(job.publishedAt).getTime()) / 86400000);
   const freshness = Math.max(0.2, 1 - ageDays / 45);
 
@@ -184,6 +186,7 @@ export function scoreJob(profile: CandidateProfile, job: Job, now = new Date()):
   if (!eligible) score = Math.min(score, 38);
   if (!job.requiredSkills.length) score = Math.min(score, 70);
   const reviewNotes: string[] = [];
+  if (job.salary && !usableSalary(job.salary)) reviewNotes.push("The salary value supplied by the feed needs verification. Check the amount and pay period on the original listing.");
   const listingText = `${job.title}\n${job.description}`;
   const incomplete = job.description.trim().length < 300 || /(?:…|\.\.\.)\s*$/.test(job.description);
   const limited = job.requiredSkills.length < 3 || incomplete;
@@ -270,7 +273,7 @@ export function selectRelevantBullets(profile: CandidateProfile, job: Job, limit
   return profile.experiences
     .flatMap((experience, experienceIndex) => experience.bullets.map((bullet, bulletIndex) => ({
       id: bullet.id, text: bullet.text, experienceId: experience.id,
-      score: [...relevanceTerms(bullet.text)].filter((word) => posting.has(word)).length,
+      score: experienceRoleAlignment(experience.role, job.title) + Math.min(30, [...relevanceTerms(bullet.text)].filter((word) => posting.has(word)).length),
       order: experienceIndex * 100 + bulletIndex,
     })))
     .sort((a, b) => b.score - a.score || a.order - b.order)
@@ -295,10 +298,11 @@ export function createDemoApplication(profile: CandidateProfile, job: Job, tone 
   const highlights = (related.length ? related : selected).slice(0, 3);
   const bestScore = new Map<string, number>();
   for (const bullet of related) bestScore.set(bullet.experienceId, Math.max(bestScore.get(bullet.experienceId) ?? 0, bullet.score));
-  const relatedExperiences = profile.experiences.filter((experience) => bestScore.has(experience.id)).sort((a, b) => bestScore.get(b.id)! - bestScore.get(a.id)!).slice(0, 3);
+  const aligned = profile.experiences.filter(experience => experienceRoleAlignment(experience.role, job.title) > 0);
+  const relatedExperiences = (aligned.length ? aligned : profile.experiences.filter((experience) => bestScore.has(experience.id))).sort((a, b) => (bestScore.get(b.id) ?? experienceRoleAlignment(b.role, job.title)) - (bestScore.get(a.id) ?? experienceRoleAlignment(a.role, job.title))).slice(0, 2);
   const experienceLine = (relatedExperiences.length ? relatedExperiences : profile.experiences.slice(0, 1)).map((experience) => `${experience.role} at ${experience.company}`).join(", ");
   const strengths = strongest.length ? ` Strengths relevant to the ${job.title} role: ${strongest.join(", ")}.` : "";
-  const summary = `${profile.currentRole} with ${profile.yearsOfExperience} years of verified experience${experienceLine ? `, including ${experienceLine}` : ""}.${strengths}`;
+  const summary = `${profile.currentRole}${experienceLine ? ` with experience as ${experienceLine}` : ""}.${strengths}`;
   const cvBullets = selected.map((bullet) => ({ text: bullet.text, sourceFactIds: [bullet.id], supported: true }));
   const cvText = [summary, ...cvBullets.map((bullet) => bullet.text), profile.skills.join(", ")].join("\n");
   const opening = tone === "Direct"

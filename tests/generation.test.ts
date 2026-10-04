@@ -221,3 +221,37 @@ test("the provider export uses corrected facts and keeps the selected design", a
     assert.equal(new TextDecoder().decode(result.pdf), "%PDF-Corrected");
   } finally { globalThis.fetch = originalFetch; for (const [name, value] of Object.entries(settings)) { if (value === undefined) delete process.env[name]; else process.env[name] = value; } }
 });
+
+
+test("suspicious pay is not treated as a valid salary or used to exclude a job", () => {
+  const job = { ...jobs[0], salary: { ...jobs[0].salary!, originalAmountMin: 27, originalAmountMax: 32, originalPeriod: "YEAR" as const, normalizedAnnualMin: 27, normalizedAnnualMax: 32 } };
+  assert.equal(jobPassesFilters(job, { ...EMPTY_FILTERS, minSalary: 28000 }), true);
+  assert.equal(jobPassesFilters(job, { ...EMPTY_FILTERS, salaryOnly: true }), false);
+  assert.equal(facetCounts([job]).withSalary, 0);
+});
+
+test("Help Desk experience outranks generic support vocabulary in unrelated work", async () => {
+  const { tailoredResumeData } = await import("../lib/cv-tailoring.ts");
+  const profile = structuredClone(careerChanger);
+  profile.experiences[1].bullets = Array.from({ length: 6 }, (_, index) => ({ id: `property-${index}`, text: "Supporto clienti, gestione dei sistemi CRM e delle applicazioni per contratti, relazioni e vendite." }));
+  const job = { ...jobs[0], title: "Help Desk IT", description: "Supporto clienti, gestione sistemi, applicazioni e relazioni", requiredSkills: [], preferredSkills: [] };
+  const application = createDemoApplication(profile, job);
+  assert.equal(application.cvBullets[0].sourceFactIds[0], "it-1");
+  assert.doesNotMatch(application.summary, /Linea Casa|verified experience/);
+  const base = { basics: {}, sections: { experience: { items: profile.experiences.map(item => ({ id: item.id, company: item.company, position: item.role })) } } };
+  const tailored = tailoredResumeData(base, base, profile, job, application.summary);
+  assert.equal(tailored.sections.experience.items[0].company, "Engineering Spa");
+  assert.equal((tailored.sections.experience.items[1].description.match(/<li>/g) ?? []).length, 2);
+  assert.equal(tailored.sections.experience.items.length, 2, "unrelated history remains present");
+});
+
+test("the professional design keeps employment dates and employers as structured text", async () => {
+  const { buildCvModel } = await import("../app/components/cv-design-model.ts");
+  const { parseDesignKey } = await import("../app/components/cv-design-catalog.ts");
+  assert.equal(parseDesignKey("nextjob:professional:a8c9c4")?.design, "professional");
+  assert.equal(parseDesignKey("nextjob:unknown:a8c9c4"), null);
+  const model = buildCvModel({ profile: careerChanger, resume: null, summary: "Tecnico IT", design: "professional", accent: "a8c9c4" });
+  assert.equal(model.experience.entries[0].company, "Engineering Spa");
+  assert.match(model.experience.entries[0].period!, /2026/);
+  assert.equal(model.experience.entries[0].lines[0], careerChanger.experiences[0].bullets[0].text);
+});

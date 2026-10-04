@@ -4,6 +4,7 @@ import { getCurrentUser } from "../../../auth";
 import { candidate } from "../../../../lib/demo-data";
 import { aiWriterConfiguration, AiWriterError, applyWrittenDocuments, writeApplicationDocuments, type WriterTone } from "../../../../lib/ai-writer";
 import { atsAnalyze, createDemoApplication, validateGeneratedClaims } from "../../../../lib/engine";
+import { experienceRoleAlignment } from "../../../../lib/relevance";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
 import { applicationNeedsRefresh, readStoredResume, readStoredTailoredApplication, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
@@ -87,6 +88,9 @@ export async function POST(request: Request) {
   }
 
   let application = createDemoApplication(sourceProfile, job, tone);
+  // A relevant source profile is already the candidate's own wording and language.
+  const sourceSummary = storedResume?.content.summary?.content?.trim();
+  if (sourceSummary && experienceRoleAlignment(sourceProfile.currentRole, job.title) > 0) application = { ...application, summary: sourceSummary };
   if (!providerConfigured || !storedResume) {
     const validation = validateGeneratedClaims(application, sourceProfile);
     if (!validation.valid) return Response.json({ error: "Generated claims failed factual validation", unsupported: validation.unsupported }, { status: 422 });
@@ -114,7 +118,7 @@ export async function POST(request: Request) {
   else {
     try {
       const written = await writeApplicationDocuments({ profile: sourceProfile, job, tone, tailoredSummary, resume: generated.content });
-      application = applyWrittenDocuments(application, written, sourceProfile);
+      application = { ...applyWrittenDocuments(application, written, sourceProfile), summary: tailoredSummary || application.summary };
       documentsProvider = "ai-writer";
       writerModel = written.model;
     } catch (error) {

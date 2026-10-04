@@ -4,24 +4,28 @@ import type { CvDesignId } from "./cv-design-catalog";
 
 export type CvDesignInput = { profile: CandidateProfile; resume: ReactiveResumeData | null; summary: string; design: CvDesignId; accent: string };
 
-export type CvSection = { title: string; entries: Array<{ heading: string; meta: string; lines: string[] }> };
+export type CvSection = { title: string; entries: Array<{ heading: string; meta: string; lines: string[]; company?: string; period?: string; location?: string }> };
 type SkillGroup = { name: string; keywords: string[] };
-type Model = { name: string; headline: string; contact: string[]; links: string[]; summary: string; experience: CvSection; education: CvSection; extras: CvSection[]; skills: SkillGroup[]; languages: string[] };
+type Model = { name: string; headline: string; contact: string[]; links: string[]; summary: string; experience: CvSection; education: CvSection; extras: CvSection[]; skills: SkillGroup[]; languages: string[]; labels: { profile: string; skills: string; languages: string; contact: string } };
 
 function lines(value?: string): string[] { return value?.split(/\n+/).map((line) => line.replace(/^\s*[•*-]\s*/, "").trim()).filter(Boolean) ?? []; }
 
 export function buildCvModel(input: CvDesignInput): Model {
   const { profile, resume } = input;
   const experienceItems = resume?.sections?.experience?.items ?? [];
+  // Labels follow the CV's language, without translating a candidate's facts.
+  const source = [resume?.summary?.content, ...profile.experiences.flatMap(item => item.bullets.map(bullet => bullet.text))].join(" ").toLowerCase();
+  const italian = (source.match(/\b(?:della|delle|degli|gestione|supporto|esperienza|attività|manutenzione|dei|nelle|presso)\b/g) ?? []).length >= 3;
+  const labels = italian ? { profile: "Profilo", skills: "Competenze", languages: "Lingue", contact: "Contatti" } : { profile: "Profile", skills: "Skills", languages: "Languages", contact: "Contact" };
   const experience: CvSection = {
-    title: "Experience",
+    title: italian ? "Esperienza lavorativa" : "Experience",
     entries: experienceItems.length
-      ? experienceItems.map((item) => ({ heading: item.position || "Role", meta: [item.company, item.location, item.period].filter(Boolean).join(" · "), lines: [...lines(item.description), ...(item.roles ?? []).flatMap((role) => [role.position ? `${role.position}${role.period ? ` (${role.period})` : ""}` : "", ...lines(role.description)])].filter(Boolean) }))
-      : profile.experiences.map((item) => ({ heading: item.role, meta: [item.company, [item.startDate, item.endDate ?? "Present"].filter(Boolean).join(" — ")].filter(Boolean).join(" · "), lines: item.bullets.flatMap((bullet) => lines(bullet.text)) })),
+      ? experienceItems.map((item) => ({ heading: item.position || "Role", company: item.company, period: item.period, location: item.location, meta: [item.company, item.location, item.period].filter(Boolean).join(" · "), lines: [...lines(item.description), ...(item.roles ?? []).flatMap((role) => [role.position ? `${role.position}${role.period ? ` (${role.period})` : ""}` : "", ...lines(role.description)])].filter(Boolean) }))
+      : profile.experiences.map((item) => ({ heading: item.role, company: item.company, period: [item.startDate, item.endDate ?? (italian ? "In corso" : "Present")].filter(Boolean).join(" — "), meta: [item.company, [item.startDate, item.endDate ?? "Present"].filter(Boolean).join(" — ")].filter(Boolean).join(" · "), lines: item.bullets.flatMap((bullet) => lines(bullet.text)) })),
   };
   const educationItems = resume?.sections?.education?.items ?? [];
   const education: CvSection = {
-    title: "Education",
+    title: italian ? "Formazione" : "Education",
     entries: educationItems.length
       ? educationItems.map((item) => ({ heading: [item.degree, item.area].filter(Boolean).join(" — ") || "Education", meta: [item.school, item.location, item.period].filter(Boolean).join(" · "), lines: lines(item.description) }))
       : profile.education.map((item) => ({ heading: item, meta: "", lines: [] })),
@@ -41,7 +45,7 @@ export function buildCvModel(input: CvDesignInput): Model {
     links: (resume?.sections?.profiles?.items ?? []).map((item) => item.website || [item.network, item.username].filter(Boolean).join(": ")).filter(Boolean),
     summary: input.summary,
     experience, education, extras, skills,
-    languages: languages.length ? languages : profile.languages,
+    languages: languages.length ? languages : profile.languages, labels,
   };
 }
 

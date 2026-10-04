@@ -1,6 +1,7 @@
 import type { EmploymentType, Job, MatchResult, Workplace } from "./domain";
 import { normalizeText } from "./engine.ts";
 import { IMPORT_PROVIDER_ID } from "./job-source.ts";
+import { usableSalary } from "./salary-quality.ts";
 
 export { IMPORT_PROVIDER_ID };
 
@@ -113,8 +114,8 @@ export function jobPassesFilters(job: Job, filters: JobFilters, now = Date.now()
   if (filters.workplace && job.workplace !== filters.workplace) return false;
   if (filters.employmentType && job.employmentType !== filters.employmentType) return false;
   if (filters.seniority && job.seniority !== filters.seniority) return false;
-  if (filters.salaryOnly && !job.salary) return false;
-  if (filters.minSalary > 0 && job.salary && job.salary.normalizedAnnualMax < filters.minSalary) return false;
+  if (filters.salaryOnly && !usableSalary(job.salary)) return false;
+  if (filters.minSalary > 0 && usableSalary(job.salary) && job.salary!.normalizedAnnualMax < filters.minSalary) return false;
   return true;
 }
 
@@ -143,7 +144,7 @@ export function facetCounts(jobs: Job[], now = Date.now()): JobFacets {
     tally(facets.employmentType, job.employmentType);
     tally(facets.seniority, job.seniority);
     for (const option of POSTED_OPTIONS) if (postedWithin(job, option.days, now)) tally(facets.posted, String(option.days));
-    if (job.salary) facets.withSalary += 1;
+    if (usableSalary(job.salary)) facets.withSalary += 1;
   }
   return facets;
 }

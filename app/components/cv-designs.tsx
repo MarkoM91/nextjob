@@ -25,11 +25,60 @@ const base = StyleSheet.create({
 });
 
 function Bullets({ items }: { items: string[] }) {
-  return <View>{items.map((line, index) => <View key={index} style={base.bullet}><Text style={base.bulletDot}>•</Text><Text style={base.bulletText}>{line}</Text></View>)}</View>;
+  return <View>{items.map((line, index) => <View key={index} style={base.bullet} wrap={false}><Text style={base.bulletDot}>•</Text><Text style={base.bulletText}>{line}</Text></View>)}</View>;
 }
 
 function Entries({ section }: { section: Section }) {
-  return <View>{section.entries.map((entry, index) => <View key={index} style={base.entry} wrap={false}><Text style={base.entryHeading}>{entry.heading}</Text>{entry.meta ? <Text style={base.entryMeta}>{entry.meta}</Text> : null}<Bullets items={entry.lines} /></View>)}</View>;
+  return <View>{section.entries.map((entry, index) => <View key={index} style={base.entry}><View wrap={false} minPresenceAhead={30}><Text style={base.entryHeading}>{entry.heading}</Text>{entry.meta ? <Text style={base.entryMeta}>{entry.meta}</Text> : null}</View><Bullets items={entry.lines} /></View>)}</View>;
+}
+
+function ProfessionalEntries({ section }: { section: Section }) {
+  return <View>{section.entries.map((entry, index) => <View key={index} wrap={entry.lines.length > 3 || entry.lines.join(" ").length > 900} style={{ marginBottom: 14 }}>
+    <View wrap={false} minPresenceAhead={36} style={{ marginBottom: 4 }}>
+      {entry.period ? <Text style={{ fontSize: 8.8, color: "#52595b", marginBottom: 3 }}>{entry.period}</Text> : null}
+      <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 10.5 }}>{[entry.company, entry.heading].filter(Boolean).join(" / ")}</Text>
+      {entry.location ? <Text style={{ fontSize: 9, marginTop: 2, color: "#52595b" }}>{entry.location}</Text> : null}
+    </View>
+    <Bullets items={entry.lines} />
+  </View>)}</View>;
+}
+
+function ProfessionalTitle({ children, light = false }: { children: string; light?: boolean }) {
+  return <Text minPresenceAhead={55} style={{ fontFamily: "Helvetica-Bold", fontSize: light ? 10 : 11.5, letterSpacing: 1.3, textTransform: "uppercase", color: light ? "#ffffff" : "#262d2d", borderBottomWidth: 0.7, borderBottomColor: light ? "#727b7b" : "#626c6b", paddingBottom: 7, marginBottom: 11, marginTop: 7 }}>{children}</Text>;
+}
+
+function mutedAccent(accent: string) {
+  // Dark accents are softened for a quiet header; a pale chosen colour stays intact.
+  const channels = [1, 3, 5].map(index => parseInt(accent.slice(index, index + 2), 16));
+  const mix = Math.max(...channels) < 180 ? 0.62 : 0;
+  return `#${channels.map(channel => Math.round(channel + (255 - channel) * mix).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Independent main flow keeps long careers paginated within generous A4 margins. */
+function ProfessionalDesign({ model, accent }: { model: ReturnType<typeof buildModel>; accent: string }) {
+  const sidebarLines = [...model.contact, ...model.links, ...model.education.entries.flatMap(entry => [entry.heading, entry.meta, ...entry.lines]), ...model.languages];
+  const detailsInSidebar = sidebarLines.reduce((height, line) => height + Math.ceil(line.length / 28) * 14 + 8, 0) + model.education.entries.length * 14 + 140 < 650;
+  return <Page size="A4" style={[base.page, { color: "#303637", fontSize: 10, lineHeight: 1.5, paddingLeft: 222, paddingRight: 30, paddingTop: 134, paddingBottom: 42 }]}>
+    <View fixed style={{ position: "absolute", top: 24, left: 28, right: 28, height: 91, backgroundColor: mutedAccent(accent) }} />
+    <View fixed style={{ position: "absolute", top: 24, height: 794, left: 28, width: 172, backgroundColor: "#353f40" }} />
+    <View fixed style={{ position: "absolute", top: 48, left: 222, right: 30 }}>
+      <Text style={{ fontFamily: "Helvetica-Bold", fontSize: model.name.length > 28 ? 19 : 24, lineHeight: 1.1, letterSpacing: 1.8, textTransform: "uppercase" }}>{model.name}</Text>
+      <Text style={{ fontSize: 10.5, marginTop: 7 }}>{model.headline}</Text>
+    </View>
+    <View style={{ position: "absolute", top: 137, left: 43, width: 142, color: "#ffffff", fontSize: 9, lineHeight: 1.5 }}>
+      <ProfessionalTitle light>{model.labels.contact}</ProfessionalTitle>
+      {[...model.contact, ...model.links].map((line, index) => <Text key={index} style={{ marginBottom: 6 }}>{line}</Text>)}
+      {detailsInSidebar && model.education.entries.length ? <View style={{ marginTop: 18 }}><ProfessionalTitle light>{model.education.title}</ProfessionalTitle>{model.education.entries.map((entry, index) => <View key={index} wrap={false} style={{ marginBottom: 13 }}><Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 3 }}>{entry.heading}</Text>{entry.meta ? <Text>{entry.meta}</Text> : null}{entry.lines.map((line, lineIndex) => <Text key={lineIndex}>{line}</Text>)}</View>)}</View> : null}
+      {detailsInSidebar && model.languages.length ? <View style={{ marginTop: 14 }}><ProfessionalTitle light>{model.labels.languages}</ProfessionalTitle>{model.languages.map((line, index) => <Text key={index} style={{ marginBottom: 8 }}>{line}</Text>)}</View> : null}
+    </View>
+    {model.summary ? <View style={{ marginBottom: 14 }}><ProfessionalTitle>{model.labels.profile}</ProfessionalTitle><Text>{model.summary}</Text></View> : null}
+    {model.experience.entries.length ? <><ProfessionalTitle>{model.experience.title}</ProfessionalTitle><ProfessionalEntries section={model.experience} /></> : null}
+    {model.skills.length ? <><ProfessionalTitle>{model.labels.skills}</ProfessionalTitle><View style={{ flexDirection: "row", flexWrap: "wrap" }}>{model.skills.map((group, index) => <View key={index} wrap={false} style={{ width: "50%", paddingRight: 12, marginBottom: 9 }}><Text style={{ fontFamily: "Helvetica-Bold", fontSize: 9.5 }}>{group.name}</Text>{group.keywords.length ? <Text style={{ fontSize: 9, color: "#52595b" }}>{group.keywords.join(" · ")}</Text> : null}</View>)}</View></> : null}
+    {model.extras.map(section => <View key={section.title}><ProfessionalTitle>{section.title}</ProfessionalTitle><Entries section={section} /></View>)}
+    {!detailsInSidebar && model.education.entries.length ? <><ProfessionalTitle>{model.education.title}</ProfessionalTitle><Entries section={model.education} /></> : null}
+    {!detailsInSidebar && model.languages.length ? <><ProfessionalTitle>{model.labels.languages}</ProfessionalTitle>{model.languages.map((line, index) => <Text key={index}>{line}</Text>)}</> : null}
+    <Text fixed style={{ position: "absolute", top: 816, right: 30, fontSize: 8, color: "#667270" }} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+  </Page>;
 }
 
 function SectionTitle({ children, color, light = false, spaced = false }: { children: string; color: string; light?: boolean; spaced?: boolean }) {
@@ -107,7 +156,7 @@ export function CvDocument(input: CvDesignInput) {
   const accent = `#${input.accent}`;
   const title = `${model.name} — CV`;
   return <Document title={title} author={model.name} creator="NextJOB" producer="NextJOB">
-    {input.design === "sidebar" ? <SidebarDesign model={model} accent={accent} /> : input.design === "modern" ? <ModernDesign model={model} accent={accent} /> : <MinimalDesign model={model} accent={accent} />}
+    {input.design === "professional" ? <ProfessionalDesign model={model} accent={accent} /> : input.design === "sidebar" ? <SidebarDesign model={model} accent={accent} /> : input.design === "modern" ? <ModernDesign model={model} accent={accent} /> : <MinimalDesign model={model} accent={accent} />}
   </Document>;
 }
 

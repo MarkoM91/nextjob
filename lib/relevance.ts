@@ -32,6 +32,20 @@ const TITLE_STOP_WORDS = new Set([
   "senior", "junior", "lead", "principal", "staff", "the", "and", "for", "with", "con", "delle", "della", "degli", "presso",
 ]);
 
+/** Occupation evidence outranks incidental words such as clients or support. */
+export function experienceRoleAlignment(role: string, target: string): number {
+  const terms = (value: string) => value.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const roleTerms = new Set(terms(role));
+  const specific = terms(target).filter(term => !TITLE_STOP_WORDS.has(term) && !AMBIGUOUS_TERMS.has(term) && (term.length >= 3 || term === "it"));
+  const overlap = specific.filter(term => roleTerms.has(term)).length;
+  if (IT_SUPPORT_FAMILY.test(target)) {
+    if (IT_SUPPORT_FAMILY.test(role)) return 100 + overlap * 20;
+    if (IT_DOMAIN_SIGNAL.test(role) && !COMPETING_DOMAIN.test(role)) return 40 + overlap * 10;
+    return 0;
+  }
+  return overlap * 40;
+}
+
 export function profileTitleTerms(profile: CandidateProfile): string[] {
   return [...new Set([...profile.targetTitles, profile.currentRole]
     .flatMap((value) => value.toLowerCase().split(/[^a-z0-9+#.]+/))

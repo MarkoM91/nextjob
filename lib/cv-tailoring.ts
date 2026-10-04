@@ -1,6 +1,7 @@
 import type { CandidateProfile, Job } from "./domain";
 import type { ReactiveResumeData } from "./reactive-resume";
 import { selectRelevantBullets } from "./engine.ts";
+import { experienceRoleAlignment } from "./relevance.ts";
 
 const html = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]!));
 const list = (lines: string[]) => lines.length ? `<ul>${lines.map((line) => `<li>${html(line)}</li>`).join("")}</ul>` : "";
@@ -54,7 +55,7 @@ export function tailoredResumeData(base: Raw, generated: Raw, profile: Candidate
       if (!source || item.roles?.length) return item;
       const bullets = evidence.filter((bullet) => bullet.experienceId === item.id);
       const lines = bullets.flatMap((bullet) => bullet.text.split(/\n+/).map((line) => line.replace(/^\s*[•*-]\s*/, "").trim()).filter(Boolean));
-      return { ...item, description: list(lines.slice(0, relevance ? 5 : 2)) };
+      return { ...item, description: list(lines.slice(0, experienceRoleAlignment(source.role, job.title) > 0 ? 5 : 2)) };
     });
   }
   next.summary = { ...next.summary, content: `<p>${html(summary)}</p>` };
