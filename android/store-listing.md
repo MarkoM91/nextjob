@@ -37,7 +37,7 @@ Do not claim automatic applications, offline access, guaranteed matches, ATS sco
 ## Graphics
 
 - App icon: `assets/icon-512.png`, 512 × 512 PNG, derived from the current professional NextJOB mark. Do not use the old green radar favicon or the existing marketing image with unverified match percentages.
-- Feature graphic: 1024 × 500 JPEG or 24-bit PNG with no alpha. Use the app's cream/teal palette and a concise message; do not claim rankings or guaranteed outcomes.
+- Feature graphic: `assets/feature-graphic.png`, 1024 × 500 RGB PNG with no alpha; editable source is `assets/feature-graphic.svg`. Uses the current brand and abstract document artwork, with no personal data or match claims.
 - Phone screenshots: at least two truthful app screenshots; recommended four at 1080 × 1920. Capture the **Android build**, using fictional contact details and experience. Suggested sequence: Add CV, compact profile review, local job matches, tailored CV preview. Do not fabricate jobs or match scores for marketing.
 - Do not reuse `qa/upload-fixed-profile.png` or Marko's real CV/contact details for public assets.
 

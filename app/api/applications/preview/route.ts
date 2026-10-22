@@ -3,6 +3,7 @@ import { degrees, PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { userFromRequest } from "../../../auth";
 import { safeOwnerId, tailoredResumeKey } from "../../../../lib/resume-storage";
 import { clientKey, rateLimit } from "../../../../lib/security";
+import { billingCatalog } from "../../../../lib/payment";
 
 /** The free preview is watermarked; the original file remains payment-gated. */
 export async function GET(request: Request) {
@@ -26,7 +27,8 @@ export async function GET(request: Request) {
     for (const page of document.getPages()) {
       const { width, height } = page.getSize();
       page.drawText("NEXTJOB PREVIEW", { x: width * .12, y: height * .35, size: Math.min(54, width / 11), font, color: rgb(.75, .12, .16), rotate: degrees(35), opacity: .22 });
-      page.drawText("PREVIEW - Finished CV download: EUR 1.50", { x: 22, y: 12, size: 8, font, color: rgb(.75, .12, .16) });
+      const catalog = billingCatalog();
+      page.drawText(`PREVIEW - Finished CV download: ${catalog.currency.toUpperCase()} ${(catalog.download.amountCents / 100).toFixed(2)}`, { x: 22, y: 12, size: 8, font, color: rgb(.75, .12, .16) });
     }
     const preview = await document.save();
     return new Response(new Uint8Array(preview), { headers: { "content-type": "application/pdf", "content-disposition": 'inline; filename="nextjob-preview.pdf"', "cache-control": "private, no-store", "x-content-type-options": "nosniff" } });

@@ -1,15 +1,10 @@
-<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="nj-mark" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2a8b68"/>
-      <stop offset="1" stop-color="#14352a"/>
-    </linearGradient>
-  </defs>
-  <rect width="40" height="40" rx="11" fill="url(#nj-mark)"/>
-  <g fill="none" stroke="#dcea79" stroke-width="3" stroke-linecap="round">
-    <circle cx="19" cy="21" r="12.5" opacity=".55"/>
-    <circle cx="19" cy="21" r="7.6"/>
-    <path d="M19 21 27 13"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 40 40">
+  <rect width="40" height="40" fill="#123b34"/>
+  <g transform="translate(6 6) scale(.7)">
+    <g fill="none" stroke="#e7f0ec" stroke-width="2" stroke-linecap="square">
+      <path d="M8 29V11h24" opacity=".45"/>
+      <path d="m10 26 7-7 5 4 9-11"/>
+    </g>
+    <circle cx="31" cy="12" r="3.5" fill="#f07a3a"/>
   </g>
-  <circle cx="27.5" cy="12.5" r="5" fill="#ff8a5c"/>
 </svg>

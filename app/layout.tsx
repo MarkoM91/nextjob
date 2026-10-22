@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import { BuildUpdateNotice } from "./components/build-update-notice";
 import { BUILD_VERSION } from "../lib/build-version";
+import { BillingProvider } from "./components/billing-context";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -17,18 +18,18 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase,
     title: { default: "NextJOB — Relevant jobs and tailored applications", template: "%s · NextJOB" },
-    description: "Upload your CV. Find jobs worldwide. Apply with confidence. Discover relevant roles across multiple markets and prepare factual ATS-ready applications.",
+    description: "Find relevant roles and prepare a tailored CV using your own experience. Create and preview for free, then choose whether to download.",
     applicationName: "NextJOB",
     manifest: "/manifest.webmanifest",
     keywords: ["global job search", "ATS CV", "cover letter", "job matching"],
-    openGraph: { type: "website", siteName: "NextJOB", title: "Find work that fits. Apply without the busywork.", description: "A private, factual Android-first job-search workspace from verified profile to application-ready documents.", images: [{ url: "/og-nextjob-android.png", width: 1536, height: 1024, alt: "NextJOB Android app showing a verified 92% job match." }] },
-    twitter: { card: "summary_large_image", title: "NextJOB", description: "Find work that fits. Apply without the busywork.", images: ["/og-nextjob-android.png"] },
+    openGraph: { type: "website", siteName: "NextJOB", title: "Find relevant jobs. Prepare your CV.", description: "A clear workspace for your experience, job search and tailored CV.", images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "NextJOB" }] },
+    twitter: { card: "summary", title: "NextJOB", description: "Find relevant jobs. Prepare your CV.", images: ["/icons/icon-512.png"] },
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
   };
 }
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#43A047", colorScheme: "light" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#123b34", colorScheme: "light" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><head><meta name="nextjob-build" content={BUILD_VERSION} /></head><body className={`${geistSans.variable} ${geistMono.variable} ${display.variable}`}>{children}<BuildUpdateNotice /></body></html>;
+  return <html lang="en"><head><meta name="nextjob-build" content={BUILD_VERSION} /></head><body className={`${geistSans.variable} ${geistMono.variable} ${display.variable}`}><BillingProvider>{children}<BuildUpdateNotice /></BillingProvider></body></html>;
 }

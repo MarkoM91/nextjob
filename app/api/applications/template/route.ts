@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentUser } from "../../../auth";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
 import { readStoredResume, readStoredTailoredApplication, resumeProfileKey, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
+import { makeCvSnapshot } from "../../../../lib/billing-cv";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { isReactiveResumeConfigured, REACTIVE_RESUME_TEMPLATES, ReactiveResumeApiError, setReactiveResumeTemplate } from "../../../../lib/reactive-resume";
 
@@ -32,14 +33,15 @@ export async function POST(request: Request) {
   ]);
   if (!pkg?.externalResumeId) return Response.json({ error: "Create the tailored application before choosing a CV design.", code: "NOT_GENERATED" }, { status: 409 });
   const { template } = parsed.data;
+  const updated: StoredTailoredApplication = { ...pkg, template, content: pkg.content ? { ...pkg.content, metadata: { ...pkg.content.metadata, template } } : pkg.content };
   try {
     const { pdf } = await setReactiveResumeTemplate(pkg.externalResumeId, template);
-    await storage.put(tailoredResumeKey(ownerId, job.id), pdf, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "reactive-resume", jobId: job.id, applicationId: pkg.applicationId ?? "", externalResumeId: pkg.externalResumeId, template } });
+    const snapshot = storedResume ? await makeCvSnapshot(ownerId, job, storedResume, updated) : null;
+    await storage.put(tailoredResumeKey(ownerId, job.id), pdf, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "reactive-resume", jobId: job.id, applicationId: pkg.applicationId ?? "", externalResumeId: pkg.externalResumeId, template, ...(snapshot ? { cvVersionId: snapshot.id } : {}) } });
   } catch (error) {
     const message = error instanceof ReactiveResumeApiError ? error.message : "The résumé design could not be changed";
     return Response.json({ error: message, code: error instanceof ReactiveResumeApiError ? error.code : "TEMPLATE_FAILED" }, { status: 502 });
   }
-  const updated: StoredTailoredApplication = { ...pkg, template, content: pkg.content ? { ...pkg.content, metadata: { ...pkg.content.metadata, template } } : pkg.content };
   await storage.put(tailoredApplicationKey(ownerId, job.id), new TextEncoder().encode(JSON.stringify(updated)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, jobId: job.id, resumeProvider: updated.resumeProvider, documentsProvider: updated.documentsProvider } });
   if (storedResume) {
     storedResume.preferredTemplate = template;

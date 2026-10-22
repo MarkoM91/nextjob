@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <rect width="1024" height="500" fill="#f4f5f1"/>
+  <rect x="702" width="322" height="500" fill="#123b34"/>
+
+  <svg x="56" y="54" width="54" height="54" viewBox="0 0 40 40">
+    <rect width="40" height="40" fill="#123b34"/>
+    <g transform="translate(6 6) scale(.7)">
+      <g fill="none" stroke="#e7f0ec" stroke-width="2" stroke-linecap="square">
+        <path d="M8 29V11h24" opacity=".45"/>
+        <path d="m10 26 7-7 5 4 9-11"/>
+      </g>
+      <circle cx="31" cy="12" r="3.5" fill="#f07a3a"/>
+    </g>
+  </svg>
+  <text x="126" y="93" fill="#123b34" font-family="Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="-1.2">NextJOB</text>
+
+  <g fill="#123b34" font-family="Arial, sans-serif" font-size="53" font-weight="700" letter-spacing="-2">
+    <text x="54" y="241">Find relevant jobs.</text>
+    <text x="54" y="306">Prepare your CV.</text>
+  </g>
+  <path d="M56 408H636" stroke="#ccd6ce"/>
+  <path d="M56 408H116" stroke="#f07a3a" stroke-width="4"/>
+
+  <!-- Abstract document artwork, not an app screenshot or a candidate's CV. -->
+  <g transform="rotate(8 873 243)">
+    <rect x="777" y="110" width="204" height="282" rx="3" fill="#416259"/>
+  </g>
+  <g transform="rotate(-4 858 250)">
+    <rect x="746" y="108" width="218" height="292" rx="3" fill="#f4f5f1"/>
+    <rect x="772" y="139" width="30" height="30" fill="#123b34"/>
+    <path d="m778 160 6-7 5 4 8-11" fill="none" stroke="#e7f0ec" stroke-width="1.7"/>
+    <circle cx="797" cy="146" r="2.4" fill="#f07a3a"/>
+    <path d="M815 149H938" stroke="#123b34" stroke-width="8"/>
+    <path d="M815 164H906" stroke="#aabeb2" stroke-width="4"/>
+    <path d="M772 193H938" stroke="#f07a3a" stroke-width="2"/>
+    <g stroke="#123b34" stroke-width="6">
+      <path d="M772 220H827"/>
+      <path d="M772 280H840"/>
+      <path d="M772 341H825"/>
+    </g>
+    <g stroke="#b7c8bd" stroke-width="4">
+      <path d="M772 237H938M772 248H927M772 297H938M772 308H938M772 319H900M772 358H938M772 369H910"/>
+    </g>
+  </g>
+  <circle cx="969" cy="81" r="8" fill="#f07a3a"/>
+</svg>

@@ -10,10 +10,10 @@ export default async function ProductPage({
   searchParams,
 }: {
   params: Promise<{ screen: string }>;
-  searchParams: Promise<{ job?: string; applied?: string; application?: string; provider?: string; format?: string; payment?: string; location?: string }>;
+  searchParams: Promise<{ job?: string; applied?: string; application?: string; provider?: string; format?: string; payment?: string; version?: string; location?: string }>;
 }) {
   const [{ screen }, query, signedInUser] = await Promise.all([params, searchParams, getCurrentUser()]);
   if (screen === "processing") redirect("/upload");
   if (["sign-in", "sign-up", "forgot-password"].includes(screen)) redirect("/upload");
-  return <NextJobApp screen={screen} jobId={query.job} appliedJobId={query.applied} applicationState={query.application} generationProvider={query.provider} format={query.format} payment={query.payment} searchLocation={typeof query.location === "string" ? query.location.slice(0, 80) : undefined} user={signedInUser} demoMode={DEMO_MODE} />;
+  return <NextJobApp screen={screen} jobId={query.job} appliedJobId={query.applied} applicationState={query.application} generationProvider={query.provider} format={query.format} payment={query.payment} versionId={query.version} searchLocation={typeof query.location === "string" ? query.location.slice(0, 80) : undefined} user={signedInUser} demoMode={DEMO_MODE} />;
 }

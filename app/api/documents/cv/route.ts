@@ -5,6 +5,7 @@ import { applicationNeedsRefresh, readStoredResume, readStoredTailoredApplicatio
 import { prepareDesignedResume } from "../../../../lib/cv-tailoring";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { parseDesignKey } from "../../../components/cv-design-catalog";
+import { makeCvSnapshot } from "../../../../lib/billing-cv";
 
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
 
@@ -47,8 +48,9 @@ export async function POST(request: Request) {
   if (!pkg) return Response.json({ error: "Create the tailored application before saving a CV design.", code: "NOT_GENERATED" }, { status: 409 });
   if (applicationNeedsRefresh(pkg, storedResume)) return Response.json({ error: "Update the application with your profile corrections before changing its design.", code: "PROFILE_CHANGED" }, { status: 409 });
   const designed = storedResume ? prepareDesignedResume(storedResume.content, storedResume.profile, job, submittedSummary ?? pkg.application.summary) : null;
-  await storage.put(tailoredResumeKey(ownerId, job.id), bytes, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "nextjob-designer", jobId: job.id, design } });
   const updated: StoredTailoredApplication = { ...pkg, template: design, ...(designed ? { content: designed.content, application: { ...pkg.application, summary: designed.summary } } : {}) };
+  const cvVersion = storedResume ? await makeCvSnapshot(ownerId, job, storedResume, updated) : null;
+  await storage.put(tailoredResumeKey(ownerId, job.id), bytes, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "nextjob-designer", jobId: job.id, design, ...(cvVersion ? { cvVersionId: cvVersion.id } : {}) } });
   await storage.put(tailoredApplicationKey(ownerId, job.id), new TextEncoder().encode(JSON.stringify(updated)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, jobId: job.id, resumeProvider: updated.resumeProvider, documentsProvider: updated.documentsProvider } });
   if (storedResume) {
     storedResume.preferredTemplate = design;

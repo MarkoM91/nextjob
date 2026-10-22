@@ -1,4 +1,5 @@
 "use client";
+import { DownloadPrice } from "./billing-context";
 
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Check, FileCheck2, Lock, MapPin, Radar, ShieldCheck, UploadCloud, Wallet } from "lucide-react";
@@ -28,7 +29,7 @@ export function Landing() {
           <Link className="button button-large" href="/upload"><UploadCloud /> Upload your CV</Link>
           <a className="text-button" href="#how">Review the process <ArrowRight /></a>
         </div>
-        <p className="microcopy"><ShieldCheck /> No account required · Preview at no cost · €1.50 per CV export</p>
+        <p className="microcopy"><ShieldCheck /> No account required · Preview at no cost · <DownloadPrice /> per CV export</p>
       </div>
 
       <div className="hero-product">
@@ -105,7 +106,7 @@ export function Landing() {
     <section className="landing-cta">
       <div className="landing-wrap cta-row">
         <h2>Start with the CV you already have.</h2>
-        <p>Review the workspace before paying. Export a tailored CV for €1.50 when it is ready.</p>
+        <p>Review the workspace before paying. Export a tailored CV for <DownloadPrice /> when it is ready.</p>
         <Link className="button button-large" href="/upload">Upload CV <ArrowRight /></Link>
       </div>
     </section>

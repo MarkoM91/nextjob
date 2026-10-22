@@ -1271,3 +1271,9 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
   .cv-design-professional .cv-preview-columns { grid-template-columns: minmax(0, 1fr); }
   .cv-design-professional .cv-preview-main { padding: 20px 0; }
 }
+
+.billing-success, .billing-notice { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-small); line-height: 1.6; }
+.billing-success { background: var(--pine-soft); color: var(--pine-deep); border-color: #b4d5c8; }
+.billing-notice { background: var(--paper); color: var(--ink-soft); }
+.billing-download, .billing-optional { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 20px; }
+.billing-download h3, .billing-optional h3 { margin-bottom: 6px; }

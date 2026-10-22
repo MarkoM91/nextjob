@@ -6,6 +6,31 @@ const createdAt = () => text("created_at").notNull().default(sql`CURRENT_TIMESTA
 const updatedAt = () => text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`);
 const deletedAt = () => text("deleted_at");
 
+// Billing owners may be signed guest workspaces, so these do not reference users.
+export const billingCvVersions = sqliteTable("billing_cv_versions", {
+  id: id(), ownerId: text("owner_id").notNull(), versionId: text("version_id").notNull(), jobId: text("job_id").notNull(), objectPrefix: text("object_prefix").notNull(), createdAt: integer("created_at").notNull(),
+}, (table) => [uniqueIndex("uq_billing_cv_owner_version").on(table.ownerId, table.versionId)]);
+
+export const billingOrders = sqliteTable("billing_orders", {
+  id: id(), ownerId: text("owner_id").notNull(), cvVersionId: text("cv_version_id"), jobId: text("job_id"), model: text("model").notNull(), productId: text("product_id").notNull(), provider: text("provider").notNull(), providerCheckoutId: text("provider_checkout_id"), providerPaymentId: text("provider_payment_id"), amountCents: integer("amount_cents").notNull(), currency: text("currency").notNull(), redownloadDays: integer("redownload_days").notNull(), status: text("status").notNull(), createdAt: integer("created_at").notNull(), expiresAt: integer("expires_at").notNull(), paidAt: integer("paid_at"),
+}, (table) => [uniqueIndex("uq_billing_order_checkout").on(table.provider, table.providerCheckoutId), index("idx_billing_orders_owner_version").on(table.ownerId, table.cvVersionId), uniqueIndex("uq_billing_pending_order").on(table.ownerId, table.cvVersionId, table.model).where(sql`status = 'pending'`)]);
+
+export const billingEntitlements = sqliteTable("billing_entitlements", {
+  id: id(), ownerId: text("owner_id").notNull(), cvVersionId: text("cv_version_id").notNull(), orderId: text("order_id").notNull().references(() => billingOrders.id), grantedAt: integer("granted_at").notNull(), expiresAt: integer("expires_at").notNull(), revokedAt: integer("revoked_at"),
+}, (table) => [uniqueIndex("uq_billing_entitlement_order").on(table.orderId), index("idx_billing_entitlements_access").on(table.ownerId, table.cvVersionId, table.expiresAt)]);
+
+export const billingCustomers = sqliteTable("billing_customers", {
+  id: id(), ownerId: text("owner_id").notNull(), provider: text("provider").notNull(), customerId: text("customer_id").notNull(),
+}, (table) => [uniqueIndex("uq_billing_customer_owner").on(table.ownerId, table.provider), uniqueIndex("uq_billing_customer_provider").on(table.provider, table.customerId)]);
+
+export const billingSubscriptions = sqliteTable("billing_subscriptions", {
+  id: id(), ownerId: text("owner_id").notNull(), provider: text("provider").notNull(), providerSubscriptionId: text("provider_subscription_id").notNull(), productId: text("product_id").notNull(), priceId: text("price_id").notNull(), status: text("status").notNull(), periodEndsAt: integer("period_ends_at").notNull(), cancelAtPeriodEnd: integer("cancel_at_period_end").notNull().default(0), providerUpdatedAt: integer("provider_updated_at").notNull(),
+}, (table) => [uniqueIndex("uq_billing_subscription_provider").on(table.provider, table.providerSubscriptionId), index("idx_billing_subscription_owner").on(table.ownerId, table.periodEndsAt)]);
+
+export const billingEvents = sqliteTable("billing_events", {
+  id: id(), provider: text("provider").notNull(), eventId: text("event_id").notNull(), processedAt: integer("processed_at").notNull(),
+}, (table) => [uniqueIndex("uq_billing_event_provider").on(table.provider, table.eventId)]);
+
 export const users = sqliteTable("users", {
   id: id(), email: text("email").notNull(), displayName: text("display_name"), locale: text("locale").notNull().default("en"), role: text("role").notNull().default("user"), createdAt: createdAt(), updatedAt: updatedAt(), deletedAt: deletedAt(),
 }, (table) => [uniqueIndex("uq_users_email").on(table.email)]);

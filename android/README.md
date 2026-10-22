@@ -1,6 +1,6 @@
 # NextJOB for Google Play
 
-Status: Android source generated; **not published and not ready to submit**. An existing personal Google Play developer account is accessible, and the new-app form is prepared for NextJOB, pending the owner's declarations. No signed AAB, payment product, or submitted store listing has been created by this preparation.
+Status: Android lint and compilation passed on GitHub, and a signed upload AAB has been validated locally; **not published and not ready for a paid production release**. An existing personal Google Play developer account is accessible, and the new-app form is prepared for NextJOB, pending the owner's declarations. No Play payment product or submitted store listing has been created.
 
 The package uses Google's Trusted Web Activity (TWA) architecture, generated with Bubblewrap 1.25.0. It opens the existing NextJOB experience directly on Add CV and keeps the current professional design, reviewed profile, local-first job search, and tailored CV templates. A supporting Android browser renders the app; an internet connection is required. Browser file selection and PDF handling must be verified on a real Android device.
 
@@ -10,7 +10,7 @@ The Android source targets API 36 and includes Android Browser Helper's Play Bil
 
 - `project/`: generated Android/Gradle source, launcher, Digital Goods bridge, adaptive icons and splash resources.
 - `assets/`: 192px and 512px PNG icons derived from the current NextJOB logo, plus the editable SVG.
-- `web-public/`: proposed public PNG icons, web manifest and Digital Asset Links file. These files are staged here only, not deployed to the website. Asset Links are deliberately empty while the Play app-signing certificate is unknown.
+- `web-public/`: generated PNG icons, web manifest and Digital Asset Links file. The icons and manifest are mirrored into the website's `public/` directory for the next deployment. Asset Links remain staged and deliberately empty while the Play app-signing certificate is unknown.
 - `release-config.json`: draft package `com.markom91.nextjob`, current Site URL, initial version and proposed one-time product ID `tailored_cv_download`. Confirm the permanent package ID before the first Play upload. Regenerating after changing the package ID should use a clean project directory so old Java package files do not remain.
 - `store-listing.md`: store copy and graphics requirements, with unavailable features excluded.
 - `qa.md`: Android acceptance cases, including paid-download and recovery failures.
@@ -42,15 +42,23 @@ The current toolchain audit still reports 12 findings (8 high, 4 moderate), prop
 6. **Domain association**: copy the SHA-256 **app-signing** certificate from Play Console (not merely the upload certificate) into `playSigningSha256`, regenerate, and deploy `web-public/.well-known/assetlinks.json` at the configured origin. Verify the Play-installed build opens without a browser address bar. If a sideload test uses a different signing certificate, associate it separately only where appropriate; do not mistake debug validation for Play signing validation.
 7. **Store review**: complete the listing, truthful screenshots using a fictional QA CV, feature graphic, content-rating questionnaire, audience, ads declaration, Data safety, app-access instructions and country availability. Launch internal testing first; run all `qa.md` scenarios using a Play-installed build and license testers, then the required closed testing. Submit for production review only after the service and purchases work for users other than the owner.
 
-## Current blockers observed on 4 October 2026
+## Current blockers observed on 22 October 2026
 
 - Existing personal Google Play Console access confirmed; app creation declarations and public support contact still pending.
 - Site owner-private; app screenshots contain personal CV data and are unsuitable for public marketing.
-- Java/Android SDK unavailable in this workspace; no Android build or device test performed.
-- Google Play product, server purchase verification and recoverable guest entitlement absent.
+- Java signing tools are available in ignored `outputs/android-release/toolchain`; APK/AAB compilation passed in GitHub Actions. A physical Android device test has not been performed.
+- Google Play product and server purchase verification remain unconfigured. The website now supports configurable Stripe purchases, immutable CV grants, recovery links and future subscriptions; see `docs/billing.md`.
 - Current privacy/terms/settings pages do not provide a complete retention/deletion implementation.
 - Website payment checkout currently disabled because production Stripe credentials are absent. Enabling Stripe would not complete Android Play Billing.
 - App ID and signing certificate are draft/unconfirmed.
+
+The Android launcher now preserves `source=android` on all own-origin deep links so a fresh app launch cannot accidentally select web checkout. The signed bundle was rebuilt from Android source commit `19247dc9d7942448ea623acfd905923f561de5ba` on 22 October 2026 and includes this fix. See `internal-testing.md` for the current Console handoff.
+
+## Local signing preparation
+
+`scripts/sign-bundle.ps1 -JavaHome <JDK directory>` creates or reuses the local upload key, signs a downloaded CI bundle and verifies the JAR signature. The key and Windows-DPAPI encrypted password live under ignored `android/private/`, with access restricted to the current Windows user and SYSTEM. They are never uploaded to GitHub. The protected password depends on this Windows user profile; preserve the key and arrange a secure independent backup before relying on it for production updates. Do not delete or replace the original key after Play associates it with the app.
+
+The prepared file is `outputs/android-release/nextjob-0.1.0-upload.aab`; the public upload certificate and a nonsecret signing receipt are alongside it. It passed Google's bundle validation and reports package `com.markom91.nextjob` and target API 36. The upload certificate is not the Google Play app-signing certificate needed for website Digital Asset Links.
 
 ## Official references
 

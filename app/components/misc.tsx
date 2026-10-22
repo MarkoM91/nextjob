@@ -1,4 +1,5 @@
 "use client";
+import { BillingScreen } from "./billing-screen";
 
 import { useEffect, useState } from "react";
 import { Check, CheckCircle2, Mail, MessageCircle, RefreshCw, ShieldCheck } from "lucide-react";
@@ -35,6 +36,7 @@ export function Admin() {
 }
 
 export function StaticScreen({ screen }: { screen: string }) {
+  if (screen === "billing") return <BillingScreen />;
   if (screen === "profile") return <ProfileOverview />;
   const experienceBullets = candidate.experiences.reduce((count, experience) => count + experience.bullets.length, 0);
   const content: Record<string, [string, string, string[]]> = {

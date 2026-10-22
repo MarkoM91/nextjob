@@ -8,6 +8,7 @@ import { experienceRoleAlignment } from "../../../../lib/relevance";
 import { prepareDesignedResume } from "../../../../lib/cv-tailoring";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
 import { applicationNeedsRefresh, readStoredResume, readStoredTailoredApplication, safeOwnerId, tailoredApplicationKey, tailoredResumeKey, type StoredTailoredApplication } from "../../../../lib/resume-storage";
+import { makeCvSnapshot } from "../../../../lib/billing-cv";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { createTailoredReactiveResume, isReactiveResumeConfigured, isReactiveResumeTemplate, REACTIVE_RESUME_TEMPLATES, ReactiveResumeApiError } from "../../../../lib/reactive-resume";
 
@@ -97,7 +98,6 @@ export async function POST(request: Request) {
   let generated: Awaited<ReturnType<typeof createTailoredReactiveResume>> | undefined;
   if (providerConfigured && storedResume.externalResumeId) try {
     generated = await createTailoredReactiveResume(storedResume.externalResumeId, job, preferredTemplate, { content: storedResume.content, profile: sourceProfile, summary: application.summary });
-    await storage!.put(tailoredResumeKey(ownerId, job.id), generated.pdf, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "reactive-resume", jobId: job.id, applicationId: generated.applicationId, externalResumeId: generated.resumeId } });
   } catch (error) {
     generated = undefined;
     console.warn("[cv-generation] using local design", { code: error instanceof ReactiveResumeApiError ? error.code : "GENERATION_FAILED" });
@@ -131,6 +131,10 @@ export async function POST(request: Request) {
     externalResumeId: generated?.resumeId, applicationId: generated?.applicationId, writerModel, content: generated?.content ?? designed?.content ?? storedResume.content, application: designed ? { ...application, summary: designed.summary } : application, warnings,
     template: generated?.content?.metadata?.template ?? (generated ? preferredTemplate : undefined),
   };
+  if (generated) {
+    const snapshot = await makeCvSnapshot(ownerId, job, storedResume, pkg);
+    await storage!.put(tailoredResumeKey(ownerId, job.id), generated.pdf, { httpMetadata: { contentType: "application/pdf" }, customMetadata: { ownerId, provider: "reactive-resume", jobId: job.id, applicationId: generated.applicationId, externalResumeId: generated.resumeId, cvVersionId: snapshot.id } });
+  }
   await storage!.put(tailoredApplicationKey(ownerId, job.id), new TextEncoder().encode(JSON.stringify(pkg)), { httpMetadata: { contentType: "application/json" }, customMetadata: { ownerId, jobId: job.id, resumeProvider: pkg.resumeProvider, documentsProvider } });
   return packageResponse(pkg, false, sourceProfile);
 }

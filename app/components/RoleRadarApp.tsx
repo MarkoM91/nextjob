@@ -12,9 +12,9 @@ import { DocumentsScreen, Tracker } from "./tracker";
 import { Admin, Notifications, StaticScreen } from "./misc";
 import { CheckoutScreen } from "./checkout";
 
-export function NextJobApp({ screen, jobId, appliedJobId, applicationState, generationProvider, format, payment, searchLocation, user, demoMode = true }: Props) {
+export function NextJobApp({ screen, jobId, appliedJobId, applicationState, generationProvider, format, payment, versionId, searchLocation, user, demoMode = true }: Props) {
   if (screen === "landing") return <Landing />;
-  if (screen === "checkout") return <AppShell screen={screen} user={user} demoMode={demoMode}><CheckoutScreen jobId={jobId} format={format} payment={payment} /></AppShell>;
+  if (screen === "checkout") return <AppShell screen={screen} user={user} demoMode={demoMode}><CheckoutScreen jobId={jobId} format={format} payment={payment} versionId={versionId} /></AppShell>;
   if (screen === "upload") return <UploadScreen />;
   if (screen === "profile-review") return <UploadScreen stage="profile" />;
   if (screen === "preferences") return <UploadScreen stage="preferences" />;

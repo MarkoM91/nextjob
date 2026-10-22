@@ -50,7 +50,7 @@ const worker = {
     const contentType = secured.headers.get("content-type") ?? "";
     if (contentType.includes("text/html") || contentType.includes("text/x-component")) secured.headers.set("cache-control", "private, no-store");
     secured.headers.set("x-content-type-options", "nosniff");
-    secured.headers.set("referrer-policy", "strict-origin-when-cross-origin");
+    if (!secured.headers.has("referrer-policy")) secured.headers.set("referrer-policy", "strict-origin-when-cross-origin");
     secured.headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=()");
     secured.headers.set("cross-origin-opener-policy", "same-origin");
     // A route may declare a tighter policy of its own (the inline PDF preview allows same-origin framing only).

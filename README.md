@@ -6,22 +6,28 @@ Visitors upload and review a CV without creating an account. `AUTH_SECRET`
 signs a random, private guest workspace cookie lasting 30 days. Legacy sign-in
 pages redirect to upload; existing authentication APIs remain available.
 
-The on-screen review is free. PDF, DOCX and TXT exports require a one-time
-€1.50 EUR Stripe payment for the selected role. A private purchase record allows
-repeat downloads for seven days in the same browser. Clearing the guest cookie
-loses access to that workspace; account recovery is not implemented.
+Creating and previewing a CV is free. A one-time download defaults to €1.50 EUR,
+including PDF, DOCX and TXT plus seven days of repeat downloads of the same saved
+CV. Pricing, product IDs and the repeat-download period are configurable. A
+purchase is tied to an immutable CV version, so later edits do not change it.
+The optional private recovery link restores that purchased CV after cookie loss;
+it does not restore the full guest workspace. Keep the link private.
 
-To enable live payments, configure `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-and `PAYMENTS_PUBLIC_ORIGIN` in the production Site settings. Register
-`/api/payments/webhook` for Stripe's `checkout.session.completed` event and
-verify that Stripe can reach it through the Site's access settings. Checkout
-uses card payments. The return route verifies the paid session, amount, currency,
-workspace and role; signed webhooks record purchases even if the browser closes.
-Test with Stripe test keys before enabling live keys. Refunds are managed in
-Stripe; automated refund/dispute revocation and email recovery are not implemented.
+D1 stores orders, CV versions, entitlements, provider customers, subscriptions
+and processed events. `monthly_subscription` is supported but sales are disabled
+by default; the one-time purchase remains the primary option. Active, cancelled
+and expired subscription states use the same server-side access checks.
 
-`npm run test:integration` includes mocked payment, ownership, inline-export
-bypass, webhook-signature and duplicate-event tests. No real charge is made by tests.
+Configure Stripe keys and a reachable webhook, complete test-mode QA, then
+explicitly set `PAYMENTS_ENABLED=true`. Checkout validates server-owned pricing
+and fulfills through both a server-verified return route and signed webhooks.
+Refunds and new disputes revoke per-CV access. Android checkout fails closed
+until its Google Play payment adapter is configured; it does not use Stripe as
+a fallback. See [billing configuration and architecture](docs/billing.md).
+
+The integration suite executes real SQLite migrations with mocked Stripe,
+covering duplicate attempts, expiry, refunds, recovery, ownership, CV edits,
+subscription lifecycle and invalid payments. No real charge is made by tests.
 
 NextJOB is a production-oriented MVP for global job discovery and truthful,
 job-specific application preparation.
