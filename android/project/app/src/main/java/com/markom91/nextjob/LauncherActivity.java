@@ -46,9 +46,21 @@ public class LauncherActivity
     protected Uri getLaunchingUrl() {
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
-
-
-
-        return uri;
+        Uri origin = Uri.parse(getString(R.string.launchUrl));
+        int expectedPort = origin.getPort() == -1 ? 443 : origin.getPort();
+        int actualPort = uri == null || uri.getPort() == -1 ? 443 : uri.getPort();
+        if (uri == null || !"https".equalsIgnoreCase(uri.getScheme())
+                || !origin.getHost().equalsIgnoreCase(uri.getHost())
+                || actualPort != expectedPort) {
+            return uri;
+        }
+        if ("android".equals(uri.getQueryParameter("source"))) {
+            return uri;
+        }
+        // Keep the original encoded query and fragment. Put the Android marker first so an
+        // existing source value cannot route a fresh app deep link to the web checkout.
+        String query = uri.getEncodedQuery();
+        return uri.buildUpon().encodedQuery("source=android"
+                + (query == null || query.isEmpty() ? "" : "&" + query)).build();
     }
 }

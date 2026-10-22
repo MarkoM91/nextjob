@@ -79,6 +79,25 @@ try {
     .replace(delegation, 'android:name=".DelegationService"\n            android:enabled="true"\n            android:exported="true"')
     .replace(`\n    package="${config.applicationId}"`, "")
     .replace(/<!-- The "package" attribute[\s\S]*?-->\n/, "<!-- Component namespaces are supplied by the Gradle namespace setting. -->\n"));
+  const launcherPath = path.join(project, "app/src/main/java", config.applicationId.replaceAll(".", "/"), "LauncherActivity.java");
+  const launcher = await readFile(launcherPath, "utf8");
+  if ((launcher.match(/return uri;/g) ?? []).length !== 1) throw new Error("Bubblewrap launcher template changed; review Android deep-link detection before generating");
+  await writeFile(launcherPath, launcher.replace("return uri;", `Uri origin = Uri.parse(getString(R.string.launchUrl));
+        int expectedPort = origin.getPort() == -1 ? 443 : origin.getPort();
+        int actualPort = uri == null || uri.getPort() == -1 ? 443 : uri.getPort();
+        if (uri == null || !"https".equalsIgnoreCase(uri.getScheme())
+                || !origin.getHost().equalsIgnoreCase(uri.getHost())
+                || actualPort != expectedPort) {
+            return uri;
+        }
+        if ("android".equals(uri.getQueryParameter("source"))) {
+            return uri;
+        }
+        // Keep the original encoded query and fragment. Put the Android marker first so an
+        // existing source value cannot route a fresh app deep link to the web checkout.
+        String query = uri.getEncodedQuery();
+        return uri.buildUpon().encodedQuery("source=android"
+                + (query == null || query.isEmpty() ? "" : "&" + query)).build();`));
   async function cleanGeneratedText(directory) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       if (["build", ".gradle"].includes(entry.name)) continue;

@@ -18,6 +18,12 @@ try {
   const manifest = JSON.parse(await read("project/twa-manifest.json"));
   report(manifest.startUrl === config.startPath && manifest.host === new URL(config.origin).host, "Launch URL matches configuration");
   report(manifest.enableNotifications === false && manifest.fallbackType === "customtabs", "Notifications disabled; browser fallback configured");
+  const launcher = await read(`project/app/src/main/java/${config.applicationId.replaceAll(".", "/")}/LauncherActivity.java`);
+  report(launcher.includes('"https".equalsIgnoreCase(uri.getScheme())')
+    && launcher.includes("origin.getHost().equalsIgnoreCase(uri.getHost())")
+    && launcher.includes("actualPort != expectedPort")
+    && launcher.includes('uri.buildUpon().encodedQuery("source=android"')
+    && launcher.includes("uri.getEncodedQuery()"), "Own-origin deep links preserve query and carry Android checkout marker");
   const androidManifest = await read("project/app/src/main/AndroidManifest.xml");
   report(/android:name="\.DelegationService"\s+android:enabled="true"\s+android:exported="true"/.test(androidManifest), "Digital Goods delegation service enabled");
   for (const size of [192, 512]) {
@@ -67,9 +73,9 @@ if (process.argv.includes("--public")) {
     await access(path.join(sdk, "platforms/android-36/android.jar"));
     report(true, "Android SDK 36 located");
   } catch (error) { report(false, "Android SDK 36", error.message); }
-  report(false, "Paid CV checkout", "Google Play product, web payment flow, server verification, and recovery/refund handling are not implemented yet");
+  report(false, "Android paid CV checkout", "Google Play product and server purchase verification remain unconfigured; the separate web Stripe flow does not complete Play Billing");
   report(false, "Privacy and Data safety", "Current web privacy page is a placeholder; retention/deletion and third-party disclosures need completion");
-  report(false, "Signed AAB and device QA", "No release bundle has been compiled or tested on Android");
+  report(false, "Play release and device QA", "A signed bundle has been prepared locally; Google Play upload and physical-device tests are still pending");
 }
 console.log(process.argv.includes("--public")
   ? "This reports technical launch gaps, not Google Play approval. See README.md for the remaining release work."
