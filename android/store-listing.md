@@ -44,7 +44,7 @@ Do not claim automatic applications, offline access, guaranteed matches, ATS sco
 ## Owner-supplied fields still needed
 
 - Developer/legal name and developer account type.
-- Support email and any required developer address/contact details.
+- Public support/privacy email: **markoaffari@gmail.com**, saved in Play Console. Other required developer address/contact details must come from the owner.
 - Public website and complete privacy policy URL.
 - Intended countries and audience declarations.
 - Content rating, Data safety and ads declarations based on the actual release.

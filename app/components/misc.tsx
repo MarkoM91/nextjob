@@ -6,6 +6,7 @@ import { Check, CheckCircle2, Mail, MessageCircle, RefreshCw, ShieldCheck } from
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { CandidateProfile } from "../../lib/domain";
+import { NEXTJOB_CONTACT_EMAIL } from "../../lib/contact";
 import { AppContent, candidate, Metric, PageIntro } from "./shared";
 
 export function Notifications() {
@@ -40,7 +41,7 @@ export function StaticScreen({ screen }: { screen: string }) {
   if (screen === "profile") return <ProfileOverview />;
   const experienceBullets = candidate.experiences.reduce((count, experience) => count + experience.bullets.length, 0);
   const content: Record<string, [string, string, string[]]> = {
-    privacy: ["Privacy", "Your career history deserves careful handling.", ["Private CV and document storage", "Explicit consent before document and language-model processing", "Data export and deletion controls", "No raw CV text in analytics"]],
+    privacy: ["Privacy", "Your career history deserves careful handling.", ["Private CV and document storage", "Explicit consent before document and language-model processing", "Request a copy or deletion of your data by email", "No raw CV text in analytics"]],
     terms: ["Terms", "A career workspace, not an application guarantee.", ["NextJOB never auto-applies in the MVP", "ATS readiness is an estimate", "Prepared content must stay factual", "Worldwide coverage depends on enabled, licensed providers"]],
     help: ["Help centre", "A clear answer at every step.", ["Uploading and verifying your CV", "Understanding match explanations", "Editing and downloading documents", "Managing privacy and alerts"]],
     billing: ["Billing", "Simple plans, clear limits.", ["Free demo workspace", "Production subscription adapter", "No payment details collected in demo mode", "Cancel before a paid integration is activated"]],
@@ -48,7 +49,7 @@ export function StaticScreen({ screen }: { screen: string }) {
     settings: ["Settings", "Control your workspace.", ["Workspace privacy", "Language and regional formats", "Data retention", "Your CV and application data"]],
   };
   const [title, subtitle, items] = content[screen] ?? ["Not found", "This workspace view is not available.", []];
-  return <AppContent narrow><PageIntro eyebrow="NextJOB" title={title} subtitle={subtitle} /><section className="panel static-panel">{items.map((item) => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}</section></AppContent>;
+  return <AppContent narrow><PageIntro eyebrow="NextJOB" title={title} subtitle={subtitle} /><section className="panel static-panel">{items.map((item) => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}{(screen === "help" || screen === "privacy") && <div><Mail aria-hidden="true" /><span>{screen === "privacy" ? "For privacy questions or requests to copy or delete your CV and application data, email " : "For help with your CV, downloads or payments, email "}<a href={`mailto:${NEXTJOB_CONTACT_EMAIL}`}>{NEXTJOB_CONTACT_EMAIL}</a>.</span></div>}</section></AppContent>;
 }
 
 function ProfileOverview() {
