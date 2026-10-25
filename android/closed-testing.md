@@ -6,16 +6,16 @@ closed-test period.
 
 **Service blocker:** Testers Community's authenticated technology check rejects
 Bubblewrap/Trusted Web Activity (TWA) submissions on every plan. NextJOB's
-current Android wrapper is a TWA. The form was answered accurately; no app was
+original 0.1.0 Android wrapper was a TWA. The form was answered accurately; no app was
 submitted and the Starter credit remains unused. The service offers conversion
 to a WebView build or a refund through support. Do not answer “not a TWA” to
 bypass this restriction. This is the provider's restriction, not a verified
 Google policy that TWA testing is invalid.
 
-The owner chose **WebView conversion, then use the existing credit**. A new
-Android build and device QA are being prepared. Keep the current package and
-signing key, use a higher version code, and complete the conversion before
-submitting the app to the service. No refund message has been sent.
+The owner chose **WebView conversion, then use the existing credit**. Version
+**0.1.1 / code 2** now uses WebView, passed CI, was signed with the existing
+upload key and is available in the existing internal test. Physical-device QA
+remains pending. No refund message has been sent.
 
 ## Testers Community
 
@@ -41,8 +41,8 @@ is available and the hosted app is accessible to the testers.
 ## Play Console
 
 Closed track: **Alpha**, track ID `4700163200994773394`.
-Saved release draft: **0.1.0 closed test**, using accepted bundle code **1**
-(`0.1.0`, target API 36). Release notes describe free CV creation and preview
+Saved release draft: **0.1.1 WebView closed test**, using accepted bundle code **2**
+(`0.1.1`, target API 36). Release notes describe free CV creation and preview
 and explain that paid exports are disabled for this test.
 
 All **178 countries/regions** and the service's Google Group have been saved
@@ -52,9 +52,12 @@ future web opt-in URL as
 `https://play.google.com/apps/testing/com.markom91.nextjob`, but its copy button
 is disabled until publication; it is not a usable test invitation yet.
 
-The release validation also requires dashboard setup, a full store
-description, financial-features declaration and health
-declaration. Saving a release draft is not a rollout or Google approval.
+The full store description, icon and feature graphic are saved as a draft.
+The no-display-ads, no-financial-services and no-health-features declarations
+and Business category are saved for review. Remaining setup includes public
+privacy/app access, content rating, target audience, Data safety, government
+declaration and at least two truthful Android screenshots. Saving a release
+draft is not a rollout or Google approval.
 
 The website's hosting audience is still owner-only. Public anonymous access
 requires the owner's explicit audience approval. CVs and applications remain

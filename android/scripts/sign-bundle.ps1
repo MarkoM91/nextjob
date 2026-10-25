@@ -29,7 +29,36 @@ foreach ($taskSid in @($taskCurrentSid, [Security.Principal.SecurityIdentifier]:
     $taskRule = [Security.AccessControl.FileSystemAccessRule]::new($taskSid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
     $taskAcl.AddAccessRule($taskRule)
 }
-Set-Acl -LiteralPath $taskPrivate -AclObject $taskAcl
+$taskExpectedSids = @($taskCurrentSid.Value, 'S-1-5-18')
+$taskExpectedInheritanceFlags = [Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [Security.AccessControl.InheritanceFlags]::ObjectInherit
+$taskExistingAcl = Get-Acl -LiteralPath $taskPrivate
+$taskExistingRules = @($taskExistingAcl.Access)
+$taskAclAlreadyMatches = $taskExistingAcl.AreAccessRulesProtected -and $taskExistingRules.Count -eq $taskExpectedSids.Count
+if ($taskAclAlreadyMatches) {
+    $taskExistingRuleSids = @()
+    foreach ($taskExistingRule in $taskExistingRules) {
+        try {
+            $taskExistingRuleSids += $taskExistingRule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+        } catch {
+            $taskAclAlreadyMatches = $false
+            break
+        }
+        if ($taskExistingRule.AccessControlType -ne 'Allow' -or
+            $taskExistingRule.FileSystemRights -ne [Security.AccessControl.FileSystemRights]::FullControl -or
+            $taskExistingRule.IsInherited -or
+            $taskExistingRule.InheritanceFlags -ne $taskExpectedInheritanceFlags -or
+            $taskExistingRule.PropagationFlags -ne [Security.AccessControl.PropagationFlags]::None) {
+            $taskAclAlreadyMatches = $false
+            break
+        }
+    }
+    if ($taskAclAlreadyMatches) {
+        $taskAclAlreadyMatches = (@($taskExistingRuleSids | Sort-Object) -join '|') -eq (@($taskExpectedSids | Sort-Object) -join '|')
+    }
+}
+if (-not $taskAclAlreadyMatches) {
+    Set-Acl -LiteralPath $taskPrivate -AclObject $taskAcl
+}
 $taskKeystore = Join-Path $taskPrivate 'upload-key.jks'
 $taskProtectedPassword = Join-Path $taskPrivate 'upload-key.password.dpapi'
 $taskAlias = 'nextjob-upload'
