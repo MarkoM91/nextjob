@@ -2,6 +2,18 @@
 
 Use a fictional CV, the rebuilt 0.1.1/code-2 APK for initial checks and then the Play-installed closed-test build. Record device, Android/WebView versions, app version and install source. JVM/source checks do not establish device behavior.
 
+## Owner's phone check — 2026-10-25
+
+The owner reported "everything seems to work" after being asked to check CV
+upload, tailored preview and Android Back in the internal release. Supplied
+phone screenshots show live Milan job cards and a rendered CV preview. The
+jobs image is retained as a store asset; the CV image contains personal data
+and is not included in the repository or Play listing. This confirms the
+owner's general flow check only. Device model, Android/WebView versions and the
+extended scenarios below have not been independently verified.
+
+## Extended checks
+
 | Flow | Expected result |
 | --- | --- |
 | Fresh install / reopen | NextJOB's native loading state leads to Add CV without a hosting login or address bar. Guest work survives normal app reopen. |

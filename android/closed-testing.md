@@ -14,8 +14,10 @@ Google policy that TWA testing is invalid.
 
 The owner chose **WebView conversion, then use the existing credit**. Version
 **0.1.1 / code 2** now uses WebView, passed CI, was signed with the existing
-upload key and is available in the existing internal test. Physical-device QA
-remains pending. No refund message has been sent.
+upload key and is available in the existing internal test. The owner reports
+that the phone flow works and supplied actual Android jobs/CV-preview
+screenshots. This is owner-reported QA, not execution of the full device matrix.
+No refund message has been sent.
 
 ## Testers Community
 
@@ -60,8 +62,12 @@ terms and confirmed the intended audience as **18 and over** on 2026-10-25.
 The questionnaire produced PEGI 3 / ESRB Everyone: content ratings and the
 intended audience are separate settings. The optional store restriction for
 minors was not enabled. See `data-safety.md` for the saved privacy answers.
-The remaining store-listing requirement is at least two truthful Android
-screenshots. Saving these settings is not a rollout or Google approval.
+One actual Android jobs screenshot is uploaded and saved in the listing draft
+(`store-screenshots/01-job-matches.jpg`, unaltered 720 × 1600 JPEG). Play Console
+still requires a second screenshot. The supplied CV-preview screenshot contains
+the owner's real contact and career details and has not been uploaded to Play
+or copied into the repository. Request another non-personal app screen or a
+fictional CV preview. Saving these settings is not a rollout or Google approval.
 
 The owner approved public access on **2026-10-25** and the hosting audience is
 now public. Anonymous upload/privacy pages and Digital Asset Links return 200;
@@ -70,9 +76,10 @@ with private/no-store caching. CVs and applications remain scoped to their
 signed guest/account owner. The public privacy URL and guest app-access
 declaration have been saved in Play Console.
 
-The owner reports Android installation complete. File-picker, end-to-end CV
-processing/preview, Back navigation and phone screenshots still need device
-confirmation. A fictional test CV is available at
+The owner confirmed that everything seems to work after being asked to verify
+CV upload, preview and Android Back. Actual screenshots show live Milan jobs
+and a rendered two-page CV preview. Extended QA remains documented in `qa.md`;
+do not present it as independently completed. A fictional test CV is available at
 [NextJOB sample CV](https://raw.githubusercontent.com/MarkoM91/nextjob/codex/android-release-setup/android/test-assets/NextJOB-Sample-CV.pdf).
 
 Google requires at least 12 opted-in closed testers for 14 continuous days for
