@@ -43,6 +43,12 @@ test('public and guest requests cannot run the system-wide scheduler MCP tool',a
   assert.equal((await send('/mcp',body,{'oai-authenticated-user-id':'other','oai-authenticated-user-email':'other@example.invalid'})).status,403);
   const result=await send('/mcp',{...body,method:'tools/list'},{'oai-authenticated-user-id':'scoped-owner','oai-authenticated-user-email':'owner@example.invalid'});
   assert.equal(result.status,200);assert.equal((await result.json()).result.tools[0].name,'check_job_alerts');
+  assert.equal((await send('/mcp',undefined)).status,403);
+  const form=await worker.fetch(new Request('https://nextjob.example/mcp',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded',origin:'https://attacker.invalid','oai-authenticated-user-id':'scoped-owner','oai-authenticated-user-email':'owner@example.invalid'},body:''}),{ASSETS:{fetch:async()=>new Response(null,{status:404})}},{waitUntil(){},passThroughOnException(){}});
+  assert.equal(form.status,403);
+  const run=await send('/mcp',body,{'oai-authenticated-user-id':'scoped-owner','oai-authenticated-user-email':'owner@example.invalid'});
+  assert.equal(run.status,200);assert.equal((await run.json()).result.isError,undefined);
+  assert.ok(sqlite.prepare("SELECT last_run FROM alert_runtime WHERE id = 'job-alerts'").get().last_run,'writer persists its run');
 });
 test('email confirmation GET does not consume a valid token and unsubscribing needs no account',async()=>{
   const now=Date.now();const nonce='test-nonce';
