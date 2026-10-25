@@ -1,6 +1,5 @@
 import { env } from "cloudflare:workers";
 import { ensureGuestUser, getCurrentUser } from "../../../auth";
-import { candidate } from "../../../../lib/demo-data";
 import { readStoredResume, resumeProfileKey, safeOwnerId } from "../../../../lib/resume-storage";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
 import { applyProfileUpdate, profileUpdateSchema } from "../../../../lib/profile-review";
@@ -11,7 +10,7 @@ export async function GET(request: Request) {
   const user = await getCurrentUser();
   const storage = (env as unknown as { DOCUMENTS?: R2Bucket }).DOCUMENTS;
   const stored = await readStoredResume(storage, safeOwnerId(user?.id)).catch(() => null);
-  return Response.json(stored ? { profile: stored.profile, resume: stored.content, source: stored.provider, parsedAt: stored.parsedAt, verifiedAt: stored.verifiedAt, updatedAt: stored.updatedAt, preferredTemplate: stored.preferredTemplate ?? null } : { profile: candidate, resume: null, source: "nextjob-fallback", preferredTemplate: null }, { headers: { "cache-control": "private, no-store" } });
+  return Response.json(stored ? { profile: stored.profile, resume: stored.content, source: stored.provider, parsedAt: stored.parsedAt, verifiedAt: stored.verifiedAt, updatedAt: stored.updatedAt, preferredTemplate: stored.preferredTemplate ?? null } : { profile: null, resume: null, source: "missing", preferredTemplate: null }, { headers: { "cache-control": "private, no-store" } });
 }
 
 export async function POST(request: Request) {

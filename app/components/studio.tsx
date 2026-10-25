@@ -18,15 +18,16 @@ type GeneratedPackage = { application: GeneratedApplication; tailoredResume: Rea
 const templateLabel = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
 type Tone = "Professional" | "Direct" | "Warm" | "Concise";
 import { aggregatorName } from "../../lib/job-source";
-import { AppContent, ApplicationMethodBadge, applicationMethodCopy, candidate, LiveJobState, PageIntro, ResumeLines, SourceNotice, splitResumeLines, useLiveMatch } from "./shared";
+import { AppContent, ApplicationMethodBadge, applicationMethodCopy, LiveJobState, PageIntro, ResumeLines, SourceNotice, splitResumeLines, useLiveMatch } from "./shared";
+import { StoredProfileState, useStoredCvProfile, type StoredCvProfile } from "./stored-profile";
 
 type ReactiveExperienceItem = { id?: string; company?: string; position?: string; location?: string; period?: string; description?: string; roles?: Array<{ id?: string; position?: string; period?: string; description?: string }> };
 
 function isReactiveExperience(value: CandidateProfile["experiences"][number] | ReactiveExperienceItem): value is ReactiveExperienceItem { return !("bullets" in value); }
 
 export function Generating({ jobId }: { jobId?: string }) {
-  const { match, loading, error } = useLiveMatch(jobId);
-  if (!match) return <LiveJobState loading={loading} error={error} />;
+  const { match, loading, error, profileRequired } = useLiveMatch(jobId);
+  if (!match) return <LiveJobState loading={loading} error={error} profileRequired={profileRequired} />;
   return <GeneratingView match={match} />;
 }
 
@@ -49,26 +50,18 @@ function GeneratingView({ match }: { match: MatchResult }) {
 }
 
 export function Studio({ jobId, generationProvider }: { jobId?: string; generationProvider?: string }) {
-  const { match, loading, error } = useLiveMatch(jobId);
-  if (!match) return <LiveJobState loading={loading} error={error} />;
-  return <StudioView match={match} generationProvider={generationProvider} />;
+  const { match, loading, error, profileRequired } = useLiveMatch(jobId);
+  const storedCv = useStoredCvProfile();
+  if (storedCv.loading || !storedCv.profile) return <StoredProfileState loading={storedCv.loading} error={storedCv.error} />;
+  if (!match) return <LiveJobState loading={loading} error={error} profileRequired={profileRequired} />;
+  return <StudioView key={match.job.id} match={match} generationProvider={generationProvider} storedCv={storedCv.profile} />;
 }
 
-function StudioView({ match, generationProvider }: { match: MatchResult; generationProvider?: string }) {
+function StudioView({ match, generationProvider, storedCv }: { match: MatchResult; generationProvider?: string; storedCv: StoredCvProfile }) {
   const router = useRouter();
-  const [cvProfile, setCvProfile] = useState<CandidateProfile>(candidate);
-  const [resumeContent, setResumeContent] = useState<ReactiveResumeData | null>(null);
-  const [preferredTemplate, setPreferredTemplate] = useState<string | null>(null);
-  const [profileLoaded, setProfileLoaded] = useState(false);
-  useEffect(() => {
-    let active = true;
-    void fetch("/api/cv/profile", { headers: { accept: "application/json" } }).then(async (response) => {
-      const payload = await response.json().catch(() => null) as { profile?: CandidateProfile; resume?: ReactiveResumeData | null; preferredTemplate?: string | null } | null;
-      if (active && response.ok && payload?.profile) { setCvProfile(payload.profile); setResumeContent(payload.resume ?? null); setPreferredTemplate(payload.preferredTemplate ?? null); }
-      if (active) setProfileLoaded(true);
-    }).catch(() => { if (active) setProfileLoaded(true); });
-    return () => { active = false; };
-  }, []);
+  const cvProfile = storedCv.profile;
+  const resumeContent = storedCv.resume;
+  const [preferredTemplate, setPreferredTemplate] = useState<string | null>(storedCv.preferredTemplate);
   // The generated package is the source of truth; the template only stands in while it loads or is missing.
   const [pkg, setPkg] = useState<GeneratedPackage | null>(null);
   const [pkgState, setPkgState] = useState<"loading" | "ready" | "missing">("loading");
@@ -155,7 +148,7 @@ function StudioView({ match, generationProvider }: { match: MatchResult; generat
   // A design chosen earlier is applied to a freshly generated CV once, so every application looks the same.
   const autoApplied = useRef(false);
   useEffect(() => {
-    if (autoApplied.current || pkgState !== "ready" || !profileLoaded || !tailoredCv) return;
+    if (autoApplied.current || pkgState !== "ready" || !tailoredCv) return;
     const preferred = parseDesignKey(preferredTemplate) ?? (pkg?.generationProvider === "nextjob-template" ? { design: "professional" as const, accent: "a8c9c4" } : null);
     if (!preferred) return;
     if (pkg?.template === preferredTemplate) { autoApplied.current = true; return; }
@@ -163,7 +156,7 @@ function StudioView({ match, generationProvider }: { match: MatchResult; generat
     const timer = window.setTimeout(() => { void applyDesign(preferred.design, preferred.accent); }, 0);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pkgState, profileLoaded, tailoredCv, preferredTemplate, pkg?.application.generatedAt]);
+  }, [pkgState, tailoredCv, preferredTemplate, pkg?.application.generatedAt]);
   const method = applicationMethodCopy(match.job);
   const [tab, setTab] = useState<"cv" | "cover" | "email" | "interview">("cv");
   const [showSubmit, setShowSubmit] = useState(false);
@@ -227,8 +220,8 @@ function PrepList({ number, title, items }: { number: string; title: string; ite
 }
 
 export function PackageScreen({ jobId }: { jobId?: string }) {
-  const { match, loading, error } = useLiveMatch(jobId);
-  if (!match) return <LiveJobState loading={loading} error={error} />;
+  const { match, loading, error, profileRequired } = useLiveMatch(jobId);
+  if (!match) return <LiveJobState loading={loading} error={error} profileRequired={profileRequired} />;
   return <PackageView match={match} />;
 }
 

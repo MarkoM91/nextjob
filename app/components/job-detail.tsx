@@ -9,8 +9,8 @@ import { aggregatorName } from "../../lib/job-source";
 import { AppContent, ApplicationMethodBadge, applicationMethodCopy, bandClass, CompanyMark, Fact, formatDate, formatSalary, LiveJobState, relativeDate, ScoreRing, SourceNotice, sourceLabel, useLiveMatch } from "./shared";
 
 export function JobDetail({ jobId }: { jobId?: string }) {
-  const { match, loading, error } = useLiveMatch(jobId);
-  if (!match) return <LiveJobState loading={loading} error={error} />;
+  const { match, loading, error, profileRequired } = useLiveMatch(jobId);
+  if (!match) return <LiveJobState loading={loading} error={error} profileRequired={profileRequired} />;
   return <JobDetailView match={match} />;
 }
 

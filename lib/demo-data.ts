@@ -18,18 +18,19 @@ function salary(min: number, max: number, currency: string, period: SalaryPeriod
   };
 }
 
+/** Fictional test/example data only; never substitute this for a visitor's uploaded CV. */
 export const candidate: CandidateProfile = {
-  id: "candidate-qa-marko",
-  fullName: "Marko Medic",
-  email: "marko.medic@example.test",
-  phone: "+39 *** *** ****",
+  id: "candidate-example-alex",
+  fullName: "Alex Morgan (fictional)",
+  email: "alex.morgan@example.invalid",
+  phone: "+39 000 000 0000",
   location: "Milan, Italy",
   currentRole: "IT Support Specialist",
   yearsOfExperience: 4.5,
   targetTitles: ["IT Support Specialist", "Help Desk Specialist", "Workplace Support Technician"],
   skills: ["IT support", "Windows 11", "Microsoft 365", "Google Workspace", "Hardware troubleshooting", "Software troubleshooting", "Networking", "TCP/IP", "DNS", "DHCP", "VPN", "PowerShell", "HTML", "CSS", "JavaScript", "SQL"],
   languages: ["Italian", "English"],
-  education: ["Cisco CCNA course — EFORHUM, Milan (in progress)", "Web Development Bootcamp — Boolean Careers (2019)", "Diploma in Accounting and Business Administration — Istituto Fabio Besta, Milan (2011)"],
+  education: ["Networking course — Example Technology Academy (fictional)", "Web Development Certificate — Example Learning Centre (fictional, 2018)", "Business Administration Diploma — Example College (fictional, 2013)"],
   workAuthorizations: ["Italy", "European Union"],
   preferences: {
     countries: ["Italy", "Spain", "Portugal", "Germany", "Netherlands", "Ireland", "France", "Poland", "Romania", "Switzerland"],
@@ -41,32 +42,32 @@ export const candidate: CandidateProfile = {
   experiences: [
     {
       id: "exp-1",
-      company: "Affaritaliani.it",
+      company: "Example Office Services (fictional)",
       role: "IT Support Specialist",
-      startDate: "2021-11",
-      endDate: "2026-05",
+      startDate: "2020-04",
+      endDate: "2024-10",
       bullets: [
-        { id: "fact-support", text: "Installed and maintained PCs, printers, and network connections across a high-intensity newsroom environment." },
-        { id: "fact-workspace", text: "Managed users, credentials, and access in Google Workspace and supported Microsoft 365 workplace software." },
-        { id: "fact-troubleshooting", text: "Diagnosed and resolved Windows, hardware, and network issues, handling technical emergencies in a fast-paced environment." },
-        { id: "fact-web", text: "Monitored digital performance metrics with Google Analytics and Search Console and managed content through a proprietary CMS." },
+        { id: "fact-support", text: "Set up PCs, printers, and network connections for a small business office." },
+        { id: "fact-workspace", text: "Administered employee accounts in Google Workspace and helped colleagues use Microsoft 365." },
+        { id: "fact-troubleshooting", text: "Resolved Windows, hardware, and network faults and documented common troubleshooting steps." },
+        { id: "fact-web", text: "Updated website content and reviewed basic web performance reports for the office team." },
       ],
     },
     {
       id: "exp-2",
-      company: "BRI Srl",
+      company: "Example Interface Studio (fictional)",
       role: "Junior Front-End Developer",
-      startDate: "2019-10",
-      endDate: "2020-03",
-      bullets: [{ id: "fact-frontend", text: "Developed responsive web interfaces with HTML, CSS/SASS, and JavaScript, with performance optimization and debugging." }],
+      startDate: "2018-09",
+      endDate: "2019-02",
+      bullets: [{ id: "fact-frontend", text: "Created responsive HTML, CSS, and JavaScript pages and fixed layout defects during supervised projects." }],
     },
     {
       id: "exp-3",
-      company: "ELEVA",
+      company: "Example Web Workshop (fictional)",
       role: "Junior Web Developer",
-      startDate: "2019-07",
-      endDate: "2019-09",
-      bullets: [{ id: "fact-webdev", text: "Built responsive web interfaces and refactored existing code for performance and maintainability." }],
+      startDate: "2018-05",
+      endDate: "2018-08",
+      bullets: [{ id: "fact-webdev", text: "Built practice web interfaces and reorganized existing components for easier maintenance." }],
     },
   ],
   facts: [

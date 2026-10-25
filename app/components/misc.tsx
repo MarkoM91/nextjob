@@ -1,5 +1,6 @@
 "use client";
 import { BillingScreen } from "./billing-screen";
+import { PrivacyScreen } from "./privacy";
 
 import { useEffect, useState } from "react";
 import { Check, CheckCircle2, Mail, MessageCircle, RefreshCw, ShieldCheck } from "lucide-react";
@@ -7,7 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { CandidateProfile } from "../../lib/domain";
 import { NEXTJOB_CONTACT_EMAIL } from "../../lib/contact";
-import { AppContent, candidate, Metric, PageIntro } from "./shared";
+import { AppContent, Metric, PageIntro } from "./shared";
 
 export function Notifications() {
   const [email, setEmail] = useState(true);
@@ -25,31 +26,37 @@ type HealthPayload = { checkedAt: string; providers: ProviderHealth[]; queue?: {
 export function Admin() {
   const [payload, setPayload] = useState<HealthPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
-    void fetch("/api/providers/health", { headers: { accept: "application/json" } }).then((response) => response.ok ? response.json() as Promise<HealthPayload> : null).then((data) => { if (active) setPayload(data); }).catch(() => undefined).finally(() => { if (active) setLoading(false); });
+    void fetch("/api/providers/health", { headers: { accept: "application/json" } }).then(async (response) => {
+      if (response.status === 403) throw new Error("This page is restricted to NextJOB administrators. Provider health was not loaded.");
+      if (!response.ok) throw new Error("Provider health could not be loaded. No status results are available.");
+      const data = await response.json() as HealthPayload;
+      if (!Array.isArray(data.providers) || !data.checkedAt) throw new Error("Provider health could not be loaded. No status results are available.");
+      if (active) setPayload(data);
+    }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "Provider health could not be loaded."); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
   const providers = payload?.providers ?? [];
   const healthy = providers.filter((provider) => provider.status === "healthy").length;
   const degraded = providers.filter((provider) => provider.status === "degraded").length;
-  return <AppContent><PageIntro eyebrow="Protected admin" title="Provider health" subtitle="Operational visibility without access to private user documents." /><div className="admin-metrics"><Metric value={String(providers.length)} label="providers configured" note={`${healthy} healthy · ${degraded} degraded`} /><Metric value={payload?.queue?.status ?? "—"} label="ingestion queue" note={`${payload?.queue?.waiting ?? 0} waiting`} /><Metric value={String(payload?.queue?.deadLettered ?? 0)} label="dead-lettered" note="records awaiting review" /><Metric value={payload ? new Date(payload.checkedAt).toLocaleTimeString() : "—"} label="last check" note="live health probe" /></div>{loading ? <section className="panel tracker-loading"><RefreshCw className="spin" /> Checking providers…</section> : <section className="panel provider-table"><div className="table-head"><span>Provider</span><span>Health</span><span>Coverage</span><span>Latency</span></div>{providers.map((provider) => <div key={provider.id}><strong>{provider.name}</strong><span className={`health ${provider.status}`}><i />{provider.status}</span><span>{provider.countriesSupported.slice(0, 4).join(", ") || "—"}</span><span>{provider.latencyMs ? `${provider.latencyMs} ms` : "—"}</span></div>)}</section>}</AppContent>;
+  if (error) return <AppContent narrow><PageIntro eyebrow="Protected admin" title="Provider health unavailable" subtitle="Health results are shown only after an authorized request succeeds." /><section className="panel profile-overview"><p role="alert">{error}</p><Link className="secondary-action" href="/dashboard">Back to your workspace</Link></section></AppContent>;
+  return <AppContent><PageIntro eyebrow="Protected admin" title="Provider health" subtitle="Operational visibility without access to private user documents." />{payload && <div className="admin-metrics"><Metric value={String(providers.length)} label="providers configured" note={`${healthy} healthy · ${degraded} degraded`} /><Metric value={payload.queue?.status ?? "—"} label="ingestion queue" note={`${payload.queue?.waiting ?? 0} waiting`} /><Metric value={String(payload.queue?.deadLettered ?? 0)} label="dead-lettered" note="records awaiting review" /><Metric value={new Date(payload.checkedAt).toLocaleTimeString()} label="last check" note="live health probe" /></div>}{loading ? <section className="panel tracker-loading"><RefreshCw className="spin" /> Checking providers…</section> : <section className="panel provider-table"><div className="table-head"><span>Provider</span><span>Health</span><span>Coverage</span><span>Latency</span></div>{providers.map((provider) => <div key={provider.id}><strong>{provider.name}</strong><span className={`health ${provider.status}`}><i />{provider.status}</span><span>{provider.countriesSupported.slice(0, 4).join(", ") || "—"}</span><span>{provider.latencyMs ? `${provider.latencyMs} ms` : "—"}</span></div>)}</section>}</AppContent>;
 }
 
 export function StaticScreen({ screen }: { screen: string }) {
   if (screen === "billing") return <BillingScreen />;
   if (screen === "profile") return <ProfileOverview />;
-  const experienceBullets = candidate.experiences.reduce((count, experience) => count + experience.bullets.length, 0);
+  if (screen === "privacy") return <PrivacyScreen />;
   const content: Record<string, [string, string, string[]]> = {
-    privacy: ["Privacy", "Your career history deserves careful handling.", ["Private CV and document storage", "Explicit consent before document and language-model processing", "Request a copy or deletion of your data by email", "No raw CV text in analytics"]],
     terms: ["Terms", "A career workspace, not an application guarantee.", ["NextJOB never auto-applies in the MVP", "ATS readiness is an estimate", "Prepared content must stay factual", "Worldwide coverage depends on enabled, licensed providers"]],
     help: ["Help centre", "A clear answer at every step.", ["Uploading and verifying your CV", "Understanding match explanations", "Editing and downloading documents", "Managing privacy and alerts"]],
     billing: ["Billing", "Simple plans, clear limits.", ["Free demo workspace", "Production subscription adapter", "No payment details collected in demo mode", "Cancel before a paid integration is activated"]],
-    profile: ["Profile", "Your verified source of truth.", [`${candidate.yearsOfExperience} years of confirmed experience`, `${candidate.skills.length} verified skills`, `${candidate.languages.length} language${candidate.languages.length === 1 ? "" : "s"}`, `${experienceBullets} grounded experience bullets`]],
     settings: ["Settings", "Control your workspace.", ["Workspace privacy", "Language and regional formats", "Data retention", "Your CV and application data"]],
   };
   const [title, subtitle, items] = content[screen] ?? ["Not found", "This workspace view is not available.", []];
-  return <AppContent narrow><PageIntro eyebrow="NextJOB" title={title} subtitle={subtitle} /><section className="panel static-panel">{items.map((item) => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}{(screen === "help" || screen === "privacy") && <div><Mail aria-hidden="true" /><span>{screen === "privacy" ? "For privacy questions or requests to copy or delete your CV and application data, email " : "For help with your CV, downloads or payments, email "}<a href={`mailto:${NEXTJOB_CONTACT_EMAIL}`}>{NEXTJOB_CONTACT_EMAIL}</a>.</span></div>}</section></AppContent>;
+  return <AppContent narrow><PageIntro eyebrow="NextJOB" title={title} subtitle={subtitle} /><section className="panel static-panel">{items.map((item) => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}{screen === "help" && <div><Mail aria-hidden="true" /><span>For help with your CV, downloads or payments, email <a href={`mailto:${NEXTJOB_CONTACT_EMAIL}`}>{NEXTJOB_CONTACT_EMAIL}</a>.</span></div>}</section></AppContent>;
 }
 
 function ProfileOverview() {

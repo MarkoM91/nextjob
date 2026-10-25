@@ -737,6 +737,13 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
 .static-panel { display: grid; gap: 1px; padding: 0; background: var(--line); overflow: hidden; }
 .static-panel > div { display: flex; align-items: center; gap: 12px; padding: 15px 22px; background: var(--white); font-size: 14px; }
 .static-panel svg { width: 16px; color: var(--pine); }
+.privacy-updated { margin: -8px 0 24px; color: var(--ink-soft); font-size: 13px; }
+.privacy-sections { display: grid; gap: 20px; }
+.privacy-section { padding: 24px; }
+.privacy-section h2 { margin: 0 0 14px; font-size: 20px; }
+.privacy-section p { margin: 0 0 14px; color: var(--ink-soft); line-height: 1.75; overflow-wrap: anywhere; }
+.privacy-section p:last-child { margin-bottom: 0; }
+.privacy-section a { color: var(--pine); text-decoration: underline; text-underline-offset: 3px; }
 
 /* ============================================================
    Auth

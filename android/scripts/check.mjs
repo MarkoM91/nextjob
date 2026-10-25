@@ -6,32 +6,39 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const config = JSON.parse(await readFile(path.join(root, "release-config.json"), "utf8"));
 let failures = 0;
 function report(ok, label, detail = "") {
-  console.log(`${ok ? "PASS" : "PENDING"} ${label}${detail ? `: ${detail}` : ""}`);
+  console.log((ok ? "PASS " : "PENDING ") + label + (detail ? ": " + detail : ""));
   if (!ok) failures++;
 }
 const read = (file) => readFile(path.join(root, file), "utf8");
 try {
-  const appGradle = await read("project/app/build.gradle");
-  report(/targetSdkVersion 36\b/.test(appGradle) && /compileSdkVersion 36\b/.test(appGradle), "Android 16 / API 36");
-  report(appGradle.includes("com.google.androidbrowserhelper:billing:1.2.0"), "Play Billing 8 compatible Android bridge");
-  report(appGradle.includes(`applicationId "${config.applicationId}"`), "Generated package matches configuration");
-  const manifest = JSON.parse(await read("project/twa-manifest.json"));
-  report(manifest.startUrl === config.startPath && manifest.host === new URL(config.origin).host, "Launch URL matches configuration");
-  report(manifest.enableNotifications === false && manifest.fallbackType === "customtabs", "Notifications disabled; browser fallback configured");
-  const launcher = await read(`project/app/src/main/java/${config.applicationId.replaceAll(".", "/")}/LauncherActivity.java`);
-  report(launcher.includes('"https".equalsIgnoreCase(uri.getScheme())')
-    && launcher.includes("origin.getHost().equalsIgnoreCase(uri.getHost())")
-    && launcher.includes("actualPort != expectedPort")
-    && launcher.includes('uri.buildUpon().encodedQuery("source=android"')
-    && launcher.includes("uri.getEncodedQuery()"), "Own-origin deep links preserve query and carry Android checkout marker");
-  const androidManifest = await read("project/app/src/main/AndroidManifest.xml");
-  report(/android:name="\.DelegationService"\s+android:enabled="true"\s+android:exported="true"/.test(androidManifest), "Digital Goods delegation service enabled");
+  const gradle = await read("project/app/build.gradle");
+  const manifest = await read("project/app/src/main/AndroidManifest.xml");
+  const java = await read("project/app/src/main/java/com/markom91/nextjob/LauncherActivity.java");
+  const metadata = JSON.parse(await read("project/wrapper-manifest.json"));
+  report(gradle.includes("compileSdkVersion 36") && gradle.includes("targetSdkVersion 36"), "Android API 36");
+  report(metadata.wrapper === "webview" && metadata.applicationId === config.applicationId
+    && metadata.origin === config.origin && metadata.startPath === config.startPath
+    && metadata.versionCode === config.versionCode && metadata.versionName === config.versionName,
+    "Native WebView metadata matches release configuration");
+  report(config.applicationId === "com.markom91.nextjob" && config.versionCode >= 2, "Existing Play identity and updated version code");
+  report(![gradle, manifest, java].some((text) => /androidbrowserhelper|TrustedWebActivity|DelegationService|DigitalGoodsRequestHandler/.test(text)),
+    "No TWA runtime or unimplemented native billing bridge");
+  report(manifest.includes('android:allowBackup="false"') && manifest.includes('android:usesCleartextTraffic="false"')
+    && !/android.permission.(CAMERA|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|ACCESS_FINE_LOCATION)/.test(manifest),
+    "Private app state; HTTPS only; no broad file or device permissions");
+  report(java.includes("setAllowFileAccess(false)") && java.includes("setAllowContentAccess(false)")
+    && java.includes("MIXED_CONTENT_NEVER_ALLOW") && java.includes("handler.cancel()")
+    && !java.includes("addJavascriptInterface("), "Restricted WebView and normal TLS validation");
+  report(java.includes("ACTION_OPEN_DOCUMENT") && java.includes("ACTION_CREATE_DOCUMENT")
+    && java.includes("CookieManager.getInstance().getCookie(url)") && java.includes("setInstanceFollowRedirects(false)"),
+    "System CV chooser and authenticated controlled downloads");
+  report(java.includes("NextJOBAndroid/") && java.includes("urls.launchUrl("), "Android checkout marker on native launches");
   for (const size of [192, 512]) {
-    const png = await readFile(path.join(root, `assets/icon-${size}.png`));
-    report(png.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) && png.readUInt32BE(16) === size && png.readUInt32BE(20) === size, `${size}px PNG icon`);
+    const png = await readFile(path.join(root, "assets/icon-" + size + ".png"));
+    report(png.readUInt32BE(16) === size && png.readUInt32BE(20) === size, size + "px PNG icon");
   }
 } catch (error) {
-  report(false, "Generated Android project", error.message);
+  report(false, "Android project source", error.message);
 }
 
 if (process.argv.includes("--public")) {

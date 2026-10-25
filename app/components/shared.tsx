@@ -19,7 +19,6 @@ export type ApplicationRecord = { id: string; jobId: string; status: string; ver
 export const rankedMatches = rankJobs(candidate, jobs, true);
 export const visibleMatches = rankedMatches.filter((match) => match.eligible);
 export const bestMatch = visibleMatches[0];
-export { candidate };
 
 export const productNav: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
@@ -149,10 +148,10 @@ export function ApplicationMethodBadge({ job }: { job: Job }) {
   return <span className={`application-method ${job.applicationMethod}`}><i />{applicationMethodCopy(job).label}</span>;
 }
 
-type LiveMatchState = { jobId?: string; match: MatchResult | null; loading: boolean; error: string };
+type LiveMatchState = { jobId?: string; match: MatchResult | null; loading: boolean; error: string; profileRequired: boolean };
 
 function initialLiveMatchState(jobId?: string): LiveMatchState {
-  return { jobId, match: null, loading: Boolean(jobId), error: jobId ? "" : "No live job was selected." };
+  return { jobId, match: null, loading: Boolean(jobId), error: jobId ? "" : "No live job was selected.", profileRequired: false };
 }
 
 export function useLiveMatch(jobId?: string) {
@@ -162,16 +161,18 @@ export function useLiveMatch(jobId?: string) {
     if (!jobId) return;
     let active = true;
     void fetch(`/api/jobs/${encodeURIComponent(jobId)}`, { headers: { accept: "application/json" } }).then(async (response) => {
-      const payload = await response.json().catch(() => ({})) as { match?: MatchResult; error?: string };
+      const payload = await response.json().catch(() => ({})) as { match?: MatchResult; error?: string; profileRequired?: boolean };
+      if (payload.profileRequired) { if (active) setState({ jobId, match: null, loading: false, error: payload.error ?? "Upload and verify your CV to see your match.", profileRequired: true }); return; }
       if (!response.ok || !payload.match) throw new Error(payload.error ?? "This job is no longer available.");
-      if (active) setState({ jobId, match: payload.match, loading: false, error: "" });
-    }).catch((loadError) => { if (active) setState({ jobId, match: null, loading: false, error: loadError instanceof Error ? loadError.message : "This job is no longer available." }); });
+      if (active) setState({ jobId, match: payload.match, loading: false, error: "", profileRequired: false });
+    }).catch((loadError) => { if (active) setState({ jobId, match: null, loading: false, error: loadError instanceof Error ? loadError.message : "This job is no longer available.", profileRequired: false }); });
     return () => { active = false; };
   }, [jobId]);
-  return { match: state.match, loading: state.loading, error: state.error };
+  return { match: state.match, loading: state.loading, error: state.error, profileRequired: state.profileRequired };
 }
 
-export function LiveJobState({ loading, error }: { loading: boolean; error: string }) {
+export function LiveJobState({ loading, error, profileRequired = false }: { loading: boolean; error: string; profileRequired?: boolean }) {
+  if (profileRequired) return <AppContent narrow><section className="live-job-state"><FileText /><h1>Start with your CV</h1><p>{error || "Upload and review your CV before matching jobs or preparing documents."}</p><Link className="button" href="/upload">Add or review your CV <ArrowRight /></Link></section></AppContent>;
   return <AppContent narrow><Link href="/matches" className="back-link"><ArrowLeft /> Back to jobs</Link><section className="live-job-state">{loading ? <><RefreshCw className="spin" /><h1>Loading the employer listing…</h1><p>Checking the original source and latest job details.</p></> : <><CircleHelp /><h1>This job is unavailable</h1><p>{error || "The employer may have closed or removed the listing."}</p><Link className="button" href="/matches">View current jobs <ArrowRight /></Link></>}</section></AppContent>;
 }
 

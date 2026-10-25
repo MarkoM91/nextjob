@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   const limit = rateLimit(`import-list:${clientKey(request)}`, 60);
   if (!limit.allowed) return Response.json({ error: "Too many requests" }, { status: 429 });
   const user = await getCurrentUser();
+  if (!user) return Response.json({ error: "Open your private workspace before viewing imported jobs.", code: "WORKSPACE_REQUIRED" }, { status: 401, headers: { "cache-control": "private, no-store" } });
   const jobs = await listImportedJobs(storageOf(), safeOwnerId(user?.id)).catch(() => []);
   return Response.json({ jobs }, { headers: { "cache-control": "private, no-store" } });
 }
@@ -56,9 +57,10 @@ export async function DELETE(request: Request) {
   if (!assertSameOrigin(request)) return Response.json({ error: "Invalid request origin" }, { status: 403 });
   const jobId = new URL(request.url).searchParams.get("job");
   if (!jobId || jobId.length > 80) return Response.json({ error: "A job id is required" }, { status: 400 });
+  const user = await getCurrentUser();
+  if (!user) return Response.json({ error: "Open your private workspace before removing imported jobs.", code: "WORKSPACE_REQUIRED" }, { status: 401, headers: { "cache-control": "private, no-store" } });
   const storage = storageOf();
   if (!storage) return Response.json({ error: "Private storage is not available." }, { status: 503 });
-  const user = await getCurrentUser();
   const jobs = await removeImportedJob(storage, safeOwnerId(user?.id), jobId);
   return Response.json({ jobs }, { headers: { "cache-control": "private, no-store" } });
 }

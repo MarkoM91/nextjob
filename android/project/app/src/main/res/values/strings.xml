@@ -1,42 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-    Copyright 2021 Google Inc. All Rights Reserved.
-
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-
-         http://www.apache.org/licenses/LICENSE-2.0
-
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
--->
 <resources>
-
-
-  <!--
-    The "fullscreen" and "fullscreen-sticky" TWA manifest values correspond to "immersive" and "sticky-immersive"
-    AndroidManifest values.
-  -->
-
-
-  <!--
-    This variable below expresses the relationship between the app and the site,
-    as documented in the TWA documentation at
-    https://developers.google.com/web/updates/2017/10/using-twa#set_up_digital_asset_links_in_an_android_app
-    and is injected into the AndroidManifest.xml
-  -->
-  <string name="assetStatements">
-    [{
-        \"relation\": [\"delegate_permission/common.handle_all_urls\"],
-        \"target\": {
-            \"namespace\": \"web\",
-            \"site\": \"https://role-radar.markom91.chatgpt.site\"
-        }
-    }]
-
-  </string>
+    <string name="app_name">NextJOB</string>
+    <string name="loading">Opening your workspace…</string>
+    <string name="retry">Try again</string>
+    <string name="connection_title">Connection unavailable</string>
+    <string name="connection_body">Check your internet connection, then try again to continue.</string>
+    <string name="service_title">Your workspace could not load</string>
+    <string name="service_body">The service is temporarily unavailable. Try again in a moment.</string>
+    <string name="render_body">Please reopen the workspace and try again.</string>
+    <string name="secure_connection_title">Secure connection unavailable</string>
+    <string name="secure_connection_body">NextJOB could not verify the connection. Check your connection and device date, then try again.</string>
+    <string name="picker_unavailable">A document picker is not available on this device.</string>
+    <string name="invalid_cv">Choose a PDF or DOCX file up to 10 MB.</string>
+    <string name="external_unavailable">No app is available to open that link.</string>
+    <string name="external_blocked">This link cannot be opened safely in NextJOB.</string>
+    <string name="social_login_unavailable">Social sign-in is not available in this Android build. You can create and preview your CV without an account.</string>
+    <string name="download_busy">Finish or cancel your current download first.</string>
+    <string name="preparing_download">Preparing your CV. Choose where to save it when prompted.</string>
+    <string name="download_unavailable">The CV could not be downloaded. Return to your CV and try again. No additional payment is needed for an active purchase.</string>
+    <string name="download_saved">Your CV has been saved.</string>
+    <string name="save_failed">The file could not be saved. Choose a writable folder and try downloading again.</string>
 </resources>

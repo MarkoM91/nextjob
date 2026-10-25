@@ -368,7 +368,7 @@ Implemented controls include:
 - owner-scoped prepared writes;
 - private R2 object keys and no public CV URL;
 - MIME, extension, filename, and file-size validation;
-- malware-scan integration hook;
+- file signature validation (no malware scanner is currently configured);
 - explicit AI, email, and WhatsApp consent;
 - same-origin checks for writes;
 - API and generation rate limits;
@@ -377,7 +377,13 @@ Implemented controls include:
 - CSP, HSTS on HTTPS, `nosniff`, referrer, permissions, and frame policies;
 - no raw CV text in analytics;
 - audit and deletion-request models;
-- data export, CV/document deletion, and account deletion product surfaces.
+- manual data-copy/deletion requests through the published support contact.
+
+Self-service server-side deletion and automated retention are not implemented.
+Clearing browser data does not delete stored CVs. Closed-test participants should
+use fictional or anonymised CVs. Provider health probes require a non-guest
+identity whose verified email is in `NEXTJOB_ADMIN_EMAILS`; an empty setting
+disables this operational endpoint.
 
 Do not put service keys in `NEXT_PUBLIC_*` variables. Hosted secrets belong in
 the deployment platform’s protected runtime configuration.

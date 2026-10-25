@@ -1,60 +1,43 @@
-# NextJOB: Android internal-test handoff
+# Android build and test handoff
 
-Status checked: **2026-10-22**. Release **0.1.0 internal test** is active and available to internal testers in Google Play Console. One owner-authorized Google account is configured in the selected **NextJOB internal testers** list. This is an unreviewed internal release, not a public production launch.
+NextJOB already exists in Google Play Console: app ID `4975382845407304876`, package `com.markom91.nextjob`. The previously accepted 0.1.0/code-1 AAB uses TWA. The current source replaces it with a native WebView under the same app identity and existing upload key.
 
-Test opt-in link: **https://play.google.com/apps/internaltest/4701700359655582351**. Open it on an Android device using the Google account authorized in Console, join the test and follow the Play installation link. Until the listing is reviewed, Google displays the temporary name `com.markom91.nextjob (unreviewed)`.
-
-The public support/privacy contact is **markoaffari@gmail.com**, saved in Play Console's Store Listing contact details and included in the app's Help and Privacy screens. Tester account addresses are kept in Console rather than this public repository.
-
-## Release file and app identity
-
-| Item | Current value |
+| Candidate | Status |
 | --- | --- |
-| App name | NextJOB |
-| Console app ID | `4975382845407304876` |
-| Package | `com.markom91.nextjob` — confirmed by Console under Protected with Play |
-| Version | `0.1.0`, version code `1` |
-| Signed AAB destination | `C:\Users\marco\OneDrive\Documenti\Role Radar\outputs\android-release\nextjob-0.1.0-upload.aab` |
-| Build status | Rebuilt from Android source commit `19247dc9d7942448ea623acfd905923f561de5ba`, signed, verified and accepted by Console; target API 36. |
-| Signed bundle SHA-256 | `92aa2ffd8781006182bdf7f22cecb921331a0d20f33804233ded21e781a8a6d8` |
-| Website | `https://role-radar.markom91.chatgpt.site` |
+| Version | 0.1.1 / code 2 |
+| Target | API 36; Android 9/API 28 minimum |
+| Expected signed AAB | `C:\Users\marco\OneDrive\Documenti\Role Radar\outputs\android-release\nextjob-0.1.1-upload.aab` |
+| Build/sign/upload | Pending for this source; do not use the older code-1 file |
+| Runtime | Native WebView, no TWA dependency or billing bridge |
 
-Keep the upload key under ignored `android/private/` and arrange a secure backup: its protected password depends on this Windows profile. Never upload these secrets to GitHub or the listing.
+## Continue in Console
 
-## Continue the internal test
+1. Wait for CI's policy tests, lint, debug APK and unsigned AAB to pass. Sign and validate the new AAB using the existing upload key.
+2. Open NextJOB → **Test and release → Testing → Closed testing → Manage track**. Replace the saved code-1 draft artifact with the new code-2 artifact. Do not create another app.
+3. Confirm Console reports 0.1.1/code 2/API 36 and that the app's listing/content declarations meet its review requirements.
+4. Fix the owner-private hosting gate and complete physical-device upload, preview, download, navigation and offline QA before starting paid external testing.
+5. Use the managed testing provider's exact authenticated-dashboard Google Group on the closed track's **Testers** tab, plus an actual feedback URL/email. Save the release and submit for review/rollout when ready.
+6. Once the closed release and opt-in link work for an eligible tester, submit that link to the testing provider and use the existing credit. Internal opt-ins do not count; testers must leave internal testing before joining closed testing.
 
-The app uses **English (United Kingdom) / en-GB**, **App**, and **Free** installation. Paid CV downloads will be separate in-app purchases when implemented.
+See `closed-testing.md` for the current provider and service setup. No new code-2 upload or service activation is claimed by this document.
 
-1. Open NextJOB in Console and go to **Test and release → Testing → Internal testing**.
-2. The **Testers** tab has the selected **NextJOB internal testers** list with one authorized account. Add other accounts only with the owner's authorization.
-3. Under **Releases**, open **0.1.0 internal test**. Console confirms **Available to internal testers**. The accepted bundle is version code **1**, version **0.1.0**, target **API 36**. Do not re-upload another binary under this accepted code; use a higher code for future builds.
-4. Use the opt-in link above on a physical Android device and complete `android/qa.md`. Internal testing is separate from the required closed test and public production launch.
+## Signing and Android links
 
-## Associate the website with Google Play signing
+The upload key remains under ignored `android/private/`; its password is protected with Windows DPAPI. Arrange an independent secure backup. Never change the package/key when replacing the Android wrapper.
 
-Google uses two different certificates:
-
-- **Upload certificate:** identifies the local key used to upload an AAB. The local public certificate and signing receipt are under `outputs/android-release/`.
-- **App-signing certificate:** signs the app delivered to users by Google Play. This is the certificate the website needs for Digital Asset Links.
-
-Play App Signing is configured. Its SHA-256 fingerprint is:
+Google's Play app-signing SHA-256, recorded in `release-config.json`, is:
 
 ```text
 AB:2E:BF:5C:35:2E:B5:42:E3:DA:6A:49:52:86:60:A0:1D:EC:7D:72:92:03:22:6E:1E:17:7C:7C:90:55:51:20
 ```
 
-1. To find it again, open **Protected with Play → Play Store protection → Show details → Manage Play app signing**. Use the **App signing key certificate** fingerprint rather than the **Upload key certificate**.
-2. `android/release-config.json` now contains that fingerprint and `applicationIdConfirmed: true`; `project/twa-manifest.json` mirrors it. Digital Asset Links are prepared in both `android/web-public/.well-known/assetlinks.json` and `public/.well-known/assetlinks.json`.
-3. Deploy the public association, manifest and icons through the Site workflow, then verify `https://role-radar.markom91.chatgpt.site/.well-known/assetlinks.json` is reachable without authentication or redirects. Prepared source files do not establish public reachability by themselves.
-4. On the Play-installed build, verify no browser address bar appears. Sideloaded debug builds use a different certificate.
+It is different from the local upload certificate. Console navigation: **Protected with Play → Play Store protection → Show details → Manage Play app signing**. Matching public Digital Asset Links support Android deep links; WebView rendering no longer depends on TWA domain verification.
 
-## Remaining launch blockers
+## Current limits
 
-- **Public access:** the recorded Site is owner-private. Testers/reviewers need access without a ChatGPT hosting login. Change the hosting audience separately while preserving private CV storage.
-- **Android billing:** Play product, purchase UI and backend verification remain unconfigured; Android blocks paid downloads and the worker disables browser payments. Website Stripe does not complete Play Billing. Creation and preview remain free.
-- **Privacy/deletion:** the public contact is configured; accurate processor/retention disclosures and server-side deletion remain incomplete. Complete Data safety from actual behavior.
-- **Testers:** internal access is configured for one account; device installation and hands-on QA remain pending.
-- **QA/listing:** test a physical device and finish app-content declarations, listing and screenshots using a fictional CV. The brand feature graphic is prepared at `android/assets/feature-graphic.png`.
-- **Production access:** this Console account explicitly requires at least **12 opted-in closed-test testers for 14 continuous days**, followed by an application for production access. Internal testing does not fulfill that closed-test requirement.
+- Social OAuth is unavailable inside this shell; guest creation/preview remains available. Browser/TWA guest cookies are separate from the new app workspace.
+- Android payments stay disabled. Existing entitlements are still checked by the backend before any native download.
+- Physical-device tests are still required. Confirm upload reaches the backend from both local and cloud document providers, rather than merely checking file selection.
+- Public access, privacy/deletion, support contact, store review and tester setup remain separate work.
+- Production access requires at least 12 closed testers opted in continuously for 14 days, followed by Google's approval. Changing wrappers does not itself grant access.
 
-Keep the test limited to the configured audience until the service is accessible and the remaining launch requirements are resolved. Production launch requires Google's approval and publication.

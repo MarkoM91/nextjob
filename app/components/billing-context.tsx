@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import type { BillingCatalog } from "../../lib/payment";
+import { isAndroidAppLaunch } from "../../lib/payment-platform";
 
 type BillingContextValue = { catalog: BillingCatalog | null; error: string; platform: "web" | "android"; platformReady: boolean };
 const BillingContext = createContext<BillingContextValue>({ catalog: null, error: "", platform: "web", platformReady: false });
@@ -18,7 +19,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
       if (!controller.signal.aborted) setCatalog(body);
     }).catch((reason) => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Pricing is temporarily unavailable."); });
     void (async () => {
-      let android = new URLSearchParams(window.location.search).get("source") === "android" || document.referrer.startsWith("android-app://");
+      let android = isAndroidAppLaunch({ search: window.location.search, referrer: document.referrer, userAgent: navigator.userAgent });
       try { android ||= sessionStorage.getItem("nextjob-platform") === "android"; } catch { /* Private browsing can disable storage. */ }
       const goods = (window as unknown as { getDigitalGoodsService?: (method: string) => Promise<unknown> }).getDigitalGoodsService;
       if (goods) { try { await goods.call(window, "https://play.google.com/billing"); android = true; } catch { /* Preserve the launch marker even if Play is unavailable. */ } }

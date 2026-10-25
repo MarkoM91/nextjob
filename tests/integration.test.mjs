@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createGuestToken } from "../lib/auth-session.ts";
 
 process.env.NEXTJOB_DISABLE_LIVE_JOBS = "true";
+process.env.NEXTJOB_ADMIN_EMAILS = "admin@example.com";
 
 const workerUrl = new URL("../dist/server/index.js", import.meta.url);
 workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
@@ -90,8 +92,20 @@ test("matches API never invents fallback jobs when a verified profile is unavail
   assert.equal(body.estimateLabel, "NextJOB match estimate");
 });
 
-test("provider ingestion degrades gracefully", async () => {
-  const response = await request("/api/providers/health");
+test("provider health is admin-only and provider ingestion still degrades gracefully", async () => {
+  const anonymous = await request("/api/providers/health");
+  assert.equal(anonymous.status, 403);
+  assert.equal((await anonymous.json()).code, "ADMIN_REQUIRED");
+
+  const previousSecret = process.env.AUTH_SECRET;
+  process.env.AUTH_SECRET = "health-test-private-secret-123456789";
+  const guestToken = await createGuestToken("guest_healthtestabcdefghijkl", process.env.AUTH_SECRET);
+  const guest = await request("/api/providers/health", { headers: { cookie: `nextjob_guest=${guestToken}` } });
+  if (previousSecret === undefined) delete process.env.AUTH_SECRET; else process.env.AUTH_SECRET = previousSecret;
+  assert.equal(guest.status, 403);
+  assert.equal((await guest.json()).code, "ADMIN_REQUIRED");
+
+  const response = await request("/api/providers/health", { headers: { "oai-authenticated-user-id": "admin-health", "oai-authenticated-user-email": "admin@example.com" } });
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.ok(body.providers.some((provider) => provider.status === "offline"));
@@ -105,12 +119,14 @@ test("application generation refuses nonexistent or fictional jobs", async () =>
   assert.match(body.error, /live job/i);
 });
 
-test("profile endpoint exposes the safe fallback until a CV is parsed", async () => {
+test("profile endpoint stays empty until a CV is parsed", async () => {
   const response = await request("/api/cv/profile");
   const body = await response.json();
   assert.equal(response.status, 200);
-  assert.equal(body.source, "nextjob-fallback");
-  assert.ok(body.profile.fullName);
+  assert.equal(body.source, "missing");
+  assert.equal(body.profile, null);
+  assert.equal(body.resume, null);
+  assert.doesNotMatch(JSON.stringify(body), /Marko Medic|Affaritaliani/);
 });
 
 test("an anonymous CV upload stays private and explains missing workspace configuration", async () => {

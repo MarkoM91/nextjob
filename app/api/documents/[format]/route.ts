@@ -1,6 +1,5 @@
 import { env } from "cloudflare:workers";
 import { getCurrentUser } from "../../../auth";
-import { candidate } from "../../../../lib/demo-data";
 import { createDemoApplication } from "../../../../lib/engine";
 import { coverLetterText, emailText, interviewPrepText, textToDocx, textToPdf } from "../../../../lib/documents";
 import { databaseFromEnvironment, resolveRealJob } from "../../../../lib/job-store";
@@ -45,7 +44,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ form
     if (request.headers.get("accept")?.includes("application/json")) return Response.json({ error: "Update your documents with your corrected profile first.", code: "PROFILE_CHANGED", reviewUrl: reviewUrl.toString() }, { status: 409 });
     return Response.redirect(reviewUrl.toString(), 303);
   }
-  const profile = storedResume?.verifiedAt ? storedResume.profile : candidate;
+  if (!storedResume?.verifiedAt) {
+    return Response.json({ error: "Upload and verify your CV before exporting application documents.", code: "CV_PROFILE_REQUIRED" }, { status: 409, headers: { "cache-control": "private, no-store" } });
+  }
+  const profile = storedResume.profile;
   const fileBase = `${slug(profile.fullName)}-${kind}-${slug(job.title)}`;
   const headers = (contentType: string, provider: string) => ({
     "content-type": contentType,

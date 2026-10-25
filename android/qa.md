@@ -1,29 +1,28 @@
-# Android release QA
+# Android WebView release QA
 
-Use a fictional CV and a Play internal-test build. Record device, Android version, browser version, Play version, app version and signing certificate. Passing web tests alone does not validate Android.
+Use a fictional CV, the rebuilt 0.1.1/code-2 APK for initial checks and then the Play-installed closed-test build. Record device, Android/WebView versions, app version and install source. JVM/source checks do not establish device behavior.
 
 | Flow | Expected result |
 | --- | --- |
-| Fresh install / open | Add CV opens without a NextJOB login, ChatGPT hosting login or address bar. |
-| PDF and DOCX selection | Android system picker works; cancelling leaves upload usable. No broad storage permission request. |
-| CV processing | Consent required; actual name, dates, roles and skill levels preserved; error offers retry without losing the file. |
-| Review / edit | One review screen; edits survive confirmation and navigation. No invented experience. |
-| Default Milan search | Candidate city used; Milan, northern Italy, Italy and Europe progression behaves as configured. Foreign remote jobs are not falsely labelled nearby. |
-| Country override / no results | Filter applies consistently; empty state offers a clear recovery action. |
-| CV design | Selected professional template persists; full multi-page preview remains readable and correctly paginated. |
-| Navigation / employer link | Android Back works predictably; external employer navigation and returning do not discard the workspace. |
-| Offline / server outage | No endless spinner, white screen or misleading completed action; reconnect and retry preserve saved work. |
-| Accessibility / rotation | Keyboard does not hide essential actions; text scaling, portrait/landscape and screen-reader labels remain usable. |
-| Guest isolation | A second browser/profile cannot read another user's CV, saved jobs, generated documents or purchase grants. |
-| Checkout price | Actual Play product currency/price shown; one-time purchase clearly described. No Stripe steering in the Android flow. |
-| Cancel / pending / decline | No download entitlement from cancelled, pending or rejected payments; CV preview remains available. |
-| Verified payment | Backend verifies expected app, product and purchase token; one payment unlocks the intended role's formats only. |
-| Network loss after charging | Pending grant reconciles safely and grants exactly once when verification returns; no second charge requested. |
-| Duplicate / stolen token | Retries are idempotent; cross-user or cross-job replay cannot create extra entitlements. |
-| Download | PDF, DOCX and TXT save correctly through the Android browser; formats match the reviewed CV and selected job. |
-| Reopen / reinstall / cookies cleared | Recovery works as stated before money is accepted; consumed tokens are not incorrectly assumed to appear in purchase history. |
-| Refund / expiry | Access follows the documented purchase/refund policy; unrelated jobs remain protected. |
-| Delete workspace | User can request real server-side data deletion; retained purchase records are explained accurately. |
-| Store review access | A reviewer other than the owner can use upload, matches, preview and test purchases without special private hosting access. |
+| Fresh install / reopen | NextJOB's native loading state leads to Add CV without a hosting login or address bar. Guest work survives normal app reopen. |
+| Local PDF / DOCX | System picker opens, selected file is actually uploaded and processed; name, dates and roles remain correct. No broad storage/camera permission request. |
+| Cloud document | Pick a PDF/DOCX from a cloud provider; content URI can be read and full upload finishes. Selection alone is insufficient proof. |
+| File cancellation / invalid file | Cancellation leaves upload usable; unsupported extension/type/header or oversized file receives a clear message. |
+| Profile / matches | Review edits persist. Candidate city/country preferences affect live jobs; foreign remote jobs are not labelled nearby. |
+| PDF.js preview | Multi-page canvas rendering, worker loading, pagination and zoom work without a native PDF plug-in. Check a longer CV for memory issues. |
+| Deep link / Back | Own-origin path, encoded query and fragment survive app links; Android marker persists. Back follows history, then exits. |
+| Employer / unsafe links | External employer URL opens in the default browser; returning preserves the app workspace. No file/content/javascript/intent URL is navigated or exposed to a native bridge. |
+| Social login | Clear unavailable message; users can continue as guests. No assumption that external-browser OAuth signs the WebView in. |
+| Offline / HTTP error / TLS error | Native retry state covers main-page failure; no blank view, certificate bypass or endless spinner. Successful retry restores the page. |
+| Rotation / keyboard / process recreation | Insets and keyboard keep actions visible; history restores. A pending picker/save may need retry without corrupting saved server data. |
+| Guest isolation | A fresh app/browser profile cannot fetch another owner's CV, documents or purchased versions. Chrome/TWA cookies do not silently migrate. |
+| Android payment selection | Website recognizes NextJOBAndroid UA even after query removal. Paid export stays disabled; no Stripe fallback or false successful payment. |
+| Authorized export fixture | With a test entitlement, PDF/DOCX/TXT is fetched with the same guest cookie and saved to the chosen location. Verify resulting file opens and matches the preview. No real charge. |
+| Export access failures | Missing entitlement, wrong owner, HTML/login response, unexpected MIME, external/HTTP redirect and oversized/empty body fail without saving an error page as a CV. |
+| Save cancellation / failure | Cancelling releases pending bytes; writable-folder failure is reported and downloading can be retried without another charge for an active purchase. |
+| Privacy / store access | Accurate public disclosures and working server-side deletion exist; an external tester/reviewer can use the stated free flows. |
 
-Also run Android lint and inspect the merged manifest for unnecessary permissions, target API 36, supported billing version and verified HTTPS app links. Execute the web regression suite after changing the website's payment/privacy routes. Do not upload personal CV data as screenshots, support examples or Play reviewer assets.
+The file chooser keeps WebView content/file navigation disabled: Chromium's user-selected file permission path is separate. Verify it on actual Android devices with local Documents and a cloud provider. No generic JavaScript-to-native interface is exposed.
+
+Run `testDebugUnitTest`, lint and both package builds before uploading. Testers Community's own wrapper restriction is not proof that Google bans TWA or automatically approves WebView. Only start its paid test once the closed track and accessible app are ready.
+

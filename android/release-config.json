@@ -3,8 +3,8 @@
   "applicationIdConfirmed": true,
   "origin": "https://role-radar.markom91.chatgpt.site",
   "startPath": "/upload?source=android",
-  "versionName": "0.1.0",
-  "versionCode": 1,
+  "versionName": "0.1.1",
+  "versionCode": 2,
   "playSigningSha256": ["AB:2E:BF:5C:35:2E:B5:42:E3:DA:6A:49:52:86:60:A0:1D:EC:7D:72:92:03:22:6E:1E:17:7C:7C:90:55:51:20"],
   "productId": "tailored_cv_download"
 }

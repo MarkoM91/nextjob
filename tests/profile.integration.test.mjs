@@ -49,6 +49,42 @@ test("profile corrections and job preferences survive a fresh request without ch
   assert.ok(quickReview.profile.facts.every((fact) => fact.verifiedByUser));
 });
 
+test("job details and application documents require a verified CV instead of using the QA profile", async () => {
+  const ownedJobResponse = await request(`/api/jobs/${realJob.id}`, undefined, owner);
+  const ownedJobBody = await ownedJobResponse.json();
+  assert.equal(ownedJobResponse.status, 200);
+  assert.equal(ownedJobBody.profileSource, "verified-cv");
+  assert.equal(ownedJobBody.match.job.id, realJob.id);
+
+  const ownedDocumentResponse = await request(`/api/documents/pdf?job=${realJob.id}&doc=cover-letter`, undefined, owner);
+  assert.equal(ownedDocumentResponse.status, 200);
+  assert.match(ownedDocumentResponse.headers.get("content-type") ?? "", /application\/pdf/);
+
+  const jobResponse = await request(`/api/jobs/${realJob.id}`, undefined, other);
+  const jobBody = await jobResponse.json();
+  assert.equal(jobResponse.status, 409);
+  assert.equal(jobBody.code, "CV_PROFILE_REQUIRED");
+  assert.equal(jobBody.match, null);
+  assert.equal(jobBody.profileSource, "missing");
+  assert.doesNotMatch(JSON.stringify(jobBody), /Marko Medic|Affaritaliani/);
+
+  const documentResponse = await request(`/api/documents/pdf?job=${realJob.id}&doc=cover-letter`, undefined, other);
+  const documentBody = await documentResponse.json();
+  assert.equal(documentResponse.status, 409);
+  assert.equal(documentBody.code, "CV_PROFILE_REQUIRED");
+  assert.doesNotMatch(JSON.stringify(documentBody), /Marko Medic|Affaritaliani/);
+});
+
+test("imported-job reads and deletes require a current workspace identity", async () => {
+  const anonymous = (path, init = {}) => worker.fetch(new Request(`http://localhost${path}`, init), { ASSETS: { fetch: async () => new Response(null, { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
+  const list = await anonymous("/api/jobs/import");
+  assert.equal(list.status, 401);
+  assert.equal((await list.json()).code, "WORKSPACE_REQUIRED");
+  const remove = await anonymous("/api/jobs/import?job=import-private", { method: "DELETE", headers: { origin: "http://localhost" } });
+  assert.equal(remove.status, 401);
+  assert.equal((await remove.json()).code, "WORKSPACE_REQUIRED");
+});
+
 test("saved jobs round-trip, remain visible outside the feed, and are isolated by owner", async () => {
   const save = await request("/api/saved-jobs", { jobId: realJob.id, saved: true });
   assert.equal(save.status, 200);

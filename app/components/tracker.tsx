@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, BriefcaseBusiness, CheckCircle2, CircleHelp, Download, ExternalLink, FileText, PencilLine, RefreshCw, FilePlus2 } from "lucide-react";
-import { AppContent, CompanyMark, EmptyState, PageIntro, visibleMatches, bestMatch, type ApplicationRecord } from "./shared";
+import { ArrowRight, BriefcaseBusiness, CheckCircle2, CircleHelp, ExternalLink, FileText, RefreshCw } from "lucide-react";
+import { AppContent, CompanyMark, EmptyState, PageIntro, type ApplicationRecord } from "./shared";
+import { StoredProfileState, useStoredCvProfile } from "./stored-profile";
 
 export function Tracker() {
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
@@ -23,6 +24,8 @@ export function Tracker() {
 }
 
 export function DocumentsScreen() {
-  return <AppContent><PageIntro eyebrow="Tailored per job" title="Your documents" subtitle="Each set is prepared for one job and grounded in your verified profile." action={bestMatch ? <Link className="button" href={`/generating?job=${bestMatch.job.id}`}><FilePlus2 /> Create application</Link> : undefined} /><div className="documents-grid">{visibleMatches.slice(0, 3).map((match) => <article className="document-tile" key={match.job.id}><div className="doc-preview"><FileText /><span>CV</span></div><div><h2>{match.job.title}</h2><p>{match.job.company}</p><small>Tailored CV, cover letter and email for this role</small><div><a href={`/api/documents/pdf?job=${match.job.id}`}><Download /> Download</a><Link href={`/workspace?job=${match.job.id}`}><PencilLine /> Edit</Link></div></div></article>)}</div><p className="demo-disclaimer">Every document stays editable and traceable to your verified profile. <Link href="/matches">Pick another job <ArrowRight /></Link></p></AppContent>;
+  const storedCv = useStoredCvProfile();
+  if (storedCv.loading || !storedCv.profile) return <StoredProfileState loading={storedCv.loading} error={storedCv.error} />;
+  return <AppContent><PageIntro eyebrow="Tailored per job" title="Your documents" subtitle="Each set is prepared for one job and grounded in your verified profile." /><EmptyState icon={FileText} title="Prepare or reopen a CV" text="Choose a job to prepare its application documents. Purchased CVs are available in your download history." action="Choose a job" href="/matches" /><p className="demo-disclaimer"><Link href="/billing">Open purchased CV downloads <ArrowRight /></Link></p></AppContent>;
 }
 

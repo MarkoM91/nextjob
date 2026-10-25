@@ -6,6 +6,17 @@ import { coverLetterText, interviewPrepText, textToPdf } from "../lib/documents.
 import { createDemoApplication, rankJobs, validateGeneratedClaims } from "../lib/engine.ts";
 import { EMPTY_FILTERS, facetCounts, filtersFromParams, filtersToParams, IMPORT_PROVIDER_ID, jobPassesFilters, matchesLocation, sortMatches } from "../lib/job-filters.ts";
 import { createTailoredReactiveResume, isReactiveResumeTemplate, REACTIVE_RESUME_TEMPLATES, setReactiveResumeTemplate } from "../lib/reactive-resume.ts";
+import { isAndroidAppLaunch } from "../lib/payment-platform.ts";
+
+test("Android app billing stays marked after a WebView reload without its launch query", () => {
+  const webView = "Mozilla/5.0 (Linux; Android 15; wv) AppleWebKit/537.36 NextJOBAndroid/0.1.2";
+  assert.equal(isAndroidAppLaunch({ userAgent: webView, search: "", referrer: "" }), true);
+  assert.equal(isAndroidAppLaunch({ userAgent: webView, search: "?source=web" }), true, "a URL change cannot send the native app to web checkout");
+  assert.equal(isAndroidAppLaunch({ search: "?source=android" }), true);
+  assert.equal(isAndroidAppLaunch({ referrer: "android-app://com.markom91.nextjob" }), true);
+  assert.equal(isAndroidAppLaunch({ userAgent: "Mozilla/5.0 (Linux; Android 15) Chrome/140.0.0.0 Mobile Safari/537.36" }), false, "ordinary Android Chrome is still a web visit");
+  assert.equal(isAndroidAppLaunch({ userAgent: "Mozilla/5.0 (Windows NT 10.0) Chrome/140.0.0.0" }), false);
+});
 
 test("a chosen CV design is patched onto the tailored résumé and applied to later tailoring", async () => {
   assert.equal(isReactiveResumeTemplate("kakuna"), true);
