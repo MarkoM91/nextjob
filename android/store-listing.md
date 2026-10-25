@@ -1,5 +1,12 @@
 # NextJOB — Google Play listing draft
 
+Status **2026-10-25**: the English listing, icon, feature graphic and two actual
+phone screenshots were saved and included in the closed-test review submission.
+Publishing overview shows **Changes in review**, pending automated checks and
+Google approval. The screenshots are `store-screenshots/01-job-matches.jpg` and
+`02-job-search.jpg`; both are unaltered 720 × 1600 images. The owner's personal
+CV-preview screenshot was excluded.
+
 Do not submit this listing until Android device QA and the release requirements in README.md pass. Paid-download copy belongs in the production description only once verified Play Billing works. No current personal CV screenshots should be uploaded to the store.
 
 ## Main listing

@@ -1,8 +1,10 @@
 # NextJOB closed-test preparation
 
-Checked **2026-10-25**. The internal release remains available; the closed test
-has not started. Internal testing does not count toward Google's required
-closed-test period.
+Checked **2026-10-25**. The internal release remains available. The closed
+release and listing have been submitted: Publishing overview shows **Changes
+in review**, with automated quick checks still running before review proceeds.
+The closed test has not started. Internal testing does not count toward
+Google's required closed-test period.
 
 **Service blocker:** Testers Community's authenticated technology check rejects
 Bubblewrap/Trusted Web Activity (TWA) submissions on every plan. NextJOB's
@@ -43,13 +45,14 @@ is available and the hosted app is accessible to the testers.
 ## Play Console
 
 Closed track: **Alpha**, track ID `4700163200994773394`.
-Saved release draft: **0.1.1 WebView closed test**, using accepted bundle code **2**
+Submitted release: **0.1.1 WebView closed test**, using accepted bundle code **2**
 (`0.1.1`, target API 36). Release notes describe free CV creation and preview
-and explain that paid exports are disabled for this test.
+and explain that paid exports are disabled for this test. Release validation
+reported **Ready to release** before confirmation.
 
 All **178 countries/regions** and the service's Google Group have been saved
 for this closed track, with the approved public support email as feedback
-contact. These changes have not been sent for review. The Console shows the
+contact. These changes are included in the review submission. The Console shows the
 future web opt-in URL as
 `https://play.google.com/apps/testing/com.markom91.nextjob`, but its copy button
 is disabled until publication; it is not a usable test invitation yet.
@@ -62,12 +65,23 @@ terms and confirmed the intended audience as **18 and over** on 2026-10-25.
 The questionnaire produced PEGI 3 / ESRB Everyone: content ratings and the
 intended audience are separate settings. The optional store restriction for
 minors was not enabled. See `data-safety.md` for the saved privacy answers.
-One actual Android jobs screenshot is uploaded and saved in the listing draft
-(`store-screenshots/01-job-matches.jpg`, unaltered 720 × 1600 JPEG). Play Console
-still requires a second screenshot. The supplied CV-preview screenshot contains
-the owner's real contact and career details and has not been uploaded to Play
-or copied into the repository. Request another non-personal app screen or a
-fictional CV preview. Saving these settings is not a rollout or Google approval.
+Two actual Android jobs screenshots are included in the submitted listing:
+`store-screenshots/01-job-matches.jpg` and `02-job-search.jpg`, both unaltered
+720 × 1600 JPEGs supplied by the owner. The supplied CV-preview screenshot
+contains the owner's real contact and career details and has not been uploaded
+to Play or copied into the repository. The store listing passed its required
+asset checks. Submission is not Google approval or a live closed-test rollout.
+
+The final quick checks found a missing advertising ID declaration. Source
+inspection confirmed the wrapper has only INTERNET permission and no runtime
+SDK dependencies. **Does not use advertising ID** was saved, clearing that
+blocking issue. The submission contains 15 changes covering the Alpha release,
+countries, testers, listing and required app-content declarations. Managed
+publishing remains off, so approved changes are set to publish automatically.
+
+Wait for Google review and verify the closed opt-in URL actually works before
+submitting NextJOB to Testers Community or spending the existing Starter credit.
+No tester service submission has been made and no 14-day period has begun.
 
 The owner approved public access on **2026-10-25** and the hosting audience is
 now public. Anonymous upload/privacy pages and Digital Asset Links return 200;
