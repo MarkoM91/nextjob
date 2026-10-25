@@ -1,4 +1,6 @@
 "use client";
+import { useI18n } from "./language-provider";
+import { matchExplanation } from "../../lib/localized-copy";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -13,10 +15,12 @@ function greetingName(fullName: string): string {
 }
 
 function CompactJob({ match }: { match: MatchResult }) {
-  return <Link className="compact-job" href={`/job?job=${match.job.id}`}><div><h3>{match.job.title}</h3><p>{match.job.company} · {match.job.locationText} · {match.job.workplace} · {formatSalary(match.job)}</p></div><span className={`match-state ${bandClass(match.band)}`}>● {match.band}</span></Link>;
+  const { t, locale } = useI18n();
+  return <Link className="compact-job" href={`/job?job=${match.job.id}`}><div><h3>{match.job.title}</h3><p>{match.job.company} · {match.job.locationText} · {t(match.job.workplace)} · {formatSalary(match.job, locale)}</p></div><span className={`match-state ${bandClass(match.band)}`}>● {t(match.band)}</span></Link>;
 }
 
 export function Dashboard() {
+  const { t, locale } = useI18n();
   const targetCountries = useTargetCountries();
   const [liveMatches, setLiveMatches] = useState<MatchResult[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
@@ -53,15 +57,15 @@ export function Dashboard() {
   const topGaps = topMatch?.gaps.slice(0, 2) ?? [];
   return <AppContent narrow>
     <section className="dashboard-welcome">
-      <p className="dashboard-greeting">Search overview{profile ? ` · ${greetingName(profile.fullName)}` : ""}</p>
-      <h1>{loadingJobs ? "Checking current employer listings…" : profileRequired ? "Verify your CV to unlock real matches." : liveMatches.length ? `${liveMatches.length} live role${liveMatches.length === 1 ? "" : "s"}${nearby && origin ? ` near ${origin.name}` : ""} match your criteria.` : "No current matches."}</h1>
-      <p>{profileRequired ? "NextJOB will not match jobs against a sample profile. Upload and confirm your own experience first." : liveMatches.length ? (nearby && origin ? `Within 50 km of ${origin.name}, filtered from current employer listings using your verified profile.` : origin ? `Nothing within 50 km of ${origin.name} right now, so this is the wider feed for your target countries.` : "Filtered from current employer listings using your verified profile and preferences.") : "NextJOB will show only real, currently available listings—never invented replacements."}</p>
-      <Link className="button" href={profileRequired ? "/upload" : "/matches"}>{profileRequired ? "Add my CV" : "See live jobs"} <ArrowRight /></Link>
+      <p className="dashboard-greeting">{t("Search overview")}{profile ? ` · ${greetingName(profile.fullName)}` : ""}</p>
+      <h1>{loadingJobs ? t("Checking current employer listings…") : profileRequired ? t("Verify your CV to unlock real matches.") : liveMatches.length ? t("Current matching roles: {0}", {0: liveMatches.length}) + (nearby && origin ? " · " + t("Near {0}", {0: origin.name}) : "") : t("No current matches.")}</h1>
+      <p>{profileRequired ? t("NextJOB will not match jobs against a sample profile. Upload and confirm your own experience first.") : liveMatches.length ? (nearby && origin ? t("Within 50 km of {0}, filtered from current employer listings using your verified profile.", {"0": origin.name}) : origin ? t("Nothing within 50 km of {0} right now, so this is the wider feed for your target countries.", {"0": origin.name}) : t("Filtered from current employer listings using your verified profile and preferences.")) : t("NextJOB will show only real, currently available listings—never invented replacements.")}</p>
+      <Link className="button" href={profileRequired ? "/upload" : "/matches"}>{profileRequired ? t("Add my CV") : t("See live jobs")} <ArrowRight /></Link>
     </section>
-    {profile && <div className="search-focus"><span><strong>{profile.targetTitles[0] ?? profile.currentRole}</strong> and related roles</span><span>{profile.preferences.workplace.length === 3 ? "All work styles" : profile.preferences.workplace.join(", ")}</span><span>{targetCountries.join(", ")} + remote EU</span><Link href="/preferences">Edit</Link></div>}
-    {topMatch && <section className="best-today"><div className="section-row"><div><p className="eyebrow">Best live match</p><h2>{topMatch.job.title}</h2><p>{topMatch.job.company} · {topMatch.job.locationText} · {formatSalary(topMatch.job)}</p></div><em className={`match-state ${bandClass(topMatch.band)}`}>● {topMatch.band}</em></div><p>{topMatch.explanation}</p><div className="best-proof">{topMatch.matchedSkills.slice(0, 3).map((skill) => <span key={skill}><CheckCircle2 />{skill}</span>)}</div><Link className="button full" href={`/job?job=${topMatch.job.id}`}>View job <ArrowRight /></Link></section>}
-    {liveMatches.length > 1 && <section className="dashboard-matches"><div className="section-row"><h2>More live matches</h2><Link href="/matches">See all</Link></div><div className="compact-list">{liveMatches.slice(1, 4).map((match) => <CompactJob key={match.job.id} match={match} />)}</div></section>}
-    {topGaps.length > 0 && <p className="dashboard-tip">Improve your results by confirming {topGaps.join(" and ")} in your profile. <Link href="/profile">Review profile</Link></p>}
-    <p className="demo-disclaimer">Job availability comes directly from connected employer feeds. Matching is a NextJOB estimate; application submission is identified separately as verified or user-reported.</p>
+    {profile && <div className="search-focus"><span><strong>{profile.targetTitles[0] ?? profile.currentRole}</strong> {t("and related roles")}</span><span>{profile.preferences.workplace.length === 3 ? t("All work styles") : profile.preferences.workplace.join(", ")}</span><span>{targetCountries.join(", ")} {t("+ remote EU")}</span><Link href="/preferences">{t("Edit")}</Link></div>}
+    {topMatch && <section className="best-today"><div className="section-row"><div><p className="eyebrow">{t("Best live match")}</p><h2>{topMatch.job.title}</h2><p>{topMatch.job.company} · {topMatch.job.locationText} · {formatSalary(topMatch.job)}</p></div><em className={`match-state ${bandClass(topMatch.band)}`}>● {topMatch.band}</em></div><p>{topMatch.explanation}</p><div className="best-proof">{topMatch.matchedSkills.slice(0, 3).map((skill) => <span key={skill}><CheckCircle2 />{skill}</span>)}</div><Link className="button full" href={`/job?job=${topMatch.job.id}`}>{t("View job ")}<ArrowRight /></Link></section>}
+    {liveMatches.length > 1 && <section className="dashboard-matches"><div className="section-row"><h2>{t("More live matches")}</h2><Link href="/matches">{t("See all")}</Link></div><div className="compact-list">{liveMatches.slice(1, 4).map((match) => <CompactJob key={match.job.id} match={match} />)}</div></section>}
+    {topGaps.length > 0 && <p className="dashboard-tip">{t("Improve your results by confirming ")}{topGaps.join(" and ")} {t("in your profile. ")}<Link href="/profile">{t("Review profile")}</Link></p>}
+    <p className="demo-disclaimer">{t("Job availability comes directly from connected employer feeds. Matching is a NextJOB estimate; application submission is identified separately as verified or user-reported.")}</p>
   </AppContent>;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "./language-provider";
 import { createContext, useContext, useEffect, useState } from "react";
 import type { BillingCatalog } from "../../lib/payment";
 import { isAndroidAppLaunch } from "../../lib/payment-platform";
@@ -31,4 +32,5 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   return <BillingContext.Provider value={{ catalog, error, platform, platformReady }}>{children}</BillingContext.Provider>;
 }
 export function useBilling() { return useContext(BillingContext); }
-export function DownloadPrice() { const { catalog, error } = useBilling(); return <>{catalog?.download.label ?? (error ? "price unavailable" : "checking price…")}</>; }
+export function DownloadPrice() {
+  const { t, locale } = useI18n(); const { catalog, error } = useBilling(); return <>{catalog ? new Intl.NumberFormat(locale, {style: "currency", currency: catalog.currency.toUpperCase()}).format(catalog.download.amountCents / 100) : (error ? t("price unavailable") : t("checking price…"))}</>; }

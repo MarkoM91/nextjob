@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "./language-provider";
 import { DownloadPrice } from "./billing-context";
 
 import { useEffect, useState, type ReactNode } from "react";
@@ -6,6 +7,7 @@ import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 /** Render the watermarked export as pages, without browser PDF download controls. */
 export function CvPdfPreview({ jobId, design, revision, fallback }: { jobId: string; design: string; revision: string; fallback: ReactNode }) {
+  const { t, locale } = useI18n();
   const [pages, setPages] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -46,8 +48,8 @@ export function CvPdfPreview({ jobId, design, revision, fallback }: { jobId: str
       .finally(() => { if (destroy) void destroy(); });
     return () => { active = false; controller.abort(); if (destroy) void destroy(); };
   }, [jobId, design, revision, attempt]);
-  return <div className="cv-export-preview" aria-label="CV design preview" aria-busy={!pages.length && !error}>
-    {pages.length ? <><div className="cv-page-controls"><div><button className="secondary-action" aria-label="Previous CV page" disabled={pageIndex === 0} onClick={() => setPageIndex(pageIndex - 1)}>Previous</button><span role="status">Page {pageIndex + 1} of {pages.length}</span><button className="secondary-action" aria-label="Next CV page" disabled={pageIndex === pages.length - 1} onClick={() => setPageIndex(pageIndex + 1)}>Next</button></div><label>Zoom<select aria-label="CV preview zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}><option value={100}>Fit width</option><option value={125}>125%</option><option value={150}>150%</option><option value={200}>200%</option></select></label></div><p className="cv-preview-caption">Free preview · The watermark is removed from your <DownloadPrice /> download</p><div className="cv-page-viewport"><img className="cv-preview-page" style={{ width: `${zoom}%`, maxWidth: "none" }} src={pages[pageIndex]} alt={`Your CV in the selected design, page ${pageIndex + 1}`} /></div><details className="cv-preview-text"><summary>Read CV text and edit summary</summary>{fallback}</details></>
-      : <><p className={error ? "form-error" : "cv-preview-caption"} role={error ? "alert" : "status"}>{error || "Loading your selected CV design…"}{error && <button className="secondary-action" onClick={() => setAttempt((current) => current + 1)}>Retry preview</button>}</p>{fallback}</>}
+  return <div className="cv-export-preview" aria-label={t("CV design preview")} aria-busy={!pages.length && !error}>
+    {pages.length ? <><div className="cv-page-controls"><div><button className="secondary-action" aria-label={t("Previous CV page")} disabled={pageIndex === 0} onClick={() => setPageIndex(pageIndex - 1)}>{t("Previous")}</button><span role="status">{t("Page ")}{pageIndex + 1} {t("of ")}{pages.length}</span><button className="secondary-action" aria-label={t("Next CV page")} disabled={pageIndex === pages.length - 1} onClick={() => setPageIndex(pageIndex + 1)}>{t("Next")}</button></div><label>{t("Zoom")}<select aria-label={t("CV preview zoom")} value={zoom} onChange={(event) => setZoom(Number(event.target.value))}><option value={100}>{t("Fit width")}</option><option value={125}>125%</option><option value={150}>150%</option><option value={200}>200%</option></select></label></div><p className="cv-preview-caption">{t("Free preview · The watermark is removed from your ")}<DownloadPrice /> {t("download")}</p><div className="cv-page-viewport"><img className="cv-preview-page" style={{ width: `${zoom}%`, maxWidth: "none" }} src={pages[pageIndex]} alt={t("Your CV in the selected design, page {0}", {"0": pageIndex + 1})} /></div><details className="cv-preview-text"><summary>{t("Read CV text and edit summary")}</summary>{fallback}</details></>
+      : <><p className={error ? "form-error" : "cv-preview-caption"} role={error ? "alert" : "status"}>{error || t("Loading your selected CV design…")}{error && <button className="secondary-action" onClick={() => setAttempt((current) => current + 1)}>{t("Retry preview")}</button>}</p>{fallback}</>}
   </div>;
 }

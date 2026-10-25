@@ -999,6 +999,30 @@ h1 em, h2 em { font-style: normal; color: var(--green); }
 .sidebar .brand > span:last-child > span { color: var(--lime); }
 .sidebar .mark-field { fill: rgba(255,255,255,.10); }
 .sidebar-head { padding-bottom: 28px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.language-selector { display: inline-flex; align-items: center; gap: 7px; min-width: 0; max-width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; background: var(--paper, #fff); color: var(--ink); font-size: 13px; }
+.language-selector svg { flex: 0 0 auto; width: 15px; height: 15px; }
+.language-selector select { min-width: 0; max-width: 210px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.language-selector select:focus-visible { outline: 2px solid var(--pine); outline-offset: 3px; }
+.sidebar-language { padding: 0 10px 18px; }
+.sidebar-language .language-selector { color: #f4f5f1; background: transparent; border-color: #60736c; width: 100%; }
+.sidebar-language option { color: #142a24; background: #fff; }
+.onboarding-header-actions { display: flex; align-items: center; gap: 18px; }
+.language-settings { margin-bottom: 24px; padding: 24px; }
+.language-settings > p { margin: 12px 0 16px; }
+.language-settings .muted { color: var(--muted); font-size: 13px; margin-bottom: 0; }
+.language-selector.compact select { max-width: 110px; }
+@media (max-width: 600px) {
+  .mobile-appbar { gap: 10px; padding-inline: 16px; }
+  .mobile-appbar .language-selector { margin-left: auto; padding: 7px 5px; gap: 4px; font-size: 12px; }
+  .mobile-appbar .language-selector select { max-width: 81px; }
+  .mobile-appbar .mobile-alerts { flex-shrink: 0; }
+  .mobile-appbar .brand { gap: 8px; font-size: 21px; }
+  .onboarding-header-actions { gap: 10px; }
+  .onboarding-header-actions .language-selector select { max-width: 87px; }
+  .bottom-nav a { min-width: 0; }
+  .bottom-nav a span { font-size: 11px; overflow-wrap: anywhere; text-align: center; }
+}
 .side-link { min-height: 43px; margin: 2px 0; border-radius: 5px; color: rgba(255,255,255,.62); }
 .side-link:hover { background: rgba(255,255,255,.07); color: var(--white); }
 .side-link.active { background: var(--white); color: #17312b; box-shadow: none; }

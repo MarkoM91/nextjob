@@ -1,9 +1,11 @@
 "use client";
+import { useI18n } from "./language-provider";
 
 import { useEffect, useState } from "react";
 import { BUILD_VERSION } from "../../lib/build-version";
 
 export function BuildUpdateNotice() {
+  const { t, locale } = useI18n();
   const [updateReady, setUpdateReady] = useState(false);
   useEffect(() => {
     let active = true;
@@ -28,5 +30,5 @@ export function BuildUpdateNotice() {
     return () => { active = false; controller.abort(); window.clearInterval(timer); window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
   }, []);
   if (!updateReady) return null;
-  return <div className="build-update-notice" role="status"><p>An app update is ready. Save your changes, then refresh.</p><button type="button" onClick={() => window.location.reload()}>Refresh app</button></div>;
+  return <div className="build-update-notice" role="status"><p>{t("An app update is ready. Save your changes, then refresh.")}</p><button type="button" onClick={() => window.location.reload()}>{t("Refresh app")}</button></div>;
 }

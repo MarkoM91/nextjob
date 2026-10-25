@@ -5,6 +5,9 @@ import "./globals.css";
 import { BuildUpdateNotice } from "./components/build-update-notice";
 import { BUILD_VERSION } from "../lib/build-version";
 import { BillingProvider } from "./components/billing-context";
+import { cookies } from "next/headers";
+import { LANGUAGE_COOKIE, isLocale, resolveLocale } from "../lib/i18n";
+import { LanguageProvider } from "./components/language-provider";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -30,6 +33,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#123b34", colorScheme: "light" };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><head><meta name="nextjob-build" content={BUILD_VERSION} /></head><body className={`${geistSans.variable} ${geistMono.variable} ${display.variable}`}><BillingProvider>{children}<BuildUpdateNotice /></BillingProvider></body></html>;
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const [incoming, stored] = await Promise.all([headers(), cookies()]);
+  const saved = stored.get(LANGUAGE_COOKIE)?.value;
+  const preference = isLocale(saved) ? saved : "auto";
+  const detected = resolveLocale({ preference, country: incoming.get("x-nextjob-country") ?? incoming.get("cf-ipcountry"), acceptLanguage: incoming.get("accept-language") });
+  return <html lang={detected.locale}><head><meta name="nextjob-build" content={BUILD_VERSION} /></head><body className={`${geistSans.variable} ${geistMono.variable} ${display.variable}`}><LanguageProvider initialLocale={detected.locale} initialCountry={detected.country} initialPreference={preference}><BillingProvider>{children}<BuildUpdateNotice /></BillingProvider></LanguageProvider></body></html>;
 }

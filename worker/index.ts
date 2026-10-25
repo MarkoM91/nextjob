@@ -42,7 +42,14 @@ const worker = {
       }, allowedWidths);
     }
 
-    const response = await handler.fetch(request, env, ctx);
+    // The app-router reconstructs Requests and can omit Cloudflare's `cf` object.
+    // Carry only the network country to SSR/API handlers, replacing any incoming
+    // application header so a browser cannot override the edge-derived value.
+    const incomingCountry = (request as Request & { cf?: { country?: string } }).cf?.country ?? request.headers.get("cf-ipcountry");
+    const appHeaders = new Headers(request.headers);
+    appHeaders.delete("x-nextjob-country");
+    if (/^[A-Za-z]{2}$/.test(incomingCountry ?? "")) appHeaders.set("x-nextjob-country", incomingCountry!.toUpperCase());
+    const response = await handler.fetch(new Request(request, { headers: appHeaders }), env, ctx);
     const secured = new Response(response.body, response);
     secured.headers.set("x-nextjob-build", BUILD_VERSION);
     // Personalized HTML and navigation responses must come from the current

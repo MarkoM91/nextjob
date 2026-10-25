@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "./language-provider";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, CreditCard, Download, FileText, LockKeyhole } from "lucide-react";
 import Link from "next/link";
@@ -19,6 +20,7 @@ const notices: Record<string, string> = {
 };
 
 export function CheckoutScreen({ jobId, format, payment, versionId }: { jobId?: string; format?: string; payment?: string; versionId?: string }) {
+  const { t, locale } = useI18n();
   const { catalog, platform, platformReady } = useBilling();
   const [selectedFormat, setSelectedFormat] = useState(() => formats.includes(format as typeof formats[number]) ? format! : "pdf");
   const [access, setAccess] = useState<Access | null>(null);
@@ -77,25 +79,25 @@ export function CheckoutScreen({ jobId, format, payment, versionId }: { jobId?: 
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Your recovery link could not be created."); }
   };
   return <AppContent narrow>
-    <Link href={jobId ? `/workspace?job=${encodeURIComponent(jobId)}` : "/upload"} className="back-link"><ArrowLeft /> Back to your CV</Link>
-    <PageIntro eyebrow="Free preview · Pay only to download" title={unlocked ? "Your CV is ready to download" : "Download your CV"} subtitle={access?.job ? `${access.job.title} · ${access.job.company}` : "Creating and previewing your CV is free. Download when you’re ready."} />
+    <Link href={jobId ? `/workspace?job=${encodeURIComponent(jobId)}` : "/upload"} className="back-link"><ArrowLeft /> {t("Back to your CV")}</Link>
+    <PageIntro eyebrow={t("Free preview · Pay only to download")} title={unlocked ? t("Your CV is ready to download") : t("Download your CV")} subtitle={access?.job ? `${access.job.title} · ${access.job.company}` : t("Creating and previewing your CV is free. Download when you’re ready.")} />
     <div className="checkout-layout"><section className="panel checkout-card">
-      <div className="checkout-card-head"><span className="checkout-icon"><FileText /></span><div><h2>{unlocked ? "Download access active" : "One-time download"}</h2><p>{unlocked ? "No further payment is needed for this saved CV." : "Creating and previewing your CV is free. Pay once for the finished file."}</p></div></div>
-      <div className="checkout-price"><span>{access?.subscription.active ? "Included in your subscription" : access?.purchased ? "Already purchased" : "One-time CV download"}</span><strong>{unlocked ? "Unlocked" : price ?? "Checking price…"}</strong></div>
-      <div className="checkout-format"><span>Choose a format</span><div>{formats.map((item) => <button key={item} type="button" className={selectedFormat === item ? "active" : ""} aria-pressed={selectedFormat === item} onClick={() => setSelectedFormat(item)}>{item.toUpperCase()}</button>)}</div></div>
-      {payment && notices[payment] && <p className={unlocked ? "billing-success" : "billing-notice"} role="status">{payment === "successful" && !unlocked ? "Checking your payment. Your download will unlock after confirmation." : notices[payment]}</p>}
-      {access?.purchased && payment !== "successful" && <p className="billing-success" role="status">You’ve already purchased this CV. Download it again at no extra cost{access.expiresAt ? ` until ${new Date(access.expiresAt).toLocaleDateString()}` : ""}.</p>}
-      {access?.subscription.active && <p className="billing-success" role="status">Subscription active{access.subscription.cancelAtPeriodEnd ? "; ends" : " until"} {new Date(access.subscription.periodEndsAt!).toLocaleDateString()}. Your CV download is included.</p>}
-      {access && ["expired", "cancelled"].includes(access.subscription.status) && !unlocked && <p className="billing-notice" role="status">Your subscription is {access.subscription.status}. You can still pay once for this CV.</p>}
-      {access && !access.available && <p className="billing-notice" role="status">{access.code === "PLAY_BILLING_NOT_CONFIGURED" ? "Android payments are not available yet. Creating and previewing your CV is still free." : access.code === "CV_NOT_READY" ? "Finish and save your CV preview first." : "Payments are temporarily unavailable. Your CV is saved and its preview remains free."}</p>}
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="button full" type="button" disabled={!access?.available || starting} onClick={() => void start()}>{unlocked ? <Download /> : <CreditCard />}{starting ? unlocked ? "Opening your download…" : "Opening secure checkout…" : unlocked ? "Download your CV" : access?.available ? `Pay ${price} and download` : access || error ? "Download unavailable" : "Checking download access…"}</button>
-      <ul className="checkout-points"><li><Check /> PDF, DOCX and TXT included</li><li><Check /> {access?.redownloadDays ?? catalog?.download.redownloadDays ?? "Several"} days to re-download this same CV</li><li><Check /> No account or subscription required</li></ul>
-      {(error || payment === "pending" || payment === "not-confirmed" || access && !access.available) && <button className="secondary-action" type="button" onClick={() => setCheck((value) => value + 1)}>Check again</button>}
-      {catalog?.subscription.enabled && !unlocked && platform === "web" && <div className="billing-optional"><h3>Optional monthly plan</h3><p>{catalog.subscription.label}/month for unlimited CV downloads. The one-time download is always available.</p><button className="secondary-action" disabled={!access?.available || starting} onClick={() => void start("monthly_subscription")}>Choose monthly plan</button></div>}
-      <p className="checkout-fineprint"><LockKeyhole /> Your purchased copy stays unchanged. After payment, save a private recovery link to keep access if you change browsers.</p>
-      <Link className="secondary-action" href="/billing">Your purchased downloads</Link>
-      {access?.purchased && <div className="billing-optional"><button className="secondary-action" type="button" onClick={() => void saveLink()}>Copy private recovery link</button><p>Save this link to re-download this purchased CV if you change browsers or lose this workspace. Keep it private: anyone with the link can download this CV until access expires.</p>{recovery && <p role="status">{recovery.copied ? "Private link copied. Save it somewhere safe." : <a href={recovery.url}>Open your recovery download and save its link</a>}</p>}</div>}
+      <div className="checkout-card-head"><span className="checkout-icon"><FileText /></span><div><h2>{unlocked ? t("Download access active") : t("One-time download")}</h2><p>{unlocked ? t("No further payment is needed for this saved CV.") : t("Creating and previewing your CV is free. Pay once for the finished file.")}</p></div></div>
+      <div className="checkout-price"><span>{access?.subscription.active ? t("Included in your subscription") : access?.purchased ? t("Already purchased") : t("One-time CV download")}</span><strong>{unlocked ? t("Unlocked") : price ?? t("Checking price…")}</strong></div>
+      <div className="checkout-format"><span>{t("Choose a format")}</span><div>{formats.map((item) => <button key={item} type="button" className={selectedFormat === item ? "active" : ""} aria-pressed={selectedFormat === item} onClick={() => setSelectedFormat(item)}>{item.toUpperCase()}</button>)}</div></div>
+      {payment && notices[payment] && <p className={unlocked ? "billing-success" : "billing-notice"} role="status">{payment === "successful" && !unlocked ? t("Checking your payment. Your download will unlock after confirmation.") : t(notices[payment])}</p>}
+      {access?.purchased && payment !== "successful" && <p className="billing-success" role="status">{t("You’ve already purchased this CV. Download it again at no extra cost")}{access.expiresAt ? t(" until {0}", {"0": new Date(access.expiresAt).toLocaleDateString()}) : ""}.</p>}
+      {access?.subscription.active && <p className="billing-success" role="status">{t("Subscription active")}{access.subscription.cancelAtPeriodEnd ? t("; ends") : t(" until")} {new Date(access.subscription.periodEndsAt!).toLocaleDateString()}{t(". Your CV download is included.")}</p>}
+      {access && ["expired", "cancelled"].includes(access.subscription.status) && !unlocked && <p className="billing-notice" role="status">{t("Your subscription is ")}{access.subscription.status}{t(". You can still pay once for this CV.")}</p>}
+      {access && !access.available && <p className="billing-notice" role="status">{access.code === "PLAY_BILLING_NOT_CONFIGURED" ? t("Android payments are not available yet. Creating and previewing your CV is still free.") : access.code === "CV_NOT_READY" ? t("Finish and save your CV preview first.") : t("Payments are temporarily unavailable. Your CV is saved and its preview remains free.")}</p>}
+      {error && <p className="form-error" role="alert">{t(error)}</p>}
+      <button className="button full" type="button" disabled={!access?.available || starting} onClick={() => void start()}>{unlocked ? <Download /> : <CreditCard />}{starting ? unlocked ? t("Opening your download…") : t("Opening secure checkout…") : unlocked ? t("Download your CV") : access?.available ? t("Pay {0} and download", {"0": price}) : access || error ? t("Download unavailable") : t("Checking download access…")}</button>
+      <ul className="checkout-points"><li><Check /> {t("PDF, DOCX and TXT included")}</li><li><Check /> {access?.redownloadDays ?? catalog?.download.redownloadDays ?? t("Several")} {t("days to re-download this same CV")}</li><li><Check /> {t("No account or subscription required")}</li></ul>
+      {(error || payment === "pending" || payment === "not-confirmed" || access && !access.available) && <button className="secondary-action" type="button" onClick={() => setCheck((value) => value + 1)}>{t("Check again")}</button>}
+      {catalog?.subscription.enabled && !unlocked && platform === "web" && <div className="billing-optional"><h3>{t("Optional monthly plan")}</h3><p>{catalog.subscription.label}{t("/month for unlimited CV downloads. The one-time download is always available.")}</p><button className="secondary-action" disabled={!access?.available || starting} onClick={() => void start("monthly_subscription")}>{t("Choose monthly plan")}</button></div>}
+      <p className="checkout-fineprint"><LockKeyhole /> {t("Your purchased copy stays unchanged. After payment, save a private recovery link to keep access if you change browsers.")}</p>
+      <Link className="secondary-action" href="/billing">{t("Your purchased downloads")}</Link>
+      {access?.purchased && <div className="billing-optional"><button className="secondary-action" type="button" onClick={() => void saveLink()}>{t("Copy private recovery link")}</button><p>{t("Save this link to re-download this purchased CV if you change browsers or lose this workspace. Keep it private: anyone with the link can download this CV until access expires.")}</p>{recovery && <p role="status">{recovery.copied ? t("Private link copied. Save it somewhere safe.") : <a href={recovery.url}>{t("Open your recovery download and save its link")}</a>}</p>}</div>}
     </section>{access?.job && <aside className="checkout-summary"><div className="checkout-job"><CompanyMark name={access.job.company} large /><div><strong>{access.job.title}</strong><span>{access.job.company} · {access.job.locationText}</span></div></div><SourceNotice job={access.job} /></aside>}</div>
   </AppContent>;
 }

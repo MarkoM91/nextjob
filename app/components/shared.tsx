@@ -1,4 +1,7 @@
 "use client";
+import { LanguageSelector, useI18n } from "./language-provider";
+import type { Locale } from "../../lib/i18n";
+import { translate } from "../../lib/ui-translations";
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -50,34 +53,37 @@ export function LogoMark({ size = 34 }: { size?: number }) {
 }
 
 export function Logo({ compact = false }: { compact?: boolean }) {
-  return <Link href="/" className="brand" aria-label="NextJOB home"><LogoMark />{!compact && <span>Next<span>JOB</span></span>}</Link>;
+  const { t, locale } = useI18n();
+  return <Link href="/" className="brand" aria-label={t("NextJOB home")}><LogoMark />{!compact && <span>Next<span>JOB</span></span>}</Link>;
 }
 
 function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
+  const { t } = useI18n();
   const Icon = item.icon;
-  return <Link href={item.href} className={`side-link ${active ? "active" : ""}`}><Icon size={17} />{item.label}</Link>;
+  return <Link href={item.href} className={`side-link ${active ? "active" : ""}`}><Icon size={17} />{t(item.label)}</Link>;
 }
 
 export function AppShell({ screen, user, demoMode, children }: Props & { children: React.ReactNode }) {
+  const { t, locale } = useI18n();
   // Hosting identity protects private documents; it is not a NextJOB signup.
   const hasAppAccount = Boolean(user && user.provider !== "guest" && user.provider !== "chatgpt");
   const displayName = user?.displayName ?? "Your workspace";
   const isActive = (href: string) => href === "/dashboard" ? screen === "dashboard" : href === "/matches" ? ["matches", "saved", "job", "add-job"].includes(screen) : href === "/tracker" ? ["tracker", "package", "done", "generating", "ats", "studio", "workspace", "cv-editor", "cover-letter", "application-email", "interview"].includes(screen) : ["profile", "profile-review", "preferences", "settings"].includes(screen);
   return <div className="app-frame">
     <aside className="sidebar">
-      <div className="sidebar-head"><Logo /></div>
-      <nav aria-label="Product">{productNav.map((item) => <SidebarLink key={item.href} item={item} active={isActive(item.href)} />)}<p className="nav-label support-label">Support</p>{supportNav.map((item) => <SidebarLink key={item.href} item={item} active={screen === item.href.slice(1)} />)}</nav>
+      <div className="sidebar-head"><Logo /></div><div className="sidebar-language"><LanguageSelector /></div>
+      <nav aria-label={t("Product")}>{productNav.map((item) => <SidebarLink key={item.href} item={item} active={isActive(item.href)} />)}<p className="nav-label support-label">{t("Support")}</p>{supportNav.map((item) => <SidebarLink key={item.href} item={item} active={screen === item.href.slice(1)} />)}</nav>
       {hasAppAccount ? <div className="profile-card">
         <span className="avatar">{displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}</span>
-        <div><strong>{displayName.split(" ")[0]}</strong><span>{demoMode ? "Private QA profile" : user?.email}</span></div>
-        <form action="/api/auth/signout?return_to=%2F" method="post"><button type="submit" className="profile-action" title="Sign out" aria-label="Sign out"><LogOut /></button></form>
-      </div> : <div className="profile-card workspace-card"><span className="workspace-icon" aria-hidden><ShieldCheck /></span><div><strong>Your workspace</strong><span>CV, jobs & applications</span></div></div>}
+        <div><strong>{displayName.split(" ")[0]}</strong><span>{demoMode ? t("Private QA profile") : user?.email}</span></div>
+        <form action="/api/auth/signout?return_to=%2F" method="post"><button type="submit" className="profile-action" title={t("Sign out")} aria-label={t("Sign out")}><LogOut /></button></form>
+      </div> : <div className="profile-card workspace-card"><span className="workspace-icon" aria-hidden><ShieldCheck /></span><div><strong>{t("Your workspace")}</strong><span>{t("CV, jobs & applications")}</span></div></div>}
     </aside>
     <div className="app-main">
-      <header className="mobile-appbar"><Logo /><Link className="mobile-alerts" href="/notifications" aria-label="Notifications"><Bell /><i /></Link></header>
+      <header className="mobile-appbar"><Logo /><LanguageSelector compact /><Link className="mobile-alerts" href="/notifications" aria-label={t("Notifications")}><Bell /><i /></Link></header>
       {children}
     </div>
-    <nav className="bottom-nav" aria-label="Mobile navigation">{productNav.map(({ href, label, icon: Icon }) => <Link href={href} key={href} className={isActive(href) ? "active" : ""}><Icon /><span>{label}</span></Link>)}</nav>
+    <nav className="bottom-nav" aria-label={t("Mobile navigation")}>{productNav.map(({ href, label, icon: Icon }) => <Link href={href} key={href} className={isActive(href) ? "active" : ""}><Icon /><span>{t(label)}</span></Link>)}</nav>
   </div>;
 }
 
@@ -90,7 +96,8 @@ export function PageIntro({ eyebrow, title, subtitle, action }: { eyebrow: strin
 }
 
 export function PanelHead({ title, subtitle, href }: { title: string; subtitle?: string; href?: string }) {
-  return <div className="panel-head"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{href && <Link href={href}>View all <ArrowRight size={15} /></Link>}</div>;
+  const { t, locale } = useI18n();
+  return <div className="panel-head"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{href && <Link href={href}>{t("View all ")}<ArrowRight size={15} /></Link>}</div>;
 }
 
 export function CompanyMark({ name, large = false }: { name: string; large?: boolean }) {
@@ -117,20 +124,22 @@ export function Fact({ label, value }: { label: string; value: string }) {
   return <div className="fact"><span>{label}</span><strong>{value}</strong></div>;
 }
 
-export function applicationMethodCopy(job: Job) {
-  if (job.applicationMethod === "native") return { label: "Apply in NextJOB", title: "Apply without leaving NextJOB", description: "This employer-authorized ATS connection supports verified in-app submission after you review every document.", action: "Submit in NextJOB" };
-  if (job.applicationMethod === "autofill") return { label: "Autofill available", title: "Autofill the employer form", description: "NextJOB can hand your reviewed profile and documents to the assisted-apply extension. You still verify and submit on the employer form.", action: "Continue with autofill" };
+export function applicationMethodCopy(job: Job, locale: Locale = "en") {
+  const t = (key: string, values?: Record<string, unknown>) => translate(locale, key, values);
+  const localize = (copy: {label: string; title: string; description: string; action: string}) => ({label: t(copy.label), title: t(copy.title), description: t(copy.description), action: t(copy.action)});
+  if (job.applicationMethod === "native") return localize({ label: "Apply in NextJOB", title: "Apply without leaving NextJOB", description: "This employer-authorized ATS connection supports verified in-app submission after you review every document.", action: "Submit in NextJOB" });
+  if (job.applicationMethod === "autofill") return localize({ label: "Autofill available", title: "Autofill the employer form", description: "NextJOB can hand your reviewed profile and documents to the assisted-apply extension. You still verify and submit on the employer form.", action: "Continue with autofill" });
   const via = aggregatorName(job);
-  if (via) return { label: "Employer-site application", title: "Review here, apply on the employer's site", description: `This vacancy reached NextJOB through ${via}. Its link opens ${via}'s page first, which passes you on to the employer's own form.`, action: `Continue via ${via}` };
-  return { label: "Employer-site application", title: "Review here, submit to the employer", description: "NextJOB prepares your documents and opens the official application. You confirm the status after returning.", action: "Continue to employer" };
+  if (via) return localize({ label: "Employer-site application", title: "Review here, apply on the employer's site", description: t("This vacancy reached NextJOB through {0}. Its link opens {0} first, then continues to the employer form.", {0: via}), action: t("Continue via {0}", {0: via}) });
+  return localize({ label: "Employer-site application", title: "Review here, submit to the employer", description: "NextJOB prepares your documents and opens the official application. You confirm the status after returning.", action: "Continue to employer" });
 }
 
 /** "Live employer listing", "Re-published by Careerjet" or "Added by you". */
-export function sourceLabel(job: Job): string {
+export function sourceLabel(job: Job, locale: Locale = "en"): string {
   const kind = jobSourceKind(job);
-  if (kind === "user") return "Added by you";
-  if (kind === "aggregator") return `Re-published by ${aggregatorName(job)}`;
-  return "Live employer listing";
+  if (kind === "user") return translate(locale, "Added by you");
+  if (kind === "aggregator") return translate(locale, "Re-published by {0}", {0: aggregatorName(job)});
+  return translate(locale, "Live employer listing");
 }
 
 /**
@@ -138,14 +147,16 @@ export function sourceLabel(job: Job): string {
  * human check in front of the employer page, so a direct route to the employer is offered too.
  */
 export function SourceNotice({ job }: { job: Job }) {
+  const { t, locale } = useI18n();
   const via = aggregatorName(job);
   if (!via) return null;
   const search = employerSearchUrl(job);
-  return <div className="source-notice" role="note"><Info /><div><p>Opens on {via} first, then continues to the employer.{linkMayAskHumanCheck(job) ? ` ${via} may ask you to confirm you are human before showing the employer's page; if it blocks you, open the link in your usual browser or go to the employer directly.` : ""}</p>{search ? <a href={search} target="_blank" rel="noreferrer"><Search /> Find it on {job.company}&rsquo;s careers site <ExternalLink /></a> : null}</div></div>;
+  return <div className="source-notice" role="note"><Info /><div><p>{t("Opens on ")}{via} {t("first, then continues to the employer.")}{linkMayAskHumanCheck(job) ? t(" {0} may ask you to confirm you are human before showing the employer's page; if it blocks you, open the link in your usual browser or go to the employer directly.", {"0": via}) : ""}</p>{search ? <a href={search} target="_blank" rel="noreferrer"><Search /> {t("Find it on ")}{job.company}{t("’s careers site ")}<ExternalLink /></a> : null}</div></div>;
 }
 
 export function ApplicationMethodBadge({ job }: { job: Job }) {
-  return <span className={`application-method ${job.applicationMethod}`}><i />{applicationMethodCopy(job).label}</span>;
+  const { t } = useI18n();
+  return <span className={`application-method ${job.applicationMethod}`}><i />{t(applicationMethodCopy(job).label)}</span>;
 }
 
 type LiveMatchState = { jobId?: string; match: MatchResult | null; loading: boolean; error: string; profileRequired: boolean };
@@ -172,30 +183,31 @@ export function useLiveMatch(jobId?: string) {
 }
 
 export function LiveJobState({ loading, error, profileRequired = false }: { loading: boolean; error: string; profileRequired?: boolean }) {
-  if (profileRequired) return <AppContent narrow><section className="live-job-state"><FileText /><h1>Start with your CV</h1><p>{error || "Upload and review your CV before matching jobs or preparing documents."}</p><Link className="button" href="/upload">Add or review your CV <ArrowRight /></Link></section></AppContent>;
-  return <AppContent narrow><Link href="/matches" className="back-link"><ArrowLeft /> Back to jobs</Link><section className="live-job-state">{loading ? <><RefreshCw className="spin" /><h1>Loading the employer listing…</h1><p>Checking the original source and latest job details.</p></> : <><CircleHelp /><h1>This job is unavailable</h1><p>{error || "The employer may have closed or removed the listing."}</p><Link className="button" href="/matches">View current jobs <ArrowRight /></Link></>}</section></AppContent>;
+  const { t, locale } = useI18n();
+  if (profileRequired) return <AppContent narrow><section className="live-job-state"><FileText /><h1>{t("Start with your CV")}</h1><p>{error || t("Upload and review your CV before matching jobs or preparing documents.")}</p><Link className="button" href="/upload">{t("Add or review your CV ")}<ArrowRight /></Link></section></AppContent>;
+  return <AppContent narrow><Link href="/matches" className="back-link"><ArrowLeft /> {t("Back to jobs")}</Link><section className="live-job-state">{loading ? <><RefreshCw className="spin" /><h1>{t("Loading the employer listing…")}</h1><p>{t("Checking the original source and latest job details.")}</p></> : <><CircleHelp /><h1>{t("This job is unavailable")}</h1><p>{error || t("The employer may have closed or removed the listing.")}</p><Link className="button" href="/matches">{t("View current jobs ")}<ArrowRight /></Link></>}</section></AppContent>;
 }
 
-export function formatSalary(job: MatchResult["job"]): string {
+export function formatSalary(job: MatchResult["job"], locale: Locale = "en"): string {
   const salary = job.salary;
-  if (!salary) return "Salary not provided";
-  if (!usableSalary(salary)) return "Pay amount needs verification";
-  const formatter = new Intl.NumberFormat("en", { style: "currency", currency: salary.originalCurrency, maximumFractionDigits: 0 });
-  return `${formatter.format(salary.originalAmountMin)}–${formatter.format(salary.originalAmountMax)} / ${salary.originalPeriod.toLowerCase()}`;
+  if (!salary) return translate(locale, "Salary not provided");
+  if (!usableSalary(salary)) return translate(locale, "Pay amount needs verification");
+  const formatter = new Intl.NumberFormat(locale, { style: "currency", currency: salary.originalCurrency, maximumFractionDigits: 0 });
+  return `${formatter.format(salary.originalAmountMin)}–${formatter.format(salary.originalAmountMax)} / ${translate(locale, salary.originalPeriod.toLowerCase())}`;
 }
 
-export function relativeDate(value: string): string {
+export function relativeDate(value: string, locale: Locale = "en"): string {
   const timestamp = new Date(value).getTime();
-  if (!Number.isFinite(timestamp)) return "Recently";
+  if (!Number.isFinite(timestamp)) return translate(locale, "Recently");
   const days = Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
-  return days === 0 ? "Today" : days === 1 ? "Yesterday" : `${days} days ago`;
+  return days === 0 ? translate(locale, "Today") : days === 1 ? translate(locale, "Yesterday") : new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(-days, "day");
 }
 
-export function formatDate(value?: string): string {
-  if (!value) return "Not provided";
+export function formatDate(value?: string, locale: Locale = "en"): string {
+  if (!value) return translate(locale, "Not provided");
   const timestamp = new Date(value).getTime();
-  if (!Number.isFinite(timestamp)) return "Not provided";
-  return new Date(timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  if (!Number.isFinite(timestamp)) return translate(locale, "Not provided");
+  return new Date(timestamp).toLocaleDateString(locale, { day: "numeric", month: "long" });
 }
 
 export function bandClass(band: string): string {

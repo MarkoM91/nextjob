@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "./language-provider";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -11,6 +12,7 @@ type ImportResponse = { job?: Job; error?: string; code?: string };
 
 /** Brings a job the candidate found elsewhere into the feed: from its link, or from pasted text when the site forbids fetching. */
 export function AddJob() {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [mode, setMode] = useState<"link" | "paste">("link");
   const [url, setUrl] = useState("");
@@ -42,25 +44,25 @@ export function AddJob() {
     await fetch(`/api/jobs/import?job=${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined);
   };
   return <AppContent narrow>
-    <Link href="/matches" className="back-link"><ArrowLeft /> Back to jobs</Link>
-    <PageIntro eyebrow="Your own leads" title="Add a job you found" subtitle="Paste a link from any job site or the text of the ad. NextJOB reads it, matches it against your verified CV and prepares the application like any other job." />
-    <div className="feed-tabs"><button className={mode === "link" ? "active" : ""} onClick={() => setMode("link")}><Link2 /> From a link</button><button className={mode === "paste" ? "active" : ""} onClick={() => setMode("paste")}><ClipboardPaste /> Paste the text</button></div>
+    <Link href="/matches" className="back-link"><ArrowLeft /> {t("Back to jobs")}</Link>
+    <PageIntro eyebrow={t("Your own leads")} title={t("Add a job you found")} subtitle={t("Paste a link from any job site or the text of the ad. NextJOB reads it, matches it against your verified CV and prepares the application like any other job.")} />
+    <div className="feed-tabs"><button className={mode === "link" ? "active" : ""} onClick={() => setMode("link")}><Link2 /> {t("From a link")}</button><button className={mode === "paste" ? "active" : ""} onClick={() => setMode("paste")}><ClipboardPaste /> {t("Paste the text")}</button></div>
     {mode === "link" ? <form className="panel add-job-form" onSubmit={(event) => { event.preventDefault(); void submit({ url }); }}>
-      <label className="field-label">Job link<input type="url" required placeholder="https://…" value={url} onChange={(event) => setUrl(event.target.value)} /></label>
-      <p className="hint"><ShieldCheck /> NextJOB fetches the page once, respecting the site&apos;s robots.txt. Sites that forbid automated reading (Indeed, LinkedIn) will ask you to paste the text instead.</p>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="button" type="submit" disabled={busy || !url.trim()}>{busy ? "Reading the job…" : "Add this job"} <ArrowRight /></button>
+      <label className="field-label">{t("Job link")}<input type="url" required placeholder={t("https://…")} value={url} onChange={(event) => setUrl(event.target.value)} /></label>
+      <p className="hint"><ShieldCheck /> {t("NextJOB fetches the page once, respecting the site's robots.txt. Sites that forbid automated reading (Indeed, LinkedIn) will ask you to paste the text instead.")}</p>
+      {error && <p className="form-error" role="alert">{t(error)}</p>}
+      <button className="button" type="submit" disabled={busy || !url.trim()}>{busy ? t("Reading the job…") : t("Add this job")} <ArrowRight /></button>
     </form> : <form className="panel add-job-form" onSubmit={(event) => { event.preventDefault(); void submit({ title, company, location, description, sourceUrl: url }); }}>
       <div className="add-job-grid">
-        <label className="field-label">Job title<input required maxLength={180} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Agente immobiliare" /></label>
-        <label className="field-label">Company<input maxLength={140} value={company} onChange={(event) => setCompany(event.target.value)} placeholder="Employer name" /></label>
-        <label className="field-label">Location<input maxLength={240} value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Milano" /></label>
-        <label className="field-label">Link (optional)<input type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" /></label>
+        <label className="field-label">{t("Job title")}<input required maxLength={180} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t("Agente immobiliare")} /></label>
+        <label className="field-label">{t("Company")}<input maxLength={140} value={company} onChange={(event) => setCompany(event.target.value)} placeholder={t("Employer name")} /></label>
+        <label className="field-label">{t("Location")}<input maxLength={240} value={location} onChange={(event) => setLocation(event.target.value)} placeholder={t("Milano")} /></label>
+        <label className="field-label">{t("Link (optional)")}<input type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder={t("https://…")} /></label>
       </div>
-      <label className="field-label">Job description<textarea required minLength={120} rows={12} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Paste the full ad: responsibilities, requirements, conditions." /></label>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="button" type="submit" disabled={busy || !title.trim() || description.trim().length < 120}>{busy ? "Adding…" : "Add this job"} <ArrowRight /></button>
+      <label className="field-label">{t("Job description")}<textarea required minLength={120} rows={12} value={description} onChange={(event) => setDescription(event.target.value)} placeholder={t("Paste the full ad: responsibilities, requirements, conditions.")} /></label>
+      {error && <p className="form-error" role="alert">{t(error)}</p>}
+      <button className="button" type="submit" disabled={busy || !title.trim() || description.trim().length < 120}>{busy ? t("Adding…") : t("Add this job")} <ArrowRight /></button>
     </form>}
-    {imported.length > 0 && <section className="panel added-jobs"><h2>Jobs you added</h2>{imported.map((job) => <div key={job.id}><Link href={`/job?job=${encodeURIComponent(job.id)}`}><strong>{job.title}</strong><span>{job.company} · {job.locationText} · added {relativeDate(job.publishedAt).toLowerCase()}</span></Link><button type="button" aria-label={`Remove ${job.title}`} onClick={() => void remove(job.id)}><Trash2 /></button></div>)}</section>}
+    {imported.length > 0 && <section className="panel added-jobs"><h2>{t("Jobs you added")}</h2>{imported.map((job) => <div key={job.id}><Link href={`/job?job=${encodeURIComponent(job.id)}`}><strong>{job.title}</strong><span>{job.company} · {job.locationText} {t("· added ")}{relativeDate(job.publishedAt, locale).toLowerCase()}</span></Link><button type="button" aria-label={t("Remove {0}", {"0": job.title})} onClick={() => void remove(job.id)}><Trash2 /></button></div>)}</section>}
   </AppContent>;
 }
