@@ -53,11 +53,15 @@ future web opt-in URL as
 is disabled until publication; it is not a usable test invitation yet.
 
 The full store description, icon and feature graphic are saved as a draft.
-The no-display-ads, no-financial-services and no-health-features declarations
-and Business category are saved for review. Remaining setup includes public
-privacy/app access, content rating, target audience, Data safety, government
-declaration and at least two truthful Android screenshots. Saving a release
-draft is not a rollout or Google approval.
+Privacy policy, guest app access, no display ads, government, financial and
+health declarations, Business category, content rating, target audience and
+Data safety are saved for review. The owner explicitly accepted the IARC
+terms and confirmed the intended audience as **18 and over** on 2026-10-25.
+The questionnaire produced PEGI 3 / ESRB Everyone: content ratings and the
+intended audience are separate settings. The optional store restriction for
+minors was not enabled. See `data-safety.md` for the saved privacy answers.
+The remaining store-listing requirement is at least two truthful Android
+screenshots. Saving these settings is not a rollout or Google approval.
 
 The owner approved public access on **2026-10-25** and the hosting audience is
 now public. Anonymous upload/privacy pages and Digital Asset Links return 200;
