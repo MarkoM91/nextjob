@@ -25,8 +25,13 @@ rollout or production access.
 Internal opt-in: https://play.google.com/apps/internaltest/4701700359655582351
 Use the existing owner-authorized Google account; private tester addresses are
 kept in Console. Google says updates usually appear within an hour, sometimes
-longer. The website remains owner-private pending audience approval, so app
-access is a separate prerequisite for device QA.
+longer. The owner approved public website access on 2026-10-25. Anonymous
+upload/privacy access and absence of an anonymous private profile are verified.
+Installation is reported complete; full phone-flow QA remains pending.
+
+Use the clearly fictional
+[sample CV](https://raw.githubusercontent.com/MarkoM91/nextjob/codex/android-release-setup/android/test-assets/NextJOB-Sample-CV.pdf)
+for phone/tester QA. Its ReportLab source is under `android/test-assets/`.
 
 ## Continue in Console
 

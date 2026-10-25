@@ -59,10 +59,17 @@ privacy/app access, content rating, target audience, Data safety, government
 declaration and at least two truthful Android screenshots. Saving a release
 draft is not a rollout or Google approval.
 
-The website's hosting audience is still owner-only. Public anonymous access
-requires the owner's explicit audience approval. CVs and applications remain
-scoped to their signed guest/account owner; changing the hosting audience
-does not authorize exposing stored CVs.
+The owner approved public access on **2026-10-25** and the hosting audience is
+now public. Anonymous upload/privacy pages and Digital Asset Links return 200;
+the anonymous profile endpoint returns `profile: null`, `source: "missing"`
+with private/no-store caching. CVs and applications remain scoped to their
+signed guest/account owner. The public privacy URL and guest app-access
+declaration have been saved in Play Console.
+
+The owner reports Android installation complete. File-picker, end-to-end CV
+processing/preview, Back navigation and phone screenshots still need device
+confirmation. A fictional test CV is available at
+[NextJOB sample CV](https://raw.githubusercontent.com/MarkoM91/nextjob/codex/android-release-setup/android/test-assets/NextJOB-Sample-CV.pdf).
 
 Google requires at least 12 opted-in closed testers for 14 continuous days for
 this account, followed by an application for production access. The service's
