@@ -4,24 +4,13 @@ import { BillingScreen } from "./billing-screen";
 import { PrivacyScreen } from "./privacy";
 
 import { useEffect, useState } from "react";
-import { Check, CheckCircle2, Mail, MessageCircle, RefreshCw, ShieldCheck } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { CheckCircle2, Mail, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import type { CandidateProfile } from "../../lib/domain";
 import { NEXTJOB_CONTACT_EMAIL } from "../../lib/contact";
 import { AppContent, Metric, PageIntro } from "./shared";
 
-export function Notifications() {
-  const { t, locale } = useI18n();
-  const [email, setEmail] = useState(true);
-  const [whatsapp, setWhatsapp] = useState(false);
-  return <AppContent narrow><PageIntro eyebrow={t("Useful, not noisy")} title={t("Notification settings")} subtitle={t("Choose which opportunities deserve to interrupt your day.")} /><div className="settings-layout"><section className="panel settings-panel"><h2>{t("Channels")}</h2><SettingToggle icon={Mail} title={t("Email alerts")} text={t("Daily digest and time-sensitive reminders")} enabled={email} setEnabled={setEmail} /><SettingToggle icon={MessageCircle} title={t("WhatsApp alerts")} text={t("Strong matches only · explicit opt-in required")} enabled={whatsapp} setEnabled={setWhatsapp} /><div className="consent-note"><ShieldCheck /><p>{t("WhatsApp is off by default. A verified number and explicit consent are required before any message can be sent. Demo deliveries are simulated.")}</p></div></section><section className="panel settings-panel"><h2>{t("Relevance rules")}</h2><label className="settings-field">{t("Notify me for")}<select defaultValue="strong"><option value="strong">{t("Excellent and Strong matches")}</option><option value="Excellent matches only">{t("Excellent matches only")}</option><option value="Possible matches and above">{t("Possible matches and above")}</option></select></label><label className="settings-field">{t("Email frequency")}<select defaultValue="daily"><option value="daily">{t("Daily digest")}</option><option value="Instant strong matches">{t("Instant strong matches")}</option><option value="Weekly summary">{t("Weekly summary")}</option></select></label><div className="settings-columns"><label>{t("Quiet hours start")}<input type="time" defaultValue="21:00" /></label><label>{t("Quiet hours end")}<input type="time" defaultValue="08:00" /></label></div><label className="settings-field">{t("Daily cap")}<input type="number" min="0" max="10" defaultValue="2" /></label></section><button className="button settings-save"><Check /> {t("Save preferences")}</button></div></AppContent>;
-}
-
-function SettingToggle({ icon: Icon, title, text, enabled, setEnabled }: { icon: LucideIcon; title: string; text: string; enabled: boolean; setEnabled: (value: boolean) => void }) {
-  const { t, locale } = useI18n();
-  return <div className="setting-toggle"><span><Icon /></span><div><strong>{title}</strong><p>{text}</p></div><button aria-label={t("Toggle {0}", {"0": title})} className={enabled ? "on" : ""} onClick={() => setEnabled(!enabled)}><i /></button></div>;
-}
+export { Notifications } from "./notifications";
 
 type ProviderHealth = { id: string; name: string; status: "healthy" | "degraded" | "offline"; latencyMs: number; checkedAt: string; countriesSupported: string[] };
 type HealthPayload = { checkedAt: string; providers: ProviderHealth[]; queue?: { status: string; waiting: number; deadLettered: number } };

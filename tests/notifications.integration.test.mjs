@@ -1,0 +1,71 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync } from 'node:fs';
+import { env } from 'cloudflare:workers';
+import { createGuestToken, signPayload } from '../lib/auth-session.ts';
+import { candidate } from '../lib/demo-data.ts';
+const { default: worker } = await import('../dist/server/index.js');
+process.env.AUTH_SECRET='integration-alerts-secret-not-a-real-credential';
+process.env.NOTIFICATION_ADMIN_EMAIL='owner@example.invalid';
+process.env.NOTIFICATION_EMAIL_ENABLED='false';
+process.env.NEXTJOB_DISABLE_LIVE_JOBS='true';
+const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync('drizzle/0003_far_ares.sql','utf8').replaceAll('--> statement-breakpoint',''));sqlite.exec(readFileSync('drizzle/0004_loose_mauler.sql','utf8').replaceAll('--> statement-breakpoint',''));
+env.DB={ prepare(sql) { let values=[];const statement={bind(...params){values=params;return statement;},async run(){const result=sqlite.prepare(sql).run(...values);return {success:true,meta:{changes:Number(result.changes)}};},async first(){return sqlite.prepare(sql).get(...values)??null;},async all(){return {results:sqlite.prepare(sql).all(...values)};}};return statement;},async batch(statements){sqlite.exec('BEGIN');try{const result=[];for(const statement of statements)result.push(await statement.run());sqlite.exec('COMMIT');return result;}catch(error){sqlite.exec('ROLLBACK');throw error;}} };
+const owner='guest_alertsintegrationabcdefghijkl';const other='guest_otheralertsintegrationabcdefgh';
+const cookie=`nextjob_guest=${await createGuestToken(owner,process.env.AUTH_SECRET)}`;
+const otherCookie=`nextjob_guest=${await createGuestToken(other,process.env.AUTH_SECRET)}`;
+env.DOCUMENTS={get:async key=>key===`private/${owner}/profile/latest.json`?{text:async()=>JSON.stringify({profile:candidate,verifiedAt:new Date().toISOString()})}:null};
+const send=(path='/api/notifications',body,headers={})=>worker.fetch(new Request(`https://nextjob.example${path}`,{method:body?'POST':'GET',headers:{cookie,...(body?{'content-type':'application/json',origin:'https://nextjob.example'}:{}),...headers},...(body?{body:JSON.stringify(body)}:{})}),{ASSETS:{fetch:async()=>new Response(null,{status:404})}},{waitUntil(){},passThroughOnException(){}});
+const config={inApp:true,emailEnabled:false,frequency:'daily',minimumScore:72,quietStart:'21:00',quietEnd:'08:00',timeZone:'Europe/Rome',locale:'it'};
+test('notification API persists settings, rejects cross-origin edits and requires a verified CV',async()=>{
+  assert.equal((await send('/api/notifications',{action:'save',config},{origin:'https://attacker.invalid'})).status,403);
+  assert.equal((await send('/api/notifications',{action:'save',config},{cookie:otherCookie})).status,409);
+  const response=await send('/api/notifications',{action:'save',config});assert.equal(response.status,200);
+  const payload=await response.json();assert.equal(payload.config.inApp,true);assert.equal(payload.config.locale,'it');assert.equal(payload.emailAvailable,false);assert.equal(payload.unread,0);
+  const reread=await send();assert.match(reread.headers.get('cache-control'),/private.*no-store/);assert.equal((await reread.json()).config.inApp,true);
+  assert.equal((await (await send('/api/notifications',undefined,{cookie:otherCookie})).json()).config.inApp,false);
+});
+test('marking read authorizes the owner and clears only their unread count',async()=>{
+  sqlite.prepare('INSERT INTO alert_inbox(id,owner_id,job_id,title,company,location,created_at) VALUES (?,?,?,?,?,?,?)').run('private-id',other,'job-1','Private role','Employer','Milano',Date.now());
+  await send('/api/notifications',{action:'read',id:'private-id'});
+  assert.equal(sqlite.prepare('SELECT read_at FROM alert_inbox WHERE id=?').get('private-id').read_at,null);
+  const own=await send('/api/notifications',{action:'read',id:'all'},{cookie:otherCookie});assert.equal((await own.json()).unread,0);
+});
+test('email remains off without configuration and cannot be enabled by an unverified setting',async()=>{
+  assert.equal((await send('/api/notifications',{action:'verify',email:'person@example.invalid',locale:'it',consent:true})).status,503);
+  assert.equal((await send('/api/notifications',{action:'save',config:{...config,emailEnabled:true}})).status,409);
+  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM alert_deliveries').get().n,0);
+});
+test('public and guest requests cannot run the system-wide scheduler MCP tool',async()=>{
+  const body={jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'check_job_alerts',arguments:{}}};
+  assert.equal((await send('/mcp',body)).status,403);
+  assert.equal((await send('/mcp',body,{'oai-authenticated-user-id':'other','oai-authenticated-user-email':'other@example.invalid'})).status,403);
+  const result=await send('/mcp',{...body,method:'tools/list'},{'oai-authenticated-user-id':'scoped-owner','oai-authenticated-user-email':'owner@example.invalid'});
+  assert.equal(result.status,200);assert.equal((await result.json()).result.tools[0].name,'check_job_alerts');
+});
+test('email confirmation GET does not consume a valid token and unsubscribing needs no account',async()=>{
+  const now=Date.now();const nonce='test-nonce';
+  const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(nonce)));
+  const nonceHash=Buffer.from(hash).toString('base64url');
+  sqlite.prepare('UPDATE alert_settings SET verification_hash=?,verification_expires=?,email_revision=7 WHERE owner_id=?').run(nonceHash,now+60000,owner);
+  const token=await signPayload({purpose:'verify-alert-email',owner,revision:7,nonce,exp:now+60000},process.env.AUTH_SECRET);
+  const preview=await send(`/api/notifications/verify?token=${encodeURIComponent(token)}`,undefined,{'accept-language':'it'});
+  assert.equal(preview.status,200);assert.match(preview.headers.get('referrer-policy'),/no-referrer/);assert.ok(sqlite.prepare('SELECT verification_hash FROM alert_settings WHERE owner_id=?').get(owner).verification_hash);
+  const form=(path,token)=>worker.fetch(new Request(`https://nextjob.example${path}`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token})}),{ASSETS:{fetch:async()=>new Response(null,{status:404})}},{waitUntil(){},passThroughOnException(){}});
+  assert.equal((await form('/api/notifications/verify',token)).status,200);
+  assert.equal((await form('/api/notifications/verify',token)).status,400);
+  const unsub=await signPayload({purpose:'unsubscribe-alert-email',owner,revision:7,nonce:'unsubscribe',exp:now+60000},process.env.AUTH_SECRET);
+  assert.equal((await form(`/api/notifications/unsubscribe?token=${encodeURIComponent(unsub)}`,'')).status,200);
+  assert.equal(sqlite.prepare('SELECT email_enabled FROM alert_settings WHERE owner_id=?').get(owner).email_enabled,0);
+});
+test('Resend webhook verifies raw body signature and suppresses a bounced recipient',async()=>{
+  process.env.RESEND_WEBHOOK_SECRET=`whsec_${Buffer.from('private-test-webhook-key').toString('base64')}`;
+  const now=Date.now();sqlite.prepare("INSERT INTO alert_deliveries(id,owner_id,kind,email_revision,payload_encrypted,status,due_at,created_at,updated_at,provider_id) VALUES (?,?,?,7,?,'accepted',?,?,?,?)").run('delivery-1',owner,'digest','ciphertext',now,now,now,'provider-email-1');
+  const raw=JSON.stringify({type:'email.bounced',data:{email_id:'provider-email-1'}});const timestamp=String(Math.floor(now/1000));const id='webhook-test';
+  const key=await crypto.subtle.importKey('raw',Buffer.from('private-test-webhook-key'),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const signature=Buffer.from(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(`${id}.${timestamp}.${raw}`))).toString('base64');
+  const post=body=>worker.fetch(new Request('https://nextjob.example/api/notifications/webhook',{method:'POST',headers:{'content-type':'application/json','svix-id':id,'svix-timestamp':timestamp,'svix-signature':`v1,${signature}`},body}),{ASSETS:{fetch:async()=>new Response(null,{status:404})}},{waitUntil(){},passThroughOnException(){}});
+  assert.equal((await post(raw+' ')).status,401);assert.equal((await post(raw)).status,204);assert.equal((await post(raw)).status,204);
+  assert.equal(sqlite.prepare('SELECT status FROM alert_deliveries WHERE id=?').get('delivery-1').status,'failed');
+});

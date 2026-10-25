@@ -36,6 +36,10 @@ export function PrivacyScreen() {
         <p>{t("Creating and previewing a CV is free. Paid Android exports are disabled during this test, so no in-app charge is made. If web payments are enabled, Stripe handles checkout; NextJOB stores order and download-access records rather than full payment-card details.")}</p>
         <p>{t("A downloaded CV contains the information you chose to include. Keep it and any private recovery link secure. Anyone you give a valid recovery link to can download the CV covered by that link until its access expires.")}</p>
       </PrivacySection>
+      <PrivacySection title={t("Job alerts and email") }>
+        <p>{t("Job alerts are optional. NextJOB saves your alert preferences, checks current job sources against your confirmed profile and keeps your alert inbox for 30 days. Your email address is encrypted in storage and must be confirmed before email job alerts are enabled.")}</p>
+        <p>{t("Email delivery is currently disabled until a sending provider is configured. When enabled, Resend receives your verified address and the alert email to deliver it. Emails contain a link to your workspace, not your CV. Delivery records are kept for 30 days. You can turn email off in alert settings or use the unsubscribe link in any digest.")}</p>
+      </PrivacySection>
       <PrivacySection title={t("Request a copy or deletion")}>
         <p>{t("For support, privacy questions, or a request to copy or delete your CV and application data, email ")}<a href={`mailto:${NEXTJOB_CONTACT_EMAIL}?subject=NextJOB%20privacy%20request`}>{NEXTJOB_CONTACT_EMAIL}</a>.</p>
         <p>{t("Requests are handled manually. There is currently no self-service deletion control or stated automatic deletion schedule for this test. We may need information to locate your workspace and verify your request. Contact us before clearing app data if you need help identifying that workspace; you do not need to attach your full CV to the first email.")}</p>

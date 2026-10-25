@@ -6,6 +6,29 @@ const createdAt = () => text("created_at").notNull().default(sql`CURRENT_TIMESTA
 const updatedAt = () => text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`);
 const deletedAt = () => text("deleted_at");
 
+// Alert workspaces include guests; contact consent is independent of account/CV data.
+export const alertSettings = sqliteTable("alert_settings", {
+  ownerId: text("owner_id").primaryKey(), inApp: integer("in_app").notNull().default(0), emailEnabled: integer("email_enabled").notNull().default(0),
+  emailEncrypted: text("email_encrypted"), emailHash: text("email_hash"), emailRevision: integer("email_revision").notNull().default(0), verifiedAt: integer("verified_at"),
+  verificationHash: text("verification_hash"), verificationExpires: integer("verification_expires"), verificationRequested: integer("verification_requested"), verificationDay: text("verification_day"), verificationCount: integer("verification_count").notNull().default(0),
+  configJson: text("config_json").notNull(), baselineRevision: text("baseline_revision"), nextCheck: integer("next_check").notNull(), checkLease: text("check_lease"), leaseUntil: integer("lease_until"),
+  lastChecked: integer("last_checked"), lastError: text("last_error"), nextEmail: integer("next_email").notNull(), consentedAt: integer("consented_at"), createdAt: integer("created_at").notNull(), updatedAt: integer("updated_at").notNull(),
+}, table => [index("idx_alert_due").on(table.nextCheck)]);
+export const alertInbox = sqliteTable("alert_inbox", {
+  id: text("id").primaryKey(), ownerId: text("owner_id").notNull(), jobId: text("job_id").notNull(), title: text("title").notNull(), company: text("company").notNull(), location: text("location").notNull(),
+  createdAt: integer("created_at").notNull(), readAt: integer("read_at"), emailBatch: text("email_batch"),
+}, table => [uniqueIndex("uq_alert_inbox_job").on(table.ownerId, table.jobId), index("idx_alert_inbox_owner").on(table.ownerId, table.createdAt)]);
+export const alertSeen = sqliteTable("alert_seen", {
+  ownerId: text("owner_id").notNull(), jobId: text("job_id").notNull(), seenAt: integer("seen_at").notNull(),
+}, table => [uniqueIndex("uq_alert_seen_job").on(table.ownerId, table.jobId)]);
+export const alertDeliveries = sqliteTable("alert_deliveries", {
+  id: text("id").primaryKey(), ownerId: text("owner_id").notNull(), kind: text("kind").notNull(), emailRevision: integer("email_revision").notNull(), payloadEncrypted: text("payload_encrypted").notNull(),
+  status: text("status").notNull(), attempts: integer("attempts").notNull().default(0), dueAt: integer("due_at").notNull(), leaseUntil: integer("lease_until"), leaseToken: text("lease_token"), providerId: text("provider_id"), failureCode: text("failure_code"),
+  createdAt: integer("created_at").notNull(), updatedAt: integer("updated_at").notNull(),
+}, table => [index("idx_alert_delivery_due").on(table.status, table.dueAt), index("idx_alert_delivery_owner").on(table.ownerId, table.createdAt)]);
+export const alertRuntime = sqliteTable("alert_runtime", { id: text("id").primaryKey(), leaseUntil: integer("lease_until").notNull(), leaseToken: text("lease_token").notNull(), lastRun: integer("last_run") });
+export const alertEmailBudget = sqliteTable("alert_email_budget", { day: text("day").primaryKey(), used: integer("used").notNull().default(0) });
+
 // Billing owners may be signed guest workspaces, so these do not reference users.
 export const billingCvVersions = sqliteTable("billing_cv_versions", {
   id: id(), ownerId: text("owner_id").notNull(), versionId: text("version_id").notNull(), jobId: text("job_id").notNull(), objectPrefix: text("object_prefix").notNull(), createdAt: integer("created_at").notNull(),

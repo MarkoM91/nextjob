@@ -64,3 +64,9 @@ Reference: [Google Play Data safety definitions](https://support.google.com/goog
 
 Before enabling accounts or Android purchases, update this declaration, app
 access instructions, privacy information and the content-rating purchase answer.
+
+Optional job-alert preferences and read state now persist in the workspace.
+Email remains disabled while the sending domain/provider are unconfigured.
+Before enabling Resend delivery, review Email address purposes to include opted-in
+developer communications, disclose Resend as the delivery processor and complete
+the recipient verification/unsubscribe checks in `docs/job-alerts.md`.

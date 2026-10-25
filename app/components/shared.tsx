@@ -2,6 +2,7 @@
 import { LanguageSelector, useI18n } from "./language-provider";
 import type { Locale } from "../../lib/i18n";
 import { translate } from "../../lib/ui-translations";
+import { NotificationBell } from "./notifications";
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -80,7 +81,7 @@ export function AppShell({ screen, user, demoMode, children }: Props & { childre
       </div> : <div className="profile-card workspace-card"><span className="workspace-icon" aria-hidden><ShieldCheck /></span><div><strong>{t("Your workspace")}</strong><span>{t("CV, jobs & applications")}</span></div></div>}
     </aside>
     <div className="app-main">
-      <header className="mobile-appbar"><Logo /><LanguageSelector compact /><Link className="mobile-alerts" href="/notifications" aria-label={t("Notifications")}><Bell /><i /></Link></header>
+      <header className="mobile-appbar"><Logo /><LanguageSelector compact /><NotificationBell /></header>
       {children}
     </div>
     <nav className="bottom-nav" aria-label={t("Mobile navigation")}>{productNav.map(({ href, label, icon: Icon }) => <Link href={href} key={href} className={isActive(href) ? "active" : ""}><Icon /><span>{t(label)}</span></Link>)}</nav>
