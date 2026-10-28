@@ -1,0 +1,21 @@
+<resources>
+    <string name="loading">Ihr Arbeitsbereich wird geöffnet…</string>
+    <string name="retry">Erneut versuchen</string>
+    <string name="connection_title">Keine Verbindung</string>
+    <string name="connection_body">Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.</string>
+    <string name="service_title">Ihr Arbeitsbereich konnte nicht geladen werden</string>
+    <string name="service_body">Der Dienst ist vorübergehend nicht verfügbar. Versuchen Sie es gleich erneut.</string>
+    <string name="render_body">Öffnen Sie Ihren Arbeitsbereich erneut und versuchen Sie es noch einmal.</string>
+    <string name="secure_connection_title">Keine sichere Verbindung</string>
+    <string name="secure_connection_body">Die Verbindung konnte nicht geprüft werden. Prüfen Sie Verbindung und Gerätedatum und versuchen Sie es erneut.</string>
+    <string name="picker_unavailable">Auf diesem Gerät ist keine Dokumentenauswahl verfügbar.</string>
+    <string name="invalid_cv">Wählen Sie eine PDF- oder DOCX-Datei mit höchstens 10 MB.</string>
+    <string name="external_unavailable">Keine App kann diesen Link öffnen.</string>
+    <string name="external_blocked">Dieser Link kann in NextJOB nicht sicher geöffnet werden.</string>
+    <string name="social_login_unavailable">Die Anmeldung über soziale Anbieter ist in dieser Android-Version nicht verfügbar. Sie können Ihren Lebenslauf ohne Konto erstellen und ansehen.</string>
+    <string name="download_busy">Beenden oder stornieren Sie zuerst den aktuellen Download.</string>
+    <string name="preparing_download">Ihr Lebenslauf wird vorbereitet. Wählen Sie bei Aufforderung den Speicherort.</string>
+    <string name="download_unavailable">Der Lebenslauf konnte nicht heruntergeladen werden. Kehren Sie zum Lebenslauf zurück und versuchen Sie es erneut. Bei aktivem Kauf ist keine weitere Zahlung nötig.</string>
+    <string name="download_saved">Ihr Lebenslauf wurde gespeichert.</string>
+    <string name="save_failed">Die Datei konnte nicht gespeichert werden. Wählen Sie einen beschreibbaren Ordner und versuchen Sie den Download erneut.</string>
+</resources>

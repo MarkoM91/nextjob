@@ -1,0 +1,21 @@
+<resources>
+    <string name="loading">Apertura dello spazio di lavoro…</string>
+    <string name="retry">Riprova</string>
+    <string name="connection_title">Connessione non disponibile</string>
+    <string name="connection_body">Controlla la connessione Internet e riprova.</string>
+    <string name="service_title">Impossibile caricare lo spazio di lavoro</string>
+    <string name="service_body">Il servizio è temporaneamente non disponibile. Riprova tra poco.</string>
+    <string name="render_body">Riapri lo spazio di lavoro e riprova.</string>
+    <string name="secure_connection_title">Connessione sicura non disponibile</string>
+    <string name="secure_connection_body">Impossibile verificare la connessione. Controlla la connessione e la data del dispositivo, quindi riprova.</string>
+    <string name="picker_unavailable">Su questo dispositivo non è disponibile un selettore di documenti.</string>
+    <string name="invalid_cv">Scegli un file PDF o DOCX fino a 10 MB.</string>
+    <string name="external_unavailable">Nessuna app disponibile per aprire questo link.</string>
+    <string name="external_blocked">Questo link non può essere aperto in modo sicuro in NextJOB.</string>
+    <string name="social_login_unavailable">L’accesso tramite social non è disponibile in questa versione Android. Puoi creare e visualizzare il CV senza account.</string>
+    <string name="download_busy">Completa o annulla prima il download in corso.</string>
+    <string name="preparing_download">Preparazione del CV. Scegli dove salvarlo quando richiesto.</string>
+    <string name="download_unavailable">Impossibile scaricare il CV. Torna al CV e riprova. Non serve un altro pagamento se l’acquisto è ancora attivo.</string>
+    <string name="download_saved">Il CV è stato salvato.</string>
+    <string name="save_failed">Impossibile salvare il file. Scegli una cartella scrivibile e riprova il download.</string>
+</resources>

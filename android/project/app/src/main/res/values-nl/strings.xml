@@ -1,0 +1,21 @@
+<resources>
+    <string name="loading">Je werkruimte wordt geopend…</string>
+    <string name="retry">Opnieuw proberen</string>
+    <string name="connection_title">Geen verbinding</string>
+    <string name="connection_body">Controleer je internetverbinding en probeer het opnieuw.</string>
+    <string name="service_title">Je werkruimte kon niet worden geladen</string>
+    <string name="service_body">De dienst is tijdelijk niet beschikbaar. Probeer het zo opnieuw.</string>
+    <string name="render_body">Open je werkruimte opnieuw en probeer het nogmaals.</string>
+    <string name="secure_connection_title">Geen veilige verbinding</string>
+    <string name="secure_connection_body">De verbinding kon niet worden gecontroleerd. Controleer de verbinding en apparaatdatum en probeer het opnieuw.</string>
+    <string name="picker_unavailable">Op dit apparaat is geen documentkiezer beschikbaar.</string>
+    <string name="invalid_cv">Kies een PDF- of DOCX-bestand van maximaal 10 MB.</string>
+    <string name="external_unavailable">Er is geen app beschikbaar om deze link te openen.</string>
+    <string name="external_blocked">Deze link kan niet veilig in NextJOB worden geopend.</string>
+    <string name="social_login_unavailable">Aanmelden via sociale accounts is niet beschikbaar in deze Android-versie. Je kunt je cv zonder account maken en bekijken.</string>
+    <string name="download_busy">Voltooi of annuleer eerst je huidige download.</string>
+    <string name="preparing_download">Je cv wordt voorbereid. Kies waar je het wilt opslaan wanneer daarom wordt gevraagd.</string>
+    <string name="download_unavailable">Je cv kon niet worden gedownload. Ga terug naar je cv en probeer het opnieuw. Bij een actieve aankoop hoef je niet opnieuw te betalen.</string>
+    <string name="download_saved">Je cv is opgeslagen.</string>
+    <string name="save_failed">Het bestand kon niet worden opgeslagen. Kies een map waarin je kunt schrijven en probeer de download opnieuw.</string>
+</resources>

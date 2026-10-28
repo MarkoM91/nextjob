@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">NextJOB</string>
+    <string name="app_name" translatable="false">NextJOB</string>
     <string name="billing_title">Download this CV</string>
     <string name="billing_confirm">One-time payment: %1$s. PDF, DOCX and TXT are included, with free repeat downloads of this CV for %2$d days. No subscription.</string>
     <string name="billing_continue">Continue to Google Play</string>

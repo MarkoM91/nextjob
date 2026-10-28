@@ -1,0 +1,21 @@
+<resources>
+    <string name="loading">Abriendo tu espacio…</string>
+    <string name="retry">Reintentar</string>
+    <string name="connection_title">Conexión no disponible</string>
+    <string name="connection_body">Comprueba tu conexión a Internet e inténtalo de nuevo.</string>
+    <string name="service_title">No se pudo cargar tu espacio</string>
+    <string name="service_body">El servicio no está disponible temporalmente. Inténtalo en un momento.</string>
+    <string name="render_body">Vuelve a abrir tu espacio e inténtalo de nuevo.</string>
+    <string name="secure_connection_title">Conexión segura no disponible</string>
+    <string name="secure_connection_body">No se pudo verificar la conexión. Revisa tu conexión y la fecha del dispositivo e inténtalo de nuevo.</string>
+    <string name="picker_unavailable">Este dispositivo no dispone de un selector de documentos.</string>
+    <string name="invalid_cv">Elige un PDF o DOCX de hasta 10 MB.</string>
+    <string name="external_unavailable">No hay una aplicación para abrir este enlace.</string>
+    <string name="external_blocked">Este enlace no se puede abrir de forma segura en NextJOB.</string>
+    <string name="social_login_unavailable">El acceso mediante redes sociales no está disponible en esta versión Android. Puedes crear y previsualizar tu CV sin cuenta.</string>
+    <string name="download_busy">Termina o cancela primero la descarga actual.</string>
+    <string name="preparing_download">Preparando tu CV. Elige dónde guardarlo cuando se te indique.</string>
+    <string name="download_unavailable">No se pudo descargar el CV. Vuelve al CV e inténtalo de nuevo. No necesitas pagar de nuevo si tu compra está activa.</string>
+    <string name="download_saved">Tu CV se ha guardado.</string>
+    <string name="save_failed">No se pudo guardar el archivo. Elige una carpeta con permiso de escritura y vuelve a descargarlo.</string>
+</resources>

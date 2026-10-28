@@ -1,0 +1,21 @@
+<resources>
+    <string name="loading">Otwieranie obszaru roboczego…</string>
+    <string name="retry">Spróbuj ponownie</string>
+    <string name="connection_title">Brak połączenia</string>
+    <string name="connection_body">Sprawdź połączenie internetowe i spróbuj ponownie.</string>
+    <string name="service_title">Nie udało się wczytać obszaru roboczego</string>
+    <string name="service_body">Usługa jest chwilowo niedostępna. Spróbuj za moment.</string>
+    <string name="render_body">Otwórz ponownie obszar roboczy i spróbuj jeszcze raz.</string>
+    <string name="secure_connection_title">Bezpieczne połączenie niedostępne</string>
+    <string name="secure_connection_body">Nie udało się zweryfikować połączenia. Sprawdź połączenie i datę urządzenia, a następnie spróbuj ponownie.</string>
+    <string name="picker_unavailable">Na tym urządzeniu nie ma narzędzia wyboru dokumentów.</string>
+    <string name="invalid_cv">Wybierz plik PDF lub DOCX do 10 MB.</string>
+    <string name="external_unavailable">Brak aplikacji do otwarcia tego linku.</string>
+    <string name="external_blocked">Tego linku nie można bezpiecznie otworzyć w NextJOB.</string>
+    <string name="social_login_unavailable">Logowanie społecznościowe nie jest dostępne w tej wersji Androida. Możesz tworzyć i przeglądać CV bez konta.</string>
+    <string name="download_busy">Najpierw zakończ lub anuluj bieżące pobieranie.</string>
+    <string name="preparing_download">Przygotowywanie CV. Gdy pojawi się pytanie, wybierz miejsce zapisu.</string>
+    <string name="download_unavailable">Nie udało się pobrać CV. Wróć do CV i spróbuj ponownie. Przy aktywnym zakupie nie trzeba płacić ponownie.</string>
+    <string name="download_saved">CV zostało zapisane.</string>
+    <string name="save_failed">Nie udało się zapisać pliku. Wybierz folder z prawem zapisu i pobierz ponownie.</string>
+</resources>
