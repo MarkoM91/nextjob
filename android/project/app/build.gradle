@@ -37,6 +37,8 @@ android {
 }
 
 dependencies {
+    // Align Kotlin runtime artifacts brought in by Billing and its Android dependencies.
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
     implementation 'com.android.billingclient:billing:9.1.0'
     testImplementation 'junit:junit:4.13.2'
 }
