@@ -1,0 +1,10 @@
+<resources>
+    <string name="billing_title">Diesen Lebenslauf herunterladen</string>
+    <string name="billing_confirm">Einmalige Zahlung: %1$s. PDF, DOCX und TXT sind enthalten. Erneute Downloads dieses Lebenslaufs sind %2$d Tage kostenlos. Kein Abonnement.</string>
+    <string name="billing_continue">Weiter zu Google Play</string>
+    <string name="billing_unavailable">Die Google-Play-Zahlung ist nicht verfügbar. Ihr Lebenslauf ist gespeichert und die Vorschau bleibt kostenlos. Versuchen Sie es erneut.</string>
+    <string name="billing_failed">Die Zahlung wurde nicht abgeschlossen. Ihr Lebenslauf ist gespeichert. Prüfen Sie Ihre Käufe, bevor Sie erneut bezahlen.</string>
+    <string name="billing_pending">Ihre Zahlung wird geprüft. Bezahlen Sie nicht erneut. Öffnen Sie NextJOB mit Internetverbindung, um die Prüfung abzuschließen.</string>
+    <string name="billing_price_changed">Der Google-Play-Preis stimmt nicht mit diesem Angebot überein. Es wurde keine Zahlung gestartet. Versuchen Sie es später erneut.</string>
+    <string name="billing_test_only">Testzahlung: Verwenden Sie nur ein Google-Play-Testzahlungsmittel. Brechen Sie ab, wenn ein echtes Zahlungsmittel angezeigt wird.</string>
+</resources>

@@ -14,6 +14,7 @@ try {
   const gradle = await read("project/app/build.gradle");
   const manifest = await read("project/app/src/main/AndroidManifest.xml");
   const java = await read("project/app/src/main/java/com/markom91/nextjob/LauncherActivity.java");
+  const billing = await read("project/app/src/main/java/com/markom91/nextjob/PlayBillingController.java");
   const metadata = JSON.parse(await read("project/wrapper-manifest.json"));
   report(gradle.includes("compileSdkVersion 36") && gradle.includes("targetSdkVersion 36"), "Android API 36");
   report(metadata.wrapper === "webview" && metadata.applicationId === config.applicationId
@@ -22,7 +23,10 @@ try {
     "Native WebView metadata matches release configuration");
   report(config.applicationId === "com.markom91.nextjob" && config.versionCode >= 2, "Existing Play identity and updated version code");
   report(![gradle, manifest, java].some((text) => /androidbrowserhelper|TrustedWebActivity|DelegationService|DigitalGoodsRequestHandler/.test(text)),
-    "No TWA runtime or unimplemented native billing bridge");
+    "No TWA runtime");
+  report(gradle.includes("com.android.billingclient:billing:9.1.0") && manifest.includes("com.android.vending.BILLING")
+    && billing.includes("setObfuscatedAccountId") && billing.includes("/api/payments/google-play")
+    && !billing.includes("addJavascriptInterface("), "Native Play Billing with server verification and no JavaScript interface");
   report(manifest.includes('android:allowBackup="false"') && manifest.includes('android:usesCleartextTraffic="false"')
     && !/android.permission.(CAMERA|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|ACCESS_FINE_LOCATION)/.test(manifest),
     "Private app state; HTTPS only; no broad file or device permissions");
@@ -81,8 +85,8 @@ if (process.argv.includes("--public")) {
     report(true, "Android SDK 36 located");
   } catch (error) { report(false, "Android SDK 36", error.message); }
   report(false, "Android paid CV checkout", "Google Play product and server purchase verification remain unconfigured; the separate web Stripe flow does not complete Play Billing");
-  report(false, "Privacy and Data safety", "Current web privacy page is a placeholder; retention/deletion and third-party disclosures need completion");
-  report(false, "Play release and device QA", "A signed bundle has been prepared locally; Google Play upload and physical-device tests are still pending");
+  report(false, "Privacy and Data safety", "Review saved disclosures before enabling payments or email");
+  report(false, "Play release and device QA", "Version 0.1.1 is in closed testing; the billing-enabled build needs compilation, upload and purchase/device QA");
 }
 console.log(process.argv.includes("--public")
   ? "This reports technical launch gaps, not Google Play approval. See README.md for the remaining release work."

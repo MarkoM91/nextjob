@@ -1,0 +1,10 @@
+<resources>
+    <string name="billing_title">Dit cv downloaden</string>
+    <string name="billing_confirm">Eenmalige betaling: %1$s. PDF, DOCX en TXT zijn inbegrepen. Download hetzelfde cv %2$d dagen gratis opnieuw. Geen abonnement.</string>
+    <string name="billing_continue">Doorgaan naar Google Play</string>
+    <string name="billing_unavailable">Betalen via Google Play is niet beschikbaar. Je cv is opgeslagen en het voorbeeld blijft gratis. Probeer het opnieuw.</string>
+    <string name="billing_failed">De betaling is niet voltooid. Je cv is opgeslagen. Controleer je aankopen voordat je opnieuw betaalt.</string>
+    <string name="billing_pending">Je betaling wordt gecontroleerd. Betaal niet opnieuw. Open NextJOB met internetverbinding om de controle af te ronden.</string>
+    <string name="billing_price_changed">De Google Play-prijs komt niet overeen met dit aanbod. Er is geen betaling gestart. Probeer het later opnieuw.</string>
+    <string name="billing_test_only">Testbetaling: gebruik alleen een Google Play-testbetaalmethode. Annuleer als een echte betaalmethode wordt getoond.</string>
+</resources>

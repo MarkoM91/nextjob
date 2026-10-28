@@ -1,5 +1,13 @@
 <resources>
     <string name="app_name">NextJOB</string>
+    <string name="billing_title">Download this CV</string>
+    <string name="billing_confirm">One-time payment: %1$s. PDF, DOCX and TXT are included, with free repeat downloads of this CV for %2$d days. No subscription.</string>
+    <string name="billing_continue">Continue to Google Play</string>
+    <string name="billing_unavailable">Google Play checkout is unavailable. Your CV is saved and its preview is free. Please try again.</string>
+    <string name="billing_failed">Payment was not completed. Your CV is saved. Check your purchases before trying another payment.</string>
+    <string name="billing_pending">Your payment is being checked. Do not pay again. Reopen NextJOB with an internet connection to finish confirmation.</string>
+    <string name="billing_price_changed">The Google Play price does not match this offer. No payment was started. Please try again later.</string>
+    <string name="billing_test_only">Test checkout: use a Google Play test payment method only. Cancel if a real payment method is shown.</string>
     <string name="loading">Opening your workspace…</string>
     <string name="retry">Try again</string>
     <string name="connection_title">Connection unavailable</string>

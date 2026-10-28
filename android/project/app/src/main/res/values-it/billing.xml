@@ -1,0 +1,10 @@
+<resources>
+    <string name="billing_title">Scarica questo CV</string>
+    <string name="billing_confirm">Pagamento una tantum: %1$s. Include PDF, DOCX e TXT e download gratuiti dello stesso CV per %2$d giorni. Nessun abbonamento.</string>
+    <string name="billing_continue">Continua su Google Play</string>
+    <string name="billing_unavailable">Il pagamento Google Play non è disponibile. Il CV è salvato e l’anteprima è gratuita. Riprova.</string>
+    <string name="billing_failed">Il pagamento non è stato completato. Il CV è salvato. Controlla gli acquisti prima di pagare di nuovo.</string>
+    <string name="billing_pending">Stiamo verificando il pagamento. Non pagare di nuovo. Riapri NextJOB con una connessione Internet per completare la verifica.</string>
+    <string name="billing_price_changed">Il prezzo di Google Play non corrisponde all’offerta. Nessun pagamento è stato avviato. Riprova più tardi.</string>
+    <string name="billing_test_only">Pagamento di prova: usa solo un metodo di pagamento di test Google Play. Annulla se compare un metodo reale.</string>
+</resources>

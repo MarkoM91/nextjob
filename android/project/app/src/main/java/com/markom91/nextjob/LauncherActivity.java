@@ -51,6 +51,7 @@ public final class LauncherActivity extends Activity {
     private final ExecutorService downloads = Executors.newSingleThreadExecutor();
     private WebUrlPolicy urls;
     private CvDownloadPolicy downloadPolicy;
+    private PlayBillingController billing;
     private WebView webView, popup;
     private ProgressBar progress, spinner;
     private LinearLayout status;
@@ -83,6 +84,9 @@ public final class LauncherActivity extends Activity {
         root.requestApplyInsets();
         webView = new WebView(this);
         configureWebView();
+        billing = new PlayBillingController(this, urls, getString(R.string.app_origin), url -> {
+            if (!destroyed && webView != null && urls.isOwnOrigin(webView.getUrl())) webView.loadUrl(url);
+        });
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setMax(100);
@@ -198,6 +202,7 @@ public final class LauncherActivity extends Activity {
 
     private boolean route(String url, boolean userGesture) {
         if (urls.isOwnOrigin(url)) {
+            if (billing != null && billing.handle(url)) return true;
             String path = Uri.parse(url).getPath();
             if (path != null && path.startsWith("/api/auth/") && path.endsWith("/start")) {
                 new AlertDialog.Builder(this).setMessage(R.string.social_login_unavailable)
@@ -388,9 +393,10 @@ public final class LauncherActivity extends Activity {
         if (webView != null) webView.onPause();
         CookieManager.getInstance().flush(); super.onPause();
     }
-    @Override protected void onResume() { super.onResume(); if (webView != null) webView.onResume(); }
+    @Override protected void onResume() { super.onResume(); if (webView != null) webView.onResume(); if (billing != null) billing.resume(); }
     @Override protected void onDestroy() {
         destroyed = true; cancelFileChooser(); pendingDownload = null; downloads.shutdownNow();
+        if (billing != null) billing.close();
         if (popup != null) popup.destroy();
         if (webView != null) { webView.stopLoading(); webView.destroy(); webView = null; }
         super.onDestroy();
