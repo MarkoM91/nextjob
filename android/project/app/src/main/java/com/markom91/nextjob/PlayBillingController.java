@@ -36,6 +36,7 @@ final class PlayBillingController {
     private final WebUrlPolicy urls;
     private final String origin;
     private final Consumer<String> navigate;
+    private final Runnable refresh;
     private final SharedPreferences preferences;
     private final ExecutorService network = Executors.newSingleThreadExecutor();
     private final Set<String> processing = new HashSet<>();
@@ -44,8 +45,9 @@ final class PlayBillingController {
     private JSONObject activeOrder;
     private String activeFormat = "pdf";
 
-    PlayBillingController(Activity activity, WebUrlPolicy urls, String origin, Consumer<String> navigate) {
+    PlayBillingController(Activity activity, WebUrlPolicy urls, String origin, Consumer<String> navigate, Runnable refresh) {
         this.activity = activity; this.urls = urls; this.origin = origin; this.navigate = navigate;
+        this.refresh = refresh;
         preferences = activity.getSharedPreferences("play-orders", Activity.MODE_PRIVATE);
         client = BillingClient.newBuilder(activity).setListener((result, purchases) -> activity.runOnUiThread(() -> {
             if (closed) return;
@@ -57,7 +59,7 @@ final class PlayBillingController {
                 message(R.string.billing_pending);
             } else if (result.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED) {
                 if (activeOrder != null) go(activeOrder.optString("returnUrl"));
-            } else { message(R.string.billing_failed); }
+            } else { fail(R.string.billing_failed); }
         })).enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
                 .enableAutoServiceReconnection().build();
     }
@@ -85,7 +87,7 @@ final class PlayBillingController {
         String orderId = Uri.parse(url).getQueryParameter("order");
         String format = Uri.parse(url).getQueryParameter("format");
         if (orderId == null || !orderId.matches("[a-fA-F0-9-]{36}") || !validFormat(format)) { message(R.string.billing_failed); return true; }
-        if (!client.isReady()) { resume(); message(R.string.billing_unavailable); return true; }
+        if (!client.isReady()) { resume(); fail(R.string.billing_unavailable); return true; }
         busy = true; activeFormat = format;
         // Store only opaque order/format metadata, never payment tokens or CV content.
         preferences.edit().putString("format:" + orderId, format).apply();
@@ -138,7 +140,7 @@ final class PlayBillingController {
                                 if (launch.getResponseCode() != BillingClient.BillingResponseCode.OK) {
                                     busy = false;
                                     if (launch.getResponseCode() == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED) recover();
-                                    message(R.string.billing_failed);
+                                    fail(R.string.billing_failed);
                                 }
                             }).show();
                 }));
@@ -204,6 +206,6 @@ final class PlayBillingController {
     private void message(int resource) {
         if (!closed && !activity.isFinishing()) new AlertDialog.Builder(activity).setMessage(resource).setPositiveButton(android.R.string.ok, null).show();
     }
-    private void fail(int resource) { activity.runOnUiThread(() -> { if (!closed) { busy = false; message(resource); } }); }
+    private void fail(int resource) { activity.runOnUiThread(() -> { if (!closed) { busy = false; refresh.run(); message(resource); } }); }
     void close() { closed = true; network.shutdownNow(); client.endConnection(); processing.clear(); }
 }

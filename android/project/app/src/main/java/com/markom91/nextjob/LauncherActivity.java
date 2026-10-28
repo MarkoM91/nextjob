@@ -86,7 +86,7 @@ public final class LauncherActivity extends Activity {
         configureWebView();
         billing = new PlayBillingController(this, urls, getString(R.string.app_origin), url -> {
             if (!destroyed && webView != null && urls.isOwnOrigin(webView.getUrl())) webView.loadUrl(url);
-        });
+        }, () -> { if (!destroyed && webView != null && urls.isOwnOrigin(webView.getUrl())) webView.reload(); });
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setMax(100);
