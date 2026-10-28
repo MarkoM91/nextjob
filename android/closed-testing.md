@@ -1,5 +1,34 @@
 # NextJOB closed-test preparation
 
+## Current status — verified 2026-10-27
+
+This section supersedes the October 25 preparation record below.
+
+**October 28 payment update:** the owner reports completing payout-method setup and account-group/service-fee enrollment. Candidate 0.1.2/code 3 now includes native Play Billing and server verification, with sales disabled until configuration and controlled purchase QA. The existing closed test remains separate; see `play-billing.md`.
+
+- Google approved and published **0.1.1 WebView closed test**, version code **2**, on October 25. The Alpha track is active and available to selected testers.
+- Google's production-access checklist confirms **Publish a closed testing release** and **Have at least 12 testers opted-in**. The 14-day continuous testing requirement is incomplete; **Apply for production** is disabled.
+- Testers Community shows **15 of 15 testers**, **In Progress / Active**, and **0 of 2 reports**. Overview shows zero completed days; Progress shows **day 1 of 16**, with 15 days remaining. This service timeline is separate from Google's eligibility decision.
+- The service submission was made on **October 26**, using the existing Starter credit. That credit is spent; do not buy another credit for this submission.
+- Closed-test invitation: https://play.google.com/apps/testing/com.markom91.nextjob
+- Service submission: https://www.testerscommunity.com/app-details/aIM4ecqP0v6pOLsY1bWb
+- All 178 countries/regions and `testers-community@googlegroups.com` are enabled for the track.
+- Production access has not been granted and no public production release is available.
+
+Tester instructions cover fictional/anonymised CV upload, profile confirmation, city/preferences, local jobs and country filters, tailored preview/designs, saved jobs, Applications, Android Back, reopening and connection recovery. Paid exports and email delivery remain disabled. No purchases or real applications are required. Use the sample CV linked below; never publish the owner's private CV or CV-preview screenshot.
+
+### Remaining launch work
+
+1. Continue testing and review reports as they become available. Keep at least 12 testers continuously opted in for 14 days; do not promise a production date based on the provider's counter.
+2. Complete the extended device checks in `qa.md`. Existing phone QA is owner-reported rather than independent execution of the full matrix.
+3. The [Google Payments merchant profile](https://play.google.com/console/u/0/developers/6141994627423060663/paymentssettings) is created and the owner reports completing the remaining account steps. The one-time products page last required an uploaded build with the BILLING permission. Upload the new candidate to internal testing, then configure the product and backend API access.
+4. Finish controlled Play Billing purchase/recovery QA before enabling the €1.50 Android download. Backend mock/integration tests do not establish actual Google purchase behavior. Web Stripe also remains unconfigured.
+5. Apply for production access once available, answer Google's testing questions accurately, and submit a production release after access is granted. Recheck privacy and Play declarations when enabling new features.
+
+Domain purchase and Resend activation are explicitly postponed. They do not block the current closed test. The in-app job-alert checker ran successfully on October 27 with zero errors and zero opted-in workspaces; this does not verify actual notification delivery or scheduled hourly execution.
+
+## Historical preparation record — 2026-10-25
+
 Checked **2026-10-25**. The internal release remains available. The closed
 release and listing have been submitted: Publishing overview shows **Changes
 in review**, with automated quick checks still running before review proceeds.

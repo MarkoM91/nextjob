@@ -54,6 +54,15 @@ export const billingEvents = sqliteTable("billing_events", {
   id: id(), provider: text("provider").notNull(), eventId: text("event_id").notNull(), processedAt: integer("processed_at").notNull(),
 }, (table) => [uniqueIndex("uq_billing_event_provider").on(table.provider, table.eventId)]);
 
+export const billingPlayTokens = sqliteTable("billing_play_tokens", {
+  tokenHash: text("token_hash").primaryKey(), orderId: text("order_id").notNull().references(() => billingOrders.id),
+  tokenEncrypted: text("token_encrypted").notNull(), verifiedAt: integer("verified_at").notNull(), consumedAt: integer("consumed_at"),
+}, table => [uniqueIndex("uq_billing_play_order").on(table.orderId)]);
+export const billingPlayOrders = sqliteTable("billing_play_orders", {
+  orderId: text("order_id").primaryKey().references(() => billingOrders.id), accountId: text("account_id").notNull(),
+  mode: text("mode").notNull(), purchaseOptionId: text("purchase_option_id").notNull(), allowTest: integer("allow_test").notNull(),
+});
+
 export const users = sqliteTable("users", {
   id: id(), email: text("email").notNull(), displayName: text("display_name"), locale: text("locale").notNull().default("en"), role: text("role").notNull().default("user"), createdAt: createdAt(), updatedAt: updatedAt(), deletedAt: deletedAt(),
 }, (table) => [uniqueIndex("uq_users_email").on(table.email)]);

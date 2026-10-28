@@ -41,7 +41,7 @@ Defaults are `CV_DOWNLOAD_PRICE_CENTS=150`, `BILLING_CURRENCY=eur`, `CV_DOWNLOAD
 
 Configure `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and the stable HTTPS `PAYMENTS_PUBLIC_ORIGIN` through Site secrets. Optionally set `STRIPE_CV_DOWNLOAD_PRICE_ID` to a predefined Stripe price; the backend verifies the price is active, one-time and matches the configured amount/currency. Otherwise the backend creates an inline price, optionally attached to `STRIPE_CV_DOWNLOAD_PRODUCT_ID`.
 
-Only set `PAYMENTS_ENABLED=true` after the D1 migration, private R2 storage and reachable webhook have been tested. A private Sites hosting gate currently prevents unauthenticated Stripe webhook deliveries and ordinary Android users from accessing the app. Website publishing/access changes are a separate release step; this implementation preserves the existing Site audience.
+Only set `PAYMENTS_ENABLED=true` after the D1 migration, private R2 storage and reachable webhook have been tested. The existing Site is public; owner-scoped records and private storage still protect CVs. Stripe credentials and checkout tests remain required before web activation.
 
 Register `/api/payments/webhook` for:
 
@@ -56,7 +56,7 @@ To offer subscriptions later, create a monthly recurring Stripe price matching t
 
 ## Android and release limits
 
-The Android launch marker and Digital Goods feature detection select the Android payment surface. Android checkout currently fails closed with `PLAY_BILLING_NOT_CONFIGURED`, rather than falling back to Stripe. Google Play's Digital Goods/purchase-verification adapter still needs implementation and Play Console configuration before paid Android release. Provider columns and shared entitlements allow adding this adapter without changing the business models.
+The Android launch marker selects the native payment surface without a Stripe fallback. Candidate **0.1.2 / code 3** integrates Play Billing Library 9.1.0; the existing closed-test build 0.1.1 remains unable to buy. Real charges are disabled by default. See `android/play-billing.md` for configuration, the server-verification model and required purchase QA.
 
 No live Stripe credentials have been supplied or real charges made during implementation. After a one-time purchase, the user can copy a private signed recovery link. It grants only that purchased CV, expires with the original grant, is checked against current refund/revocation state and does not restore or expose the rest of the guest workspace. Someone who has the link can download that CV, so the UI explicitly asks the user to keep it private. No recovery emails are automatically sent. Losing both the workspace cookie and the recovery link still requires support at the owner-approved public contact **markoaffari@gmail.com**. Clearing a browser cookie does not delete server-side CV files or payment records.
 

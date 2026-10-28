@@ -8,6 +8,8 @@ import { currentCv, freezeCvVersion, readCvVersion } from "../../../../lib/billi
 import { cvAccess, reserveOrder, saveCvRecord, pendingOrder } from "../../../../lib/billing-store";
 import { fulfillStripeSession, stripeRequest, validatePrice, type StripeSession } from "../../../../lib/stripe-billing";
 import { assertSameOrigin, clientKey, rateLimit } from "../../../../lib/security";
+import { billingCapableApp, playSalesReady, PlayError } from "../../../../lib/google-play-api";
+import { reservePlayOrder } from "../../../../lib/google-play-order";
 
 const schema = z.object({ jobId: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/), format: z.enum(["pdf", "docx", "txt"]).default("pdf"), model: z.enum(["pay_per_download", "monthly_subscription"]).default("pay_per_download"), versionId: z.string().regex(/^cv_[a-f0-9]{64}$/).optional(), expectedAmountCents: z.number().int().positive().optional() });
 const respond = (body: object, status = 200, cookie?: string) => Response.json(body, { status, headers: { "cache-control": "private, no-store", ...(cookie ? { "set-cookie": cookie } : {}) } });
@@ -32,7 +34,9 @@ export async function GET(request: Request) {
     const snapshot = user ? requested.data ? await readCvVersion(storage, owner, requested.data) : job ? await currentCv(storage, owner, job) : null : null;
     const access = await cvAccess(db, owner, snapshot?.id ?? "");
     const android = request.headers.get("x-nextjob-platform") === "android";
-    return respond({ available: Boolean(snapshot && (access.allowed || ready(db, storage) && !android)), purchased: access.purchased, subscription: access.subscription, expiresAt: access.expiresAt, versionId: snapshot?.id ?? null, job: snapshot?.job ?? job ?? null, price: catalog.download.label, amountCents: catalog.download.amountCents, redownloadDays: catalog.download.redownloadDays, subscriptionOffer: catalog.subscription, provider: android ? "google_play" : "stripe", code: android && !access.allowed ? "PLAY_BILLING_NOT_CONFIGURED" : snapshot ? undefined : "CV_NOT_READY" });
+    const playReady = Boolean(db && storage && playSalesReady() && billingCapableApp(request.headers.get("user-agent") ?? ""));
+    const pending = db && snapshot && !access.allowed ? await db.prepare("SELECT o.id FROM billing_orders o JOIN billing_play_tokens t ON t.order_id = o.id WHERE o.owner_id = ? AND o.cv_version_id = ? AND o.status = 'pending' LIMIT 1").bind(owner, snapshot.id).first() : null;
+    return respond({ available: Boolean(snapshot && (access.allowed || !pending && (android ? playReady : ready(db, storage)))), purchased: access.purchased, subscription: access.subscription, expiresAt: access.expiresAt, versionId: snapshot?.id ?? null, job: snapshot?.job ?? job ?? null, price: catalog.download.label, amountCents: catalog.download.amountCents, redownloadDays: catalog.download.redownloadDays, subscriptionOffer: catalog.subscription, provider: android ? "google_play" : "stripe", code: pending ? "PAYMENT_PENDING" : android && !access.allowed && !playReady ? "PLAY_BILLING_NOT_CONFIGURED" : snapshot ? undefined : "CV_NOT_READY" });
   } catch {
     return respond({ error: "We couldn’t check download access. Your preview is still free; try again.", code: "BILLING_UNAVAILABLE" }, 503);
   }
@@ -64,7 +68,14 @@ export async function POST(request: Request) {
       return respond({ downloadUrl: downloadPath(jobId, snapshot.id, format), reused: true, state: access.subscription.active ? "subscription_active" : "already_purchased" }, 200, setCookie);
     }
     // Never send Play-distributed Android users into an unconfigured web checkout.
-    if (request.headers.get("x-nextjob-platform") === "android") return respond({ error: "Android purchases are not available yet. You can still create and preview your CV for free.", code: "PLAY_BILLING_NOT_CONFIGURED" }, 503, setCookie);
+    if (request.headers.get("x-nextjob-platform") === "android") {
+      if (!playSalesReady() || !billingCapableApp(request.headers.get("user-agent") ?? "")) return respond({ error: "Android purchases are not available yet. You can still create and preview your CV for free.", code: "PLAY_BILLING_NOT_CONFIGURED" }, 503, setCookie);
+      if (model !== "pay_per_download") return respond({ error: "Subscriptions are not offered yet.", code: "SUBSCRIPTIONS_DISABLED" }, 409, setCookie);
+      if (parsed.data.expectedAmountCents !== undefined && parsed.data.expectedAmountCents !== catalog.download.amountCents) return respond({ error: "The price has changed. Review the updated price before continuing.", code: "PRICE_CHANGED", price: catalog.download.label }, 409, setCookie);
+      await freezeCvVersion(storage, snapshot); await saveCvRecord(db, snapshot);
+      const order = await reservePlayOrder(db, owner, snapshot, catalog);
+      return respond({ checkoutUrl: `/android-billing?${new URLSearchParams({ order: order.id, format })}`, versionId: snapshot.id, provider: "google_play" }, 200, setCookie);
+    }
     if (!ready(db, storage)) return respond({ error: "Payments are not available yet. Your CV is saved and its preview remains free.", code: "PAYMENTS_NOT_CONFIGURED" }, 503, setCookie);
     if (model === "monthly_subscription" && !catalog.subscription.enabled) return respond({ error: "Subscriptions are not offered yet. You can pay once for a CV download.", code: "SUBSCRIPTIONS_DISABLED" }, 409, setCookie);
     const item = model === "pay_per_download" ? catalog.download : catalog.subscription;
@@ -114,6 +125,7 @@ export async function POST(request: Request) {
     await db.prepare("UPDATE billing_orders SET provider_checkout_id = ? WHERE id = ?").bind(checkout.id, order.id).run();
     return respond({ checkoutUrl: checkout.url, price: model === "pay_per_download" ? catalog.download.label : catalog.subscription.label, versionId: snapshot.id }, 200, setCookie);
   } catch (error) {
+    if (error instanceof PlayError) return respond({ error: "Your payment is still being confirmed. Check again shortly; do not pay a second time.", code: error.code }, error.status, setCookie);
     const reason = error instanceof Error ? error.message : "";
     const code = ["CV_NOT_READY", "PAYMENTS_NOT_CONFIGURED", "SUBSCRIPTIONS_NOT_CONFIGURED", "PRICE_NOT_CONFIGURED", "PRICE_CONFIGURATION_MISMATCH"].includes(reason) ? reason : "PAYMENT_PROVIDER_ERROR";
     return respond({ error: code === "CV_NOT_READY" ? "Your CV is still being saved. Return to the preview and try again." : "Checkout could not be started. Your CV is saved; please try again.", code }, code === "CV_NOT_READY" ? 409 : 502, setCookie);

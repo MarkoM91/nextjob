@@ -1,6 +1,7 @@
 import type { BillingCatalog, PaymentModel } from "./payment";
 import type { CvSnapshot } from "./billing-cv";
 import { versionKey } from "./billing-cv";
+import { checkPlayEntitlement } from "./google-play-billing";
 
 export type BillingOrder = {
   id: string; owner_id: string; cv_version_id: string; job_id: string | null; model: PaymentModel;
@@ -18,7 +19,8 @@ export async function subscriptionState(db: D1Database | undefined, ownerId: str
 
 export async function cvAccess(db: D1Database | undefined, ownerId: string, versionId: string) {
   const subscription = await subscriptionState(db, ownerId);
-  const row = db && versionId ? await db.prepare("SELECT expires_at FROM billing_entitlements WHERE owner_id = ? AND cv_version_id = ? AND revoked_at IS NULL AND expires_at > ? ORDER BY expires_at DESC LIMIT 1").bind(ownerId, versionId, Date.now()).first<{ expires_at: number }>() : null;
+  let row = db && versionId ? await db.prepare("SELECT e.expires_at, e.order_id, o.provider FROM billing_entitlements e JOIN billing_orders o ON o.id = e.order_id WHERE e.owner_id = ? AND e.cv_version_id = ? AND e.revoked_at IS NULL AND e.expires_at > ? ORDER BY e.expires_at DESC LIMIT 1").bind(ownerId, versionId, Date.now()).first<{ expires_at: number; order_id: string; provider: string }>() : null;
+  if (row?.provider === "google_play" && db && !await checkPlayEntitlement(db, row.order_id)) row = null;
   return { allowed: Boolean(row) || subscription.active, purchased: Boolean(row), expiresAt: row?.expires_at ?? null, subscription };
 }
 
@@ -27,7 +29,7 @@ export async function saveCvRecord(db: D1Database, snapshot: CvSnapshot) {
 }
 
 export async function pendingOrder(db: D1Database, ownerId: string, versionId: string, model: PaymentModel): Promise<BillingOrder | null> {
-  return db.prepare("SELECT * FROM billing_orders WHERE owner_id = ? AND cv_version_id = ? AND model = ? AND status = 'pending' LIMIT 1").bind(ownerId, versionId, model).first<BillingOrder>();
+  return db.prepare("SELECT * FROM billing_orders WHERE owner_id = ? AND cv_version_id = ? AND model = ? AND provider = 'stripe' AND status = 'pending' LIMIT 1").bind(ownerId, versionId, model).first<BillingOrder>();
 }
 
 export async function reserveOrder(db: D1Database, ownerId: string, snapshot: CvSnapshot | null, model: PaymentModel, catalog: BillingCatalog): Promise<BillingOrder | null> {

@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "node --experimental-strip-types --test tests/domain.test.ts tests/generation.test.ts tests/auth.test.ts tests/i18n.test.ts",
     "test:alerts": "node --experimental-strip-types --import ./tests/alerts-loader.mjs --test tests/alerts.test.mjs",
-    "test:integration": "node --experimental-strip-types --import ./tests/cloudflare-loader.mjs --test tests/integration.test.mjs tests/payment.integration.test.mjs tests/cv-preview.integration.test.mjs tests/matches.integration.test.mjs tests/profile.integration.test.mjs tests/cv-upload.integration.test.mjs tests/locale.integration.test.mjs tests/notifications.integration.test.mjs",
+    "test:integration": "node --experimental-strip-types --import ./tests/cloudflare-loader.mjs --test tests/integration.test.mjs tests/payment.integration.test.mjs tests/play-billing.integration.test.mjs tests/cv-preview.integration.test.mjs tests/matches.integration.test.mjs tests/profile.integration.test.mjs tests/cv-upload.integration.test.mjs tests/locale.integration.test.mjs tests/notifications.integration.test.mjs",
     "test": "npm run build && npm run test:unit && npm run test:alerts && npm run test:integration",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "node --require ./scripts/node-userinfo-workaround.cjs ./node_modules/drizzle-kit/bin.cjs generate",

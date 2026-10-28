@@ -2,6 +2,8 @@
 
 Use a fictional CV, the rebuilt 0.1.1/code-2 APK for initial checks and then the Play-installed closed-test build. Record device, Android/WebView versions, app version and install source. JVM/source checks do not establish device behavior.
 
+Billing candidate 0.1.2/code 3 additionally requires the controlled license-tester purchase matrix in `play-billing.md`. None of those real-device purchase checks are implied by passing backend mocks or the owner's earlier 0.1.1 phone checks. Keep sales disabled until they pass.
+
 ## Owner's phone check — 2026-10-25
 
 The owner reported "everything seems to work" after being asked to check CV

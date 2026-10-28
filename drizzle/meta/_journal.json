@@ -36,6 +36,13 @@
       "when": 1792955778278,
       "tag": "0004_loose_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793207161964,
+      "tag": "0005_tan_spectrum",
+      "breakpoints": true
     }
   ]
 }

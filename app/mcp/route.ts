@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { runAlertChecks } from "../../lib/alert-checker";
 import { assertSameOrigin } from "../../lib/security";
+import { retryPlayConsumptions } from "../../lib/google-play-billing";
 // Sites authenticates MCP callers. Only the configured, verified Site owner may
 // run this system-wide task; a guest/app cookie never grants scheduler access.
 function isOwner(request: Request) {
@@ -22,7 +23,11 @@ export async function POST(request: Request) {
   if (body?.method === "tools/call" && body.params?.name === "check_job_alerts") {
     const { DB, DOCUMENTS } = env as unknown as { DB?: D1Database; DOCUMENTS?: R2Bucket };
     if (!DB) return reply({ content: [{ type: "text", text: "Database unavailable" }], isError: true });
-    try { return reply({ content: [{ type: "text", text: JSON.stringify(await runAlertChecks(DB, DOCUMENTS)) }] }); }
+    try {
+      const alerts = await runAlertChecks(DB, DOCUMENTS);
+      const billing = await retryPlayConsumptions(DB);
+      return reply({ content: [{ type: "text", text: JSON.stringify({ ...alerts, billing }) }] });
+    }
     catch { return reply({ content: [{ type: "text", text: "Job alert run failed; retry on the next scheduled run." }], isError: true }); }
   }
   return Response.json({ jsonrpc: "2.0", id: body?.id ?? null, error: { code: -32601, message: "Method not found" } }, { status: 400 });
